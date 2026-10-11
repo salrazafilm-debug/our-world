@@ -40,7 +40,7 @@ used solely for a 40-line static file server.
 ```bash
 npm run check        # syntax-check every inline script + verify the geo pack decodes
 npm run build        # → dist/our-world.html, one self-contained file
-npm run build:site   # → docs/index.html, the static site GitHub Pages serves
+npm run build:site   # → index.html, the static site GitHub Pages serves
 ```
 
 There is **no build step for normal development.** Edit `src/index.html`,
