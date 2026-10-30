@@ -14,7 +14,7 @@ const html = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
 const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 console.log('inline scripts in src/index.html: ' + blocks.length);
 blocks.forEach((b, i) => check('src/index.html #' + (i + 1), b));
-check('src/geo.js', fs.readFileSync(path.join(ROOT, 'src', 'geo.js'), 'utf8'));
+['geo.js', 'config.js', 'cloud.js'].forEach(n => check('src/' + n, fs.readFileSync(path.join(ROOT, 'src', n), 'utf8')));
 
 // geography pack must decode
 const g = {};

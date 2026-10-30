@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Our World</title>
 <meta name="description" content="A pixel-art map of real places, drawn without map tiles. The world starts under cloud and clears where you have been.">
+<meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#FFF8FB">
 <meta property="og:title" content="Our World">
 <meta property="og:description" content="A pixel-art map of real places, drawn without map tiles. The world starts under cloud and clears where you have been.">
@@ -17,12 +18,7 @@
   img { max-width: 100%; }
   [hidden] { display: none !important; }
 </style>
-<script>
-/* The open build. There is no Claude Artifact runtime here, so window.claude is
-   absent and the app takes its local-first path by design. This flag only
-   changes the copy that explains why nothing syncs. */
-window.__OW_PUBLIC = true;
-</script>
+<script src="vendor/supabase.js"></script>
 </head>
 <body>
 <!--#include src/index.html -->

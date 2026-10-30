@@ -15,18 +15,25 @@ plus the Midwest fits in about 48KB of embedded vector data.
 
 ## What this repository is
 
-This is the **open build**: the full map engine, with no database behind it and
-no personal content in it. Pins you drop are saved in your own browser and
-nowhere else — there is no server, no account, and nothing is sent anywhere.
+A private two-person map. The page is static and public, but it opens on a
+sign-in screen: every pin, memory, letter and photo lives in Supabase behind
+row-level security, so only the two signed-in accounts can read or write
+anything. Photos sit in a private bucket and are shown through short-lived
+signed links.
 
-The version the two of us actually use runs as a private Claude Artifact, where
-a shared database syncs both our phones and photos go to real object storage.
-Everything about that integration is in **Storage / database** below, including
-what to replace to put it on Supabase or Firebase instead. Swapping that layer
-is the one piece of real work left; the map does not care which backend it is
-talking to.
+### One-time Supabase setup
 
----
+1. **SQL Editor** → paste `supabase/schema.sql` → Run. Creates the table, the
+   private `photos` bucket, the security rules and live updates.
+2. **Authentication → Users → Add user**: create two users (email + password,
+   *Auto Confirm* ticked).
+3. **Authentication → Sign In / Providers**: turn **Allow new users to sign up
+   OFF**. This is what keeps everyone else out.
+4. The project URL and publishable key go in `src/config.js`. The publishable
+   key is meant to be public. **Never** put the `service_role` key anywhere.
+
+After editing anything in `src/`, run `npm run build` to regenerate the root
+`index.html` that gets deployed.
 
 ## Run it
 
@@ -165,30 +172,21 @@ produces 26 radius multipliers. Same region, same wobble, forever.
 
 ## Storage / database
 
-**Local-first, three tiers, merged by id.** This is the most important thing to
-understand before you touch anything.
+**Local-first, merged by id.** The adapter in `src/cloud.js` presents the
+small surface the app was written against (`collection().get/onSnapshot`,
+`doc().get/set/update/delete`, `assets.upload`) on top of Supabase, so the rest
+of the page does not care what is behind it. All collections share one table,
+`docs(collection, id, data jsonb)`.
 
-1. **Page seeds** — key places and memories compiled into `src/index.html`
-   (`SEED_REGIONS`, `SEED_MEMORIES`). Always present. No permissions, no
-   account, works offline.
-2. **Device cache** — every read and write also lands in `localStorage`
-   (`ow.cache.*`). Your own edits outrank page seeds.
-3. **Shared database** — the Claude Artifacts `db` capability, reached via
-   `await window.claude.use('db')`.
+1. **Device cache** — every read and write also lands in `localStorage`
+   (`ow.cache.*`) and is cleared on sign-out.
+2. **Shared database** — Supabase, read once on load, then refreshed whenever a
+   realtime change event arrives.
 
-**The page must render a complete world with zero successful network reads.**
-That is a hard requirement, not an optimisation.
+**Write path:** device first → then the shared world → tell the user plainly if
+the shared write failed. The pin exists either way.
 
-**Write path:** device first → then attempt the shared world → tell the user
-plainly if the shared write failed. The pin exists either way.
-
-**Read path:** one-shot `.get()` on load, **then** `.onSnapshot()` for live
-updates. A subscription can die on its own; the initial read still fills the
-world. *Never subscribe without an initial read* — see Known bugs.
-
-**Deletes** write a tombstone document so a removal sticks on every device even
-if the delete itself is refused. Retired ids are also blocklisted in the page
-so a stale cached copy cannot resurrect them.
+**Deletes** write a tombstone document so a removal sticks on every device.
 
 ### Collections
 
@@ -204,65 +202,18 @@ Writes are last-writer-wins. There are no transactions.
 
 ### Photo storage
 
-Photos go to the Artifacts `assets` capability:
-`(await claude.use('assets')).upload(blob)` → `{id, url}`. The asset id is
-stored on the memory as `assetId`, the URL as `photoUrl` (`/_blob/<id>`).
-
-Images are downscaled to max 1100px and JPEG-encoded at 0.82 before upload.
-
-**Fallback:** if `assets` is unavailable (it is writer-only), the image is
-re-encoded at decreasing quality until it fits under ~170KB and stored inline
-as a data URL on the memory document. If it can't fit, the memory saves without
-the photo and the user is told.
-
-**Rendering:** a stored photo may be a data URL, `/_blob/<id>`, `_blob/<id>`,
-or just an asset id. `photoCandidates()` tries each shape in turn with an
-`onerror` chain, and falls back to a visible *"Photo saved, but it will not
-load here"* placeholder rather than a broken frame. Keep that chain — the
-exact URL shape has changed underneath us before.
-
-> Assets are scoped to a single artifact. Republishing the same artifact keeps
-> them; **publishing to a new artifact does not carry photos across.** That is
-> the main cost of ever moving to a new artifact URL.
+Photos go to the private Supabase bucket `photos` as `<user id>/<id>.jpg`. The
+memory stores only the path (`assetId`); the app swaps it for a signed link that
+lasts four hours each time memories load. Images are downscaled to max 1100px
+and JPEG-encoded at 0.82 before upload.
 
 ---
 
 ## Deployment
 
-Published as a **Claude Artifact**: the fragment `src/index.html` plus
-`geo.js` as a supporting file, with capabilities declared:
-
-```js
-capabilities: {
-  db:     { rules: [ { path: "", read: "view", write: "interact" } ] },
-  assets: {}
-}
-contract: "latest"
-```
-
-Republishing the same artifact keeps the URL, the database and the photos.
-
-The artifact must be **private**, not public. A `db`-declaring artifact is
-organization-internal; public sharing is what appeared to break database reads.
-Both people use the same account, so private costs nothing.
-
-### Hosting it anywhere else
-
-`npm run build` produces `dist/our-world.html`, one self-contained file that
-works on any static host (Netlify, Vercel, GitHub Pages, S3) or opened directly
-from disk. Everything still works **except** the shared database and photo
-upload, which are Claude-runtime features. It degrades to the local-first path
-— the map, fog, discovery, calendar and device-local memories all function.
-
-### Migrating off the Claude runtime
-
-Everything network-facing is behind two calls. Write an adapter exposing
-`collection(name)` with `.get()`, `.onSnapshot()`, `.doc(id).set/update/delete`,
-plus an `upload(blob) → {id, url}`, and point `connect()` at it. Firebase maps
-almost one-to-one; Supabase needs a thin translation. `.env.example` documents
-the variables either would need.
-
----
+Static hosting only (Vercel serves the repo root; `vercel.json` skips the
+build step because `index.html` is committed). `vendor/supabase.js` is the
+pinned supabase-js 2.45.4 browser bundle, served next to the page.
 
 ## Completed features
 

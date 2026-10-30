@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "node dev/serve.js",
     "start": "node dev/serve.js",
-    "build": "node tools/build-standalone.js",
+    "build": "node tools/build-site.js",
     "check": "node tools/check.js",
     "build:site": "node tools/build-site.js"
   },
