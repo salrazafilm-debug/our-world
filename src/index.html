@@ -181,6 +181,25 @@ button{font:inherit;color:inherit;cursor:pointer}
 .whobtn .n{font-family:var(--fdisp); font-size:17px; color:var(--deep)}
 .whobtn .r{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45)}
 
+/* ---------- sign-in gate ---------- */
+body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{visibility:hidden}
+#gate{
+  position:fixed; inset:0; z-index:60; display:grid; place-items:center;
+  background:linear-gradient(160deg,#FFF8FB,#FBE8F1 55%,#F6DCEA); padding:24px 18px;
+}
+#gate[hidden]{display:none}
+#gate .card{width:min(380px,100%); text-align:center; background:var(--panel); border:3px solid var(--deep); box-shadow:0 6px 0 var(--deep); padding:26px 22px 22px}
+#gate h1{font-family:var(--fdisp); font-size:clamp(32px,9vw,44px); margin:0 0 4px; color:var(--deep); letter-spacing:1px}
+#gate p{margin:0 auto 18px; max-width:30ch; color:var(--ink-70); font-size:14px; line-height:1.55}
+#gate label{display:block; text-align:left; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45); margin:0 0 12px}
+#gate input{
+  display:block; width:100%; margin-top:5px; padding:11px 12px; font:inherit; font-size:16px; font-weight:600; color:var(--ink);
+  background:#fff; border:3px solid var(--panel-edge); border-radius:0; outline:none;
+}
+#gate input:focus{border-color:var(--pink)}
+#gate .pxbtn{width:100%; margin-top:4px; padding:12px}
+#gate .gerr{min-height:1.4em; margin:12px auto 0; color:#C2415F; font-weight:700; font-size:13px}
+
 /* ---------- placing mode ---------- */
 #placing{
   position:absolute; left:50%; top:56px; transform:translateX(-50%); z-index:7;
@@ -367,6 +386,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .cal-item img{cursor:zoom-in}
 </style>
 
+<script>document.body.classList.add('locked')</script>
 <div id="app">
   <header id="top">
     <div id="brand">
@@ -487,7 +507,20 @@ button{font:inherit;color:inherit;cursor:pointer}
   </div>
 </div>
 
+<div id="gate" hidden>
+  <form class="card" id="gateForm">
+    <h1>Our World</h1>
+    <p>This world is only for the two of you. Sign in to open it.</p>
+    <label>Email<input id="gEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
+    <label>Password<input id="gPass" type="password" autocomplete="current-password" required></label>
+    <button class="pxbtn primary" type="submit" id="gBtn">Enter our world</button>
+    <p class="gerr" id="gErr" role="alert"></p>
+  </form>
+</div>
+
 <script src="geo.js"></script>
+<script src="config.js"></script>
+<script src="cloud.js"></script>
 <script>
 (function () {
 'use strict';
@@ -504,9 +537,6 @@ var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
   elena: { who:'elena', name:'Princess Elena', label:'Arnold, Maryland', lat:39.0332, lng:-76.5030, r:24 }
 };
-/* The static build served from GitHub Pages sets this. There is no shared
-   world there, so the copy that explains the offline state changes. */
-var PUBLIC_BUILD = !!window.__OW_PUBLIC;
 var REVEAL_KM = 20;          // a discovery clears a region this wide
 var UNLOCK_KM = 3;           // how close you must be for a sealed letter to open
 var PIXEL = 3;               // map pixel-art block size (css px)
@@ -793,14 +823,8 @@ function mergeById(a, b) {
   return out;
 }
 
-var SEED_REGIONS = [
-  { id:'seed-bushkill', name:'Bushkill Falls', lat:41.1165, lng:-75.0121, r:20, by:'bruce', seeded:1 },
-  { id:'seed-bartonsville', name:'Bartonsville', lat:41.0092, lng:-75.2510, r:18, by:'bruce', seeded:1 },
-  { id:'seed-nyc', name:'New York City', lat:40.7580, lng:-73.9855, r:26, by:'bruce', seeded:1 },
-  { id:'seed-camelback', name:'Tannersville', lat:41.0514, lng:-75.3553, r:16, by:'bruce', seeded:1 },
-  { id:'seed-longpond', name:'Long Pond', lat:41.0536, lng:-75.5110, r:16, by:'bruce', seeded:1 },
-  { id:'seed-greatfalls', name:'Great Falls', lat:38.9976, lng:-77.2530, r:15, by:'bruce', seeded:1 }
-];
+/* Places already visited are stored in the database (supabase/schema.sql), not in the page. */
+var SEED_REGIONS = [];
 
 function allRegions() {
   var out = [
@@ -1848,6 +1872,7 @@ sheet.addEventListener('click', function (e) {
   }
   else if (act === 'goto') { flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), parseFloat(b.dataset.z) || 12.2); closeSheet(); }
   else if (act === 'switch-who') { localStorage.removeItem('ow.who'); location.reload(); }
+  else if (act === 'sign-out') { if (window.OWCloud) OWCloud.signOut(); else location.reload(); }
 });
 
 /* ============================== db ============================== */
@@ -1857,12 +1882,13 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
    asset id. Try each shape in turn rather than showing a broken frame. */
 function photoCandidates(m) {
   var out = [], i;
+  if (m.assetId && window.OWCloud && OWCloud.photoUrl(m.assetId)) out.push(OWCloud.photoUrl(m.assetId));
   if (m.photoUrl) {
     out.push(m.photoUrl);
     if (m.photoUrl.charAt(0) === '/') out.push(m.photoUrl.slice(1));
     else if (m.photoUrl.indexOf('_blob/') === 0) out.push('/' + m.photoUrl);
   }
-  if (m.assetId) { out.push('_blob/' + m.assetId); out.push('/_blob/' + m.assetId); }
+  if (m.assetId && String(m.assetId).indexOf('/') < 0) { out.push('_blob/' + m.assetId); out.push('/_blob/' + m.assetId); }
   var seen = {}, uniq = [];
   for (i = 0; i < out.length; i++) if (!seen[out[i]]) { seen[out[i]] = 1; uniq.push(out[i]); }
   return uniq;
@@ -1898,16 +1924,16 @@ function setWorldChip() {
 }
 
 function connect() {
-  DBS.claude = !!window.claude;
-  DBS.useFn = !!(window.claude && typeof window.claude.use === 'function');
-  if (!DBS.useFn) { DBS.note = 'The page is not running inside a Claude viewer, so there is no shared world to reach.'; offline(); setWorldChip(); return; }
-  Promise.all([window.claude.use('db'), window.claude.use('assets').catch(function () { return null; })])
+  DBS.claude = !!(window.OWCloud && OWCloud.configured);
+  DBS.useFn = DBS.claude;
+  if (!DBS.useFn) { DBS.note = 'No account is connected on this device, so there is no shared world to reach.'; offline(); setWorldChip(); return; }
+  Promise.all([OWCloud.use('db'), OWCloud.use('assets').catch(function () { return null; })])
     .then(function (r) {
       S.db = r[0]; S.assets = r[1];
       DBS.db = !!S.db; DBS.assets = !!S.assets;
       setWorldChip();
       if (!S.db) {
-        DBS.note = 'The viewer refused the shared database for this view.';
+        DBS.note = 'The shared database refused this view.';
         offline(); return;
       }
       document.getElementById('mechip').classList.add('live');
@@ -1923,6 +1949,10 @@ function connect() {
    subscription can fail on its own; a one-shot read still fills the world. */
 function applyDocs(name, docs) {
   var rows = docs.map(function (d) { var o = d.data() || {}; o.id = d.id; return o; });
+  if (name === 'memories' && window.OWCloud) { OWCloud.signPhotos(rows).then(function () { applyRows(name, rows); }); return; }
+  applyRows(name, rows);
+}
+function applyRows(name, rows) {
   if (name === 'discoveries') {
     S.regions = mergeById(rows, S.regions);
     LS.write('discoveries', S.regions);
@@ -1983,10 +2013,7 @@ function offline() {
   if (warnedOffline) return;
   warnedOffline = true;
   setWorldChip();
-  toast(PUBLIC_BUILD
-    ? 'This is the open build — anything you pin stays in this browser.'
-    : 'Saving on this device only — tap the gold chip up top to fix',
-    PUBLIC_BUILD ? '\ud83d\uddfa\ufe0f' : '\u26a0\ufe0f', 6000);
+  toast('Saving on this device only — tap the gold chip up top to see why', '\u26a0\ufe0f', 6000);
 }
 
 /* ============================== discovery ============================== */
@@ -2689,13 +2716,8 @@ function openPlaces() {
   openSheet(
     head('Our places', rows.length + (rows.length === 1 ? ' place' : ' places') + ' so far') +
     '<p class="hint">Everywhere the clouds have lifted, and what is still ahead of us. Tap one to go straight there.</p>' +
-    (S.db ? '' : (PUBLIC_BUILD
-      ? '<p class="note" style="border:3px solid var(--gold);background:#FFF9EC;padding:10px 12px">' +
-        '<b>This is the open build.</b> The map and the places ship with the page; there is no shared database behind it — ' +
-        'anything you clear or pin lives in this browser and nowhere else.</p>'
-      : '<p class="note" style="border:3px solid var(--gold);background:#FFF9EC;padding:10px 12px">' +
-        '<b>The shared world is not connected on this device.</b> You are seeing only the places built into the page — ' +
-        'anything either of you clears will not save or reach the other until it reconnects.</p>')) +
+    (S.db ? '' : '<p class="note" style="border:3px solid var(--gold);background:#FFF9EC;padding:10px 12px">' +
+      '<b>The shared world is not connected on this device.</b> Anything either of you clears will not save or reach the other until it reconnects.</p>') +
     '<div class="list">' + rows.map(function (r) {
       return '<button type="button" data-act="goto" data-lat="' + r.lat + '" data-lng="' + r.lng + '" data-z="' + r.z + '">' +
         '<span class="ico">' + r.ic + '</span><span><span class="t">' + esc(r.t) + '</span><br>' +
@@ -2861,9 +2883,9 @@ function worldStatus() {
       : '<p class="note" style="border:3px solid var(--gold);background:#FFF9EC;padding:10px 12px">' +
         '<b>Pins are saving on this device only.</b> ' + esc(DBS.note || 'The shared database is not available in this view.') + '</p>') +
     '<dl class="kv">' +
-      '<dt>Viewer</dt><dd>' + (DBS.claude ? ok : no) + '</dd>' +
+      '<dt>Signed in</dt><dd>' + (DBS.claude ? ok : no) + '</dd>' +
       '<dt>Shared database</dt><dd>' + (DBS.db ? ok : no) + '</dd>' +
-      '<dt>Photo storage</dt><dd>' + (DBS.assets ? ok : 'No &mdash; photos are shrunk and stored in the pin instead') + '</dd>' +
+      '<dt>Private photo storage</dt><dd>' + (DBS.assets ? ok : 'No &mdash; photos are shrunk and stored in the pin instead') + '</dd>' +
       '<dt>Places loaded</dt><dd>' + S.regions.length + ' from the shared world</dd>' +
       '<dt>Memories loaded</dt><dd>' + S.memories.length + '</dd>' +
       '<dt>Letters loaded</dt><dd>' + S.surprises.length + '</dd>' +
@@ -2880,17 +2902,9 @@ function worldStatus() {
       ? '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="world-pull">Pull everything again</button>' +
         '<button class="pxbtn" type="button" data-act="world-test">Test it end to end</button>' +
         '<button class="pxbtn" type="button" data-act="close">Close</button></div><div id="wtest"></div>'
-      : (PUBLIC_BUILD
-        ? '<h3 style="font-family:var(--fdisp);font-size:15px;color:var(--deep);margin:18px 0 6px">Why not</h3>' +
-          '<p class="hint">This is the open build — a single static page with the whole map inside it and no server behind it. ' +
-          'Everything works except sharing: pins live in this browser, on this device.<br><br>' +
-          'Wiring it to a real database is the next thing on the list.</p>' +
-          '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'
-        : '<h3 style="font-family:var(--fdisp);font-size:15px;color:var(--deep);margin:18px 0 6px">How to fix it</h3>' +
-          '<p class="hint"><b>1.</b> Open the share menu on this page. If it is set to <b>public / anyone with the link</b>, change it to sharing with <b>specific people</b> and add Elena.<br><br>' +
-          '<b>2.</b> Reload. Come back here and this should say Connected.<br><br>' +
-          'The shared world only runs on a privately shared artifact. A public link switches it off.</p>' +
-          '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'))
+      : '<h3 style="font-family:var(--fdisp);font-size:15px;color:var(--deep);margin:18px 0 6px">How to fix it</h3>' +
+        '<p class="hint">Check your connection, then sign out and back in. If it keeps happening, the database may be paused or the setup script has not been run yet.</p>' +
+        '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>')
   );
 }
 document.getElementById('worldchip').addEventListener('click', worldStatus);
@@ -2925,6 +2939,7 @@ document.getElementById('mechip').addEventListener('click', function () {
   openSheet(head('Who is exploring?', whoName(S.who)) +
     '<p class="note">The map is shared. This only decides whose name goes on new pins, and who a sealed letter is meant for.</p>' +
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="switch-who">Switch explorer</button>' +
+    '<button class="pxbtn" type="button" data-act="sign-out">Sign out</button>' +
     '<button class="pxbtn" type="button" data-act="close">Close</button></div>');
 });
 
@@ -2940,14 +2955,46 @@ function hydrateLocal() {
   baseDirty = true;
 }
 
-hydrateLocal();
-paintIntroSprites();
-setWorldChip();
-connect();
-var saved = null;
-try { saved = localStorage.getItem('ow.who'); } catch (e) {}
-if (saved === 'bruce' || saved === 'elena') setWho(saved);
-else resize();
+function boot() {
+  hydrateLocal();
+  paintIntroSprites();
+  setWorldChip();
+  connect();
+  var saved = null;
+  try { saved = localStorage.getItem('ow.who'); } catch (e) {}
+  if (saved === 'bruce' || saved === 'elena') setWho(saved);
+  else resize();
+}
+
+/* Nothing personal loads until someone has signed in. */
+function startBehindGate() {
+  var gate = document.getElementById('gate'), form = document.getElementById('gateForm');
+  var err = document.getElementById('gErr'), btn = document.getElementById('gBtn');
+  var booted = false;
+  function unlock() {
+    gate.hidden = true;
+    document.body.classList.remove('locked');
+    if (!booted) { booted = true; boot(); }
+  }
+  if (!window.OWCloud || !OWCloud.configured) { unlock(); return; }
+  OWCloud.onSignedOut(function () {
+    try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('ow.') === 0) localStorage.removeItem(k); }); } catch (e) {}
+    location.reload();
+  });
+  OWCloud.session().then(function (sess) { if (sess) unlock(); else { gate.hidden = false; document.getElementById('gEmail').focus(); } });
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    err.textContent = ''; btn.disabled = true; btn.textContent = 'Opening\u2026';
+    OWCloud.signIn(document.getElementById('gEmail').value.trim(), document.getElementById('gPass').value)
+      .then(function () { document.getElementById('gPass').value = ''; unlock(); })
+      .catch(function (e) {
+        var m = (e && e.message) || '';
+        err.textContent = /invalid/i.test(m) ? 'That email or password isn\u2019t right.' : 'Could not sign in \u2014 check your connection and try again.';
+      })
+      .then(function () { btn.disabled = false; btn.textContent = 'Enter our world'; });
+  });
+}
+startBehindGate();
 window.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (lbEl.classList.contains('on')) closePhoto(); else if (calEl.classList.contains('open')) closeCal(); else if (S.placing) stopPlacing(); else closeSheet(); } });
 })();
 </script>
