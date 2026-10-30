@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Our World</title>
 <meta name="description" content="A pixel-art map of real places, drawn without map tiles. The world starts under cloud and clears where you have been.">
 <meta name="robots" content="noindex, nofollow">
@@ -25,6 +25,11 @@
   [hidden] { display: none !important; }
 </style>
 <script src="vendor/supabase.js"></script>
+<script>
+/* The map zooms, never the page. iOS ignores user-scalable=no, so stop its pinch / double-tap zoom directly. */
+["gesturestart", "gesturechange", "gestureend"].forEach(function (n) { document.addEventListener(n, function (e) { e.preventDefault(); }, { passive: false }); });
+document.addEventListener("dblclick", function (e) { e.preventDefault(); }, { passive: false });
+</script>
 <script>
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
   window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function (e) { console.warn("service worker:", e); }); });
