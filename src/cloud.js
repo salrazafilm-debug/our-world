@@ -20,6 +20,11 @@ var BUCKET = 'photos';
 var SIGN_SECONDS = 4 * 60 * 60;
 var photoUrls = {};
 var userId = null;
+var userWho = null;
+function readWho(sess) {
+  var w = sess && sess.user && sess.user.user_metadata && sess.user.user_metadata.who;
+  userWho = (w === 'bruce' || w === 'elena') ? w : null;
+}
 
 function ck(r) {
   if (r && r.error) {
@@ -113,6 +118,7 @@ window.OWCloud = {
     return sb.auth.getSession().then(function (r) {
       var s = r && r.data && r.data.session;
       userId = s ? s.user.id : null;
+      readWho(s);
       return s || null;
     }).catch(function () { return null; });
   },
@@ -120,8 +126,15 @@ window.OWCloud = {
     return sb.auth.signInWithPassword({ email: email, password: password }).then(function (r) {
       if (r.error) throw r.error;
       userId = r.data.user.id;
+      readWho(r.data.session);
       return r.data.session;
     });
+  },
+  /* who this account is (bruce / elena) lives on the account, so every device knows */
+  who: function () { return userWho; },
+  setWho: function (k) {
+    userWho = k;
+    return sb ? sb.auth.updateUser({ data: { who: k } }).catch(function () {}) : Promise.resolve();
   },
   signOut: function () { return sb ? sb.auth.signOut() : Promise.resolve(); },
   onSignedOut: function (fn) {

@@ -227,7 +227,9 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
   #zoomer{bottom:auto; top:54px; left:10px; flex-direction:row}
   #zoomer .pxbtn{width:36px;height:36px}
   #actions{left:10px; right:10px; bottom:10px; align-items:stretch}
-  #actions .row{justify-content:flex-end}
+  /* the icon buttons become a rail down the right edge, freeing the middle of the map */
+  #actions .row{flex-direction:column; flex-wrap:nowrap; align-items:flex-end; align-self:flex-end}
+  #toasts{top:100px}
   #credits{display:none}
   #brand h1{font-size:20px}
   #where{display:none}
@@ -356,7 +358,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 .hop-name:hover{background:#FFF1F7}
 .hop-name .ic{font-size:13px}
-@media (max-width:720px){ #hop{bottom:110px} .hop-name{font-size:12.5px; padding:0 10px !important} }
+@media (max-width:720px){ #hop{bottom:68px; left:10px; transform:none; max-width:calc(100vw - 76px)} .hop-name{font-size:12.5px; padding:0 10px !important} }
 
 /* ---------- full photo ---------- */
 #lightbox{
@@ -969,6 +971,26 @@ function drawBase() {
   /* land — county polygons overlap into one silhouette; core states read brighter */
   var i, k, j, st, ring, p;
 
+  /* the rest of the planet: coarse world land sits under the detailed states so
+     the map never runs out of ground when you zoom out or pan away */
+  var wr, wskip, wj, wprev;
+  for (k = 0; k < GEO.world.length; k++) {
+    wr = GEO.world[k]; wskip = false; wprev = wr[0];
+    for (wj = 0; wj < wr.length; wj += 2) {
+      if (Math.abs(wr[wj] - wprev) > 180 || Math.abs(wr[wj + 1]) > 84) { wskip = true; break; }
+      wprev = wr[wj];
+    }
+    if (wskip) continue;
+    g.beginPath();
+    for (wj = 0; wj < wr.length; wj += 2) {
+      p = P(wr[wj], wr[wj + 1]);
+      if (wj === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
+    }
+    g.closePath();
+    g.strokeStyle = 'rgba(255,255,255,.62)'; g.lineWidth = 2.2; g.lineJoin = 'round'; g.stroke();
+    g.fillStyle = C.landmuted; g.fill();
+  }
+
   /* foam where water meets land */
   g.strokeStyle = 'rgba(255,255,255,.62)';
   g.lineWidth = 2.2; g.lineJoin = 'round';
@@ -1191,7 +1213,7 @@ function drawGlobe() {
      step anywhere between. */
   var skyMix = Math.max(0, Math.min(1, (1.30 - sc) / 0.88));
   skyMix = skyMix * skyMix * (3 - 2 * skyMix);              /* smoothstep */
-  var NEAR = [255, 242, 248], FAR = [31, 29, 57];
+  var NEAR = [190, 222, 240], FAR = [31, 29, 57];
   function mixc(k) {
     return 'rgb(' + Math.round(NEAR[0] + (FAR[0] - NEAR[0]) * k) + ',' +
                     Math.round(NEAR[1] + (FAR[1] - NEAR[1]) * k) + ',' +
@@ -1233,22 +1255,24 @@ function drawGlobe() {
   og.addColorStop(0, C.waterlite); og.addColorStop(0.75, C.water); og.addColorStop(1, '#3F8F9E');
   g.fillStyle = og; g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.fill();
 
-  /* land — draw each visible run of a ring */
+  /* land — points behind the planet are pushed out to its edge, so a coastline
+     curves round the horizon instead of being sliced by a straight line */
   g.save(); g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.clip();
   g.fillStyle = C.landmuted;
   for (var k = 0; k < GEO.world.length; k++) {
-    var ring = GEO.world[k], run = [];
+    var ring = GEO.world[k], seenFront = false, pts = [];
     for (var j = 0; j < ring.length; j += 2) {
-      var q = pt(ring[j], ring[j+1]);
-      if (q) run.push(q);
-      else if (run.length > 2) { fillRun(run); run = []; }
-      else run = [];
+      var dl = rad(ring[j]) - l0, ph = rad(ring[j + 1]);
+      var cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
+      var gx = Rp * Math.cos(ph) * Math.sin(dl);
+      var gy = Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl));
+      if (cosc >= 0) seenFront = true;
+      else { var gm = Math.hypot(gx, gy) || 1; gx = gx / gm * Rp; gy = gy / gm * Rp; }
+      pts.push(cx + gx, cy - gy);
     }
-    if (run.length > 2) fillRun(run);
-  }
-  function fillRun(run) {
-    g.beginPath(); g.moveTo(run[0][0], run[0][1]);
-    for (var m = 1; m < run.length; m++) g.lineTo(run[m][0], run[m][1]);
+    if (!seenFront) continue;
+    g.beginPath(); g.moveTo(pts[0], pts[1]);
+    for (var m = 2; m < pts.length; m += 2) g.lineTo(pts[m], pts[m + 1]);
     g.closePath(); g.fill();
   }
 
@@ -1586,11 +1610,19 @@ function drawMapOverlays() {
     addHit({ x: box.x - 6, y: box.y - 10, w: box.w + 12, h: box.h + 12 }, { kind: 'home', who: k });
   });
 
-  /* memories */
+  /* memories — pins sharing a spot fan out in a ring so none hides another */
+  var pinCount = {}, pinSeen = {};
+  for (i = 0; i < S.memories.length; i++) {
+    var pk0 = S.memories[i].lat.toFixed(4) + ',' + S.memories[i].lng.toFixed(4);
+    pinCount[pk0] = (pinCount[pk0] || 0) + 1;
+  }
   for (i = 0; i < S.memories.length; i++) {
     var m = S.memories[i];
     if (!isRevealed(m.lat, m.lng, 1.06)) continue;
     p = proj(m.lat, m.lng);
+    var pk = m.lat.toFixed(4) + ',' + m.lng.toFixed(4), pn = pinCount[pk], pi = pinSeen[pk] || 0;
+    pinSeen[pk] = pi + 1;
+    if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; p = { x: p.x + Math.cos(pa) * 15, y: p.y + Math.sin(pa) * 15 }; }
     if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
     var b = drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
     addHit({ x: b.x - 7, y: b.y - 7, w: b.w + 14, h: b.h + 14 }, { kind: 'memory', id: m.id });
@@ -1703,7 +1735,7 @@ cv.addEventListener('pointermove', function (e) {
     var z = S.zoom;
     var nx = lngToWX(S.center.lng, z) - dx, ny = latToWY(S.center.lat, z) - dy;
     S.center.lng = wxToLng(nx, z);
-    S.center.lat = Math.max(24, Math.min(46, wyToLat(ny, z)));
+    S.center.lat = Math.max(5, Math.min(62, wyToLat(ny, z)));
     baseDirty = true;
   }
   draw();
@@ -1756,7 +1788,7 @@ function zoomBy(d, at) {
   if (before && at) {
     var after = unproj(at.x, at.y);
     S.center.lng += before.lng - after.lng;
-    S.center.lat = Math.max(24, Math.min(46, S.center.lat + before.lat - after.lat));
+    S.center.lat = Math.max(5, Math.min(62, S.center.lat + before.lat - after.lat));
   }
   baseDirty = true;
   setViewButtons(S.zoom >= 9.6 ? 'local' : 'dmv');
@@ -1785,7 +1817,7 @@ function flyTo(lat, lng, z) {
   baseDirty = true; setViewButtons(z >= 9.6 ? 'local' : 'dmv'); draw();
 }
 function enterMap(lat, lng, z) {
-  S.mode = 'map'; S.center.lat = Math.max(24, Math.min(46, lat)); S.center.lng = lng;
+  S.mode = 'map'; S.center.lat = Math.max(5, Math.min(62, lat)); S.center.lng = lng;
   S.zoom = z; baseDirty = true; setViewButtons(z >= 9.6 ? 'local' : 'dmv'); draw();
 }
 function enterGlobe(scale) {
@@ -1870,8 +1902,14 @@ sheet.addEventListener('click', function (e) {
     closeSheet();
     discover(S.center.lat, S.center.lng);
   }
-  else if (act === 'goto') { flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), parseFloat(b.dataset.z) || 12.2); closeSheet(); }
-  else if (act === 'switch-who') { localStorage.removeItem('ow.who'); location.reload(); }
+  else if (act === 'goto') {
+    var gl = parseFloat(b.dataset.lat), gg = parseFloat(b.dataset.lng), prow = placesList();
+    for (var gi = 0; gi < prow.length; gi++) if (prow[gi].lat === gl && prow[gi].lng === gg) { hopIdx = gi; renderHop(); break; }
+    flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), parseFloat(b.dataset.z) || 12.2); closeSheet(); }
+  else if (act === 'switch-who') {
+    localStorage.removeItem('ow.who');
+    if (window.OWCloud && OWCloud.configured) OWCloud.setWho(null).then(function () { location.reload(); }); else location.reload();
+  }
   else if (act === 'sign-out') { if (window.OWCloud) OWCloud.signOut(); else location.reload(); }
 });
 
@@ -2860,6 +2898,8 @@ function paintIntroSprites() {
 function setWho(k) {
   S.who = k;
   try { localStorage.setItem('ow.who', k); } catch (e) {}
+  if (window.OWCloud && OWCloud.configured && OWCloud.who() !== k) OWCloud.setWho(k);
+  hopIdx = Math.max(0, placesList().map(function (r) { return r.t; }).indexOf(k === 'elena' ? 'Arnold & Annapolis' : 'Chesapeake Beach'));
   document.getElementById('menam').textContent = whoName(k);
   var h = HOMES[k];
   S.center.lat = h.lat; S.center.lng = h.lng; S.zoom = 11.2;
@@ -2962,6 +3002,7 @@ function boot() {
   connect();
   var saved = null;
   try { saved = localStorage.getItem('ow.who'); } catch (e) {}
+  if (!saved && window.OWCloud) saved = OWCloud.who();
   if (saved === 'bruce' || saved === 'elena') setWho(saved);
   else resize();
 }
