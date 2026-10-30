@@ -29,7 +29,7 @@ function thisDayToast() {
 
 /* ---------- the sheet ---------- */
 function openMore() {
-  var td = thisDayList(), html = head('More of us', 'little extras');
+  var td = thisDayList(), html = head('More of us', 'little extras') + annCardHtml();
   if (td.length) {
     html += sectionTitle('Looking back') + '<div class="list">' + td.map(function (it) {
       return '<button type="button" data-act="goto" data-lat="' + it.m.lat + '" data-lng="' + it.m.lng + '" data-z="13">' +
@@ -39,18 +39,20 @@ function openMore() {
   var online = PR.partner ? 'online now' : 'offline';
   html += sectionTitle('Together') + '<div class="list">' +
     moreRow('share-loc', '\ud83d\udccd', PR.mine.sharing ? 'Live location is ON' : 'Share my live location', PR.mine.sharing ? 'Tap to stop · ' + whoName(other(S.who)).replace('Princess ', '') + ' is ' + online : 'Appear on the map when we are both here') +
+    moreRow('letters', '\ud83d\udc8c', 'Letters', (function () { var n = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length; return n ? n + ' sealed for you' : 'Sealed for a place, or a day'; })()) +
     moreRow('note-edit', '\ud83d\udc8c', 'My daily love note', S.notes[S.who] && S.notes[S.who].text ? 'Showing: ' + S.notes[S.who].text.slice(0, 40) + (S.notes[S.who].text.length > 40 ? '…' : '') : 'Waits for them every time they open the map') +
     moreRow('bucket', '\ud83c\udf20', 'Our bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' things to do together' : 'Things we want to do together') +
     moreRow('albums', '\ud83d\uddbc\ufe0f', 'Photo albums', 'Polaroid stacks, by place') +
     moreRow('trips-list', '\ud83e\uddf5', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') + ' threaded across the map' : 'Thread memories into a journey') +
     moreRow('plans-list', '\u2b50', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
+    moreRow('walk', '\ud83d\udc63', WALK.rec ? 'Stop recording our walk' : 'Record our walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : (S.walks.length ? S.walks.length + ' walks on the heat trail' : 'Adds the route to our heat trail')) +
     moreRow('poster', '\ud83d\uddbc\ufe0f', 'Save our map as a poster', 'Frame it, or send it to her') +
-    '</div>' + sectionTitle('Just for me') + '<div class="list">' +
-    moreRow('journal', '\ud83d\udcd3', 'My private journal', 'How I felt, who I miss, my day in photos \u00b7 only I can see it') +
+    '</div>' + sectionTitle('Just us') + '<div class="list">' +
+    moreRow('journal', '\ud83d\udcd3', 'Our journal', 'How today felt, how much you miss them, photos \u00b7 you both read it') +
     moreRow('avatars', '\ud83d\udc57', 'Our avatars', 'Change your outfit colours') +
     '</div>' + sectionTitle('This device') + '<div class="list">' +
     moreRow('install', '\ud83d\udcf1', 'Add to your home screen', 'Opens full-screen like a real app') +
-    moreRow('atmos', '\ud83c\udf19', 'Time of day and weather', (AMB.tod === 'live' ? 'Follows the real clock' : AMB.tod === 'day' ? 'Always daytime' : 'Always night') + (AMB.weather ? ' \u00b7 weather on' : ' \u00b7 weather off')) +
+    moreRow('atmos', '\ud83c\udf19', 'Atmosphere and sound', (AMB.tod === 'live' ? 'Follows the real clock' : AMB.tod === 'day' ? 'Always daytime' : 'Always night') + (AMB.weather ? ' \u00b7 weather on' : ' \u00b7 weather off')) +
     moreRow('sign-out', '\ud83d\udeaa', 'Sign out', 'Locks this device again') +
     '</div>';
   openSheet(html);
@@ -70,16 +72,26 @@ ACTIONS['install'] = function () {
 /* ---------- atmosphere ---------- */
 function openAtmos() {
   function opt(act, v, label, on) { return '<button class="pxbtn" type="button" aria-pressed="' + (on ? 'true' : 'false') + '" data-act="' + act + '" data-v="' + v + '">' + label + '</button>'; }
-  openSheet(head('Atmosphere', 'light and weather') +
+  openSheet(head('Atmosphere', 'light, weather and sound') +
     '<p class="note">The map can follow the real clock — dusk, night and dawn — and the seasons: snow in winter, petals in spring, fireflies on summer nights, leaves in autumn.</p>' +
     sectionTitle('Time of day') + '<div class="sheet-actions">' +
       opt('tod', 'live', 'Live clock', AMB.tod === 'live') + opt('tod', 'day', 'Always day', AMB.tod === 'day') + opt('tod', 'night', 'Always night', AMB.tod === 'night') + '</div>' +
     sectionTitle('Weather') + '<div class="sheet-actions">' +
       opt('weather', 'on', 'On', AMB.weather) + opt('weather', 'off', 'Off', !AMB.weather) + '</div>' +
+    sectionTitle('Heat trail') + '<div class="sheet-actions">' +
+      opt('heat', 'on', 'On', AMB.heat) + opt('heat', 'off', 'Off', !AMB.heat) + '</div>' +
+    '<p class="hint">A warm glow where you have really been together: memories, together moments, cleared ground and recorded walks.</p>' +
+    sectionTitle('Sounds') + '<div class="sheet-actions">' +
+      opt('snd', 'on', 'On', SND.on) + opt('snd', 'off', 'Off', !SND.on) + '</div>' +
+    sectionTitle('Music box') + '<div class="sheet-actions">' +
+      opt('music', 'on', 'Play', SND.music) + opt('music', 'off', 'Off', !SND.music) + '</div>' +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
 }
 ACTIONS['tod'] = function (b) { AMB.tod = b.dataset.v; try { localStorage.setItem('ow.tod', AMB.tod); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['weather'] = function (b) { AMB.weather = b.dataset.v === 'on'; try { localStorage.setItem('ow.weather', AMB.weather ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
+ACTIONS['heat'] = function (b) { AMB.heat = b.dataset.v === 'on'; try { localStorage.setItem('ow.heat', AMB.heat ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
+ACTIONS['snd'] = function (b) { setSound(b.dataset.v === 'on'); openAtmos(); };
+ACTIONS['music'] = function (b) { setMusic(b.dataset.v === 'on'); openAtmos(); };
 ACTIONS['sign-out'] = function () { if (window.OWCloud && OWCloud.configured) OWCloud.signOut(); else location.reload(); };
 
 /* ---------- poster ---------- */

@@ -80,6 +80,7 @@ function startPresence() {
   setInterval(paintPartner, 30000);
   if (PR.mine.sharing) startWatch();
   paintPartner();
+  jrCheckNew();
 }
 
 /* ---------- live location ---------- */
@@ -89,11 +90,14 @@ function startWatch() {
     PR.mine.lat = pos.coords.latitude; PR.mine.lng = pos.coords.longitude; PR.mine.acc = Math.round(pos.coords.accuracy);
     recomputeTogether(); pushPresence(false); draw();
   }, function (err) {
-    PR.mine.sharing = false; stopWatch();
-    try { localStorage.setItem('ow.share', 'off'); } catch (e) {}
-    pushPresence(true);
-    toast(err && err.code === 1 ? 'Location is blocked for this site — allow it in your browser settings.' : 'Could not get your location.', '📍', 5200);
-  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+    if (err && err.code === 1) {            /* refused: switch sharing off and say how to fix it */
+      PR.mine.sharing = false; stopWatch();
+      try { localStorage.setItem('ow.share', 'off'); } catch (e) {}
+      pushPresence(true); paintPartner();
+      toast('Location is blocked for this site — allow it in your browser settings.', '📍', 5200);
+    }
+    /* a timeout or weak signal: keep watching, the next fix will come */
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 60000 });
 }
 function stopWatch() { if (PR.watchId != null) navigator.geolocation.clearWatch(PR.watchId); PR.watchId = null; }
 function setSharing(on) {
@@ -128,6 +132,8 @@ function midpoint() { return { lat: (PR.mine.lat + PR.partner.lat) / 2, lng: (PR
 function celebrateTogether() {
   var mid = midpoint(), town = nearestTown(mid.lat, mid.lng).name;
   discover(mid.lat, mid.lng, false);
+  logMoment(mid);
+  playSound('heart');
   flyTo(mid.lat, mid.lng, Math.max(S.zoom, 12.4));
   sparkle();
   openSheet(head('Together, right now', town) +
@@ -150,30 +156,78 @@ togetherBtn.addEventListener('click', function () {
   recomputeTogether(); pushPresence(true); draw();
 });
 
-/* ---------- on the map ---------- */
-function avatarHeight() { return S.zoom < 5.2 ? 0 : Math.max(36, Math.min(104, 36 + (S.zoom - 6) * 13)); }
+/* ---------- on the map ----------
+   Avatars are drawn at the same scale as the home icons (a touch shorter than
+   the castle), keep their proportions, glide to new positions instead of
+   jumping, breathe when standing still, and step aside rather than cover a
+   house. When someone is online but not sharing a location, they wait beside
+   their own home. */
+function homeScaleNow() { var z = S.zoom; return z > 10.6 ? 4 : (z > 9 ? 3 : 2); }
+function avatarHeight() { return S.zoom < 7.2 ? 0 : Math.round(13 * homeScaleNow()); }
+
+var AVPOS = {};   /* who -> smoothed screen position and facing */
+function glide(key, tx, ty) {
+  var p = AVPOS[key];
+  if (!p || Math.hypot(tx - p.x, ty - p.y) > 400) p = AVPOS[key] = { x: tx, y: ty, flip: false, moving: 0 };
+  var dx = tx - p.x, dy = ty - p.y;
+  if (Math.abs(dx) > 0.6 || Math.abs(dy) > 0.6) {
+    p.x += dx * 0.18; p.y += dy * 0.18;
+    if (Math.abs(dx) > 1.5) p.flip = dx < 0;
+    p.moving = 8;
+  } else { p.x = tx; p.y = ty; if (p.moving > 0) p.moving--; }
+  return p;
+}
+/* nudge a figure of width w off any home sprite it would overlap */
+function besideHomes(x, y, w) {
+  ['bruce', 'elena'].forEach(function (k) {
+    var hb = HOMEBOXES[k];
+    if (!hb) return;
+    var overlapX = x + w / 2 > hb.x - 2 && x - w / 2 < hb.x + hb.w + 2;
+    var overlapY = y > hb.y && y - 10 < hb.y + hb.h + 6;
+    if (overlapX && overlapY) x = (x >= hb.x + hb.w / 2) ? hb.x + hb.w + w / 2 + 2 : hb.x - w / 2 - 2;
+  });
+  return x;
+}
+function drawFigure(who, key, x, y, h) {
+  var w = avWidth(who, h);
+  var g = glide(key, besideHomes(x, y, w), y);
+  var hop = g.moving > 0 && !reduceMotion ? -Math.abs(Math.round(Math.sin(cloudPhase / 2.2) * 2)) : avBob(who === 'elena' ? 1.3 : 0);
+  return drawAvatar(ctx, who, g.x, g.y, h, null, { res: DPR, lift: hop, flip: g.flip });
+}
 HOOKS.afterOverlays.push(function () {
-  if (S.mode !== 'map') return;
+  if (S.mode !== 'map' || !S.who) return;
   var h = avatarHeight(); if (!h) return;
-  var m = PR.mine, p = PR.partner, box, pt;
-  function tag(who, x, y, text) { tryLabel(x, y, text, { size: 11, border: C.pink }); }
+  var m = PR.mine, p = PR.partner, box, pt, labels = S.zoom > 9;
+  function tag(x, y, text) { if (labels) tryLabel(x, y, text, { size: 10, border: C.princess }); }
+
   if (PR.hands && m.lat != null && p && p.lat != null) {
     var mid = midpoint(); pt = proj(mid.lat, mid.lng);
-    box = drawHoldingHands(ctx, pt.x, pt.y, h * 1.08);
-    if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag('both', pt.x, box.y - 4, 'Together'); }
+    var pw = avWidth('bruce', h) + avWidth('elena', h);
+    var gp = glide('pair', besideHomes(pt.x, pt.y, pw), pt.y);
+    box = drawTogetherPair(ctx, gp.x, gp.y, h, DPR);
+    if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(gp.x, box.y - 2, 'Together'); }
     return;
   }
-  if (p && p.sharing && p.lat != null) {
-    pt = proj(p.lat, p.lng); box = drawAvatar(ctx, other(S.who), pt.x, pt.y, h);
-    if (box) { addHit(box, { kind: 'avatar', who: other(S.who) }); tag(other(S.who), pt.x, box.y - 4, whoName(other(S.who)).replace('Princess ', '') + ' · live'); }
-  }
-  if (m.sharing && m.lat != null) {
-    pt = proj(m.lat, m.lng); box = drawAvatar(ctx, S.who, pt.x, pt.y, h);
-    if (box) { addHit(box, { kind: 'avatar', who: S.who }); tag(S.who, pt.x, box.y - 4, 'You'); }
-  }
+  var them = other(S.who);
+  [[them, p, p && p.sharing && p.lat != null], [S.who, m, m.sharing && m.lat != null]].forEach(function (it) {
+    var who = it[0], st = it[1], live = it[2], online = who === S.who ? true : !!st;
+    if (live) {
+      pt = proj(st.lat, st.lng);
+      box = drawFigure(who, who + '-live', pt.x, pt.y, h);
+      if (box) { addHit(box, { kind: 'avatar', who: who }); tag(box.x + box.w / 2, box.y - 2, who === S.who ? 'You' : jrShortName(who) + ' \u00b7 live'); }
+    } else if (online && HOMEBOXES[who] && S.zoom > 8.6) {
+      /* waiting at home: stand just beside the house, on the same ground line */
+      var hb = HOMEBOXES[who], w = avWidth(who, h);
+      var x = who === 'elena' ? hb.x - w / 2 - 1 : hb.x + hb.w + w / 2 + 1;
+      box = drawFigure(who, who + '-home', x, hb.baseY, h);
+      if (box) addHit(box, { kind: 'avatar', who: who });
+    }
+  });
 });
+function jrShortName(k) { return whoName(k).replace('Princess ', ''); }
 function openAvatarInfo(who) {
   if (who === 'both') { openSheet(head('Together', 'holding hands') + '<p class="note">You are both here. 💗</p><div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'); return; }
-  openSheet(head(whoName(who), who === S.who ? 'you, live' : 'live location') +
+  var live = who === S.who ? PR.mine.sharing : !!(PR.partner && PR.partner.sharing);
+  openSheet(head(whoName(who), who === S.who ? (live ? 'you, live' : 'you, at home') : (live ? 'live location' : (PR.partner ? 'online, at home' : 'offline'))) +
     '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="avatars">Change outfit</button><button class="pxbtn" type="button" data-act="close">Close</button></div>');
 }

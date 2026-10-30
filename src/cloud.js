@@ -41,15 +41,55 @@ function snapOf(rows) {
   return { docs: (rows || []).map(function (r) { return { id: r.id, data: function () { return r.data || {}; } }; }) };
 }
 
+/* ---------- offline outbox ----------
+   A write that fails because the phone is offline is kept on the device and
+   sent again once it is back online, so nothing typed on a train is lost.
+   Real refusals (permissions, bad data) are not queued: they surface as errors. */
+var OUTBOX_KEY = 'ow.outbox';
+function outboxRead() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
+function outboxWrite(q) { try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(q)); } catch (e) {} }
+function isOffline(e) {
+  return (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+    /failed to fetch|load failed|network|fetch/i.test(String((e && e.message) || ''));
+}
+function rawOp(op) {
+  var t = sb.from('docs');
+  if (op.op === 'set') return t.upsert({ collection: op.c, id: op.id, data: op.data, updated_at: new Date().toISOString() }).then(ck);
+  if (op.op === 'update') return sb.rpc('doc_merge', { c: op.c, i: op.id, patch: op.data }).then(ck);
+  return t.delete().eq('collection', op.c).eq('id', op.id).then(ck);
+}
+function queued(op) {
+  return rawOp(op).catch(function (e) {
+    if (!isOffline(e)) throw e;
+    var q = outboxRead(); q.push(op); outboxWrite(q);
+    return { queued: true };
+  });
+}
+var flushing = false;
+function flushOutbox() {
+  if (!sb || flushing || !userId) return;
+  var q = outboxRead(); if (!q.length) return;
+  flushing = true;
+  var left = [], chain = Promise.resolve();
+  q.forEach(function (op) {
+    chain = chain.then(function () { return rawOp(op); }).catch(function (e) { if (isOffline(e)) left.push(op); else console.warn('dropped queued write:', e); });
+  });
+  chain.then(function () { outboxWrite(left); flushing = false; });
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', flushOutbox);
+  setInterval(flushOutbox, 30000);
+}
+
 function docRef(c, id) {
   return {
     get: function () {
       return sb.from('docs').select('id,data').eq('collection', c).eq('id', id).maybeSingle().then(ck)
         .then(function (r) { return { exists: !!r.data, id: id, data: function () { return r.data ? r.data.data : undefined; } }; });
     },
-    set: function (d) { return sb.from('docs').upsert({ collection: c, id: id, data: d, updated_at: new Date().toISOString() }).then(ck); },
-    update: function (p) { return sb.rpc('doc_merge', { c: c, i: id, patch: p }).then(ck); },
-    delete: function () { return sb.from('docs').delete().eq('collection', c).eq('id', id).then(ck); }
+    set: function (d) { return queued({ op: 'set', c: c, id: id, data: d }); },
+    update: function (p) { return queued({ op: 'update', c: c, id: id, data: p }); },
+    delete: function () { return queued({ op: 'delete', c: c, id: id }); }
   };
 }
 
@@ -116,7 +156,7 @@ var journal = {
     return sb.from('journal').select('*').order('day', { ascending: false }).order('created_at', { ascending: false }).limit(500)
       .then(ck).then(function (r) { return r.data || []; });
   },
-  add: function (e) { return sb.from('journal').insert(e).select().single().then(ck).then(function (r) { return r.data; }); },
+  add: function (e) { e.who = e.who || userWho; return sb.from('journal').insert(e).select().single().then(ck).then(function (r) { return r.data; }); },
   update: function (id, patch) { return sb.from('journal').update(patch).eq('id', id).then(ck); },
   remove: function (id) { return sb.from('journal').delete().eq('id', id).then(ck); },
   uploadPhoto: function (blob) {
@@ -158,6 +198,7 @@ window.OWCloud = {
       var s = r && r.data && r.data.session;
       userId = s ? s.user.id : null;
       readWho(s);
+      if (s) setTimeout(flushOutbox, 1500);
       return s || null;
     }).catch(function () { return null; });
   },

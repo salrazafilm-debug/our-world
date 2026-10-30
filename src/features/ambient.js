@@ -106,6 +106,14 @@ function fxDiscover(lat, lng) {
   AMB_BURST.rings.push({ x: p.x, y: p.y, r: 6, life: 1 });
   AMB_BURST.rings.push({ x: p.x, y: p.y, r: 2, life: 1.25 });
 }
+/* confetti from the top of the screen, for anniversaries */
+function fxConfetti() {
+  if (reduceMotion) return;
+  for (var i = 0; i < 90; i++) {
+    AMB_BURST.dots.push({ x: Math.random() * W, y: -10 - Math.random() * 120, vx: -40 + Math.random() * 80, vy: 20 + Math.random() * 90,
+      life: 1.6 + Math.random(), sz: Math.random() < .4 ? 4 : 3, c: AMB_BCOLS[i % AMB_BCOLS.length] });
+  }
+}
 HOOKS.afterOverlays.push(function () {
   var B = AMB_BURST;
   if (!B.dots.length && !B.rings.length) return;
@@ -120,7 +128,7 @@ HOOKS.afterOverlays.push(function () {
   }
   ctx.imageSmoothingEnabled = false;
   for (i = B.dots.length - 1; i >= 0; i--) {
-    d = B.dots[i]; d.vy += 190 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt * 0.8;
+    d = B.dots[i]; d.vy += (d.life > 1.2 ? 40 : 190) * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt * 0.8;
     if (d.life <= 0) { B.dots.splice(i, 1); continue; }
     ctx.globalAlpha = Math.min(1, d.life * 1.4); ctx.fillStyle = d.c;
     ctx.fillRect(Math.round(d.x), Math.round(d.y), d.sz, d.sz);

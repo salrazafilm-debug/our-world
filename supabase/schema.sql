@@ -70,10 +70,11 @@ insert into public.docs (collection, id, data) values
   ('discoveries', 'seed-longpond',    '{"name":"Long Pond","lat":41.0536,"lng":-75.5110,"r":16,"by":"bruce","at":0}'),
   ('discoveries', 'seed-greatfalls',  '{"name":"Great Falls","lat":38.9976,"lng":-77.2530,"r":15,"by":"bruce","at":0}')
 on conflict (collection, id) do nothing;
--- Our World · Phase 4 setup (journal, diary photos, live presence).
+-- Our World · Phase 4 setup (shared journal, diary photos, live presence).
 -- Paste into Supabase → SQL Editor → New query → Run. Safe to run more than once.
 
--- 7. Private journal: each entry belongs to ONE person and only that person can see it.
+-- 7. Our journal: each entry is written by one person and readable by both of you.
+--    Only its author can change or delete it.
 create table if not exists public.journal (
   id         uuid        primary key default gen_random_uuid(),
   user_id    uuid        not null default auth.uid() references auth.users (id) on delete cascade,
@@ -82,21 +83,25 @@ create table if not exists public.journal (
   miss       int         not null default 0,
   body       text        not null default '',
   photos     text[]      not null default '{}',
+  who        text,
   created_at timestamptz not null default now()
 );
+alter table public.journal add column if not exists who text;
 alter table public.journal enable row level security;
 
 drop policy if exists "own journal read"   on public.journal;
+drop policy if exists "members journal read" on public.journal;
 drop policy if exists "own journal write"  on public.journal;
 drop policy if exists "own journal change" on public.journal;
 drop policy if exists "own journal delete" on public.journal;
-create policy "own journal read"   on public.journal for select to authenticated using (user_id = auth.uid());
+create policy "members journal read" on public.journal for select to authenticated using (true);
 create policy "own journal write"  on public.journal for insert to authenticated with check (user_id = auth.uid());
 create policy "own journal change" on public.journal for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "own journal delete" on public.journal for delete to authenticated using (user_id = auth.uid());
 revoke all on public.journal from anon;
 
--- 8. Private diary photos: each person's files live in a folder named after their own user id.
+-- 8. Journal photos: each person uploads into a folder named after their own user id;
+--    both of you can view them, nobody signed out can.
 insert into storage.buckets (id, name, public)
 values ('diary', 'diary', false)
 on conflict (id) do update set public = false;
@@ -106,7 +111,7 @@ drop policy if exists "own diary upload" on storage.objects;
 drop policy if exists "own diary change" on storage.objects;
 drop policy if exists "own diary delete" on storage.objects;
 create policy "own diary read"   on storage.objects for select to authenticated
-  using (bucket_id = 'diary' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'diary');
 create policy "own diary upload" on storage.objects for insert to authenticated
   with check (bucket_id = 'diary' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "own diary change" on storage.objects for update to authenticated

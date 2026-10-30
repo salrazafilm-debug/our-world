@@ -288,6 +288,20 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 .alb-nav{display:flex; align-items:center; gap:18px; color:#FFE9F3; font-weight:700}
 .alb-nav .pxbtn{width:46px; height:46px; font-size:24px; padding:0}
 
+
+/* ---------- anniversary, walks, journal hearts ---------- */
+.ann-card{display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; padding:13px 14px; margin:2px 0 4px;
+  background:linear-gradient(135deg,#FFE3EF,#FFF4D9); border:3px solid var(--princess); box-shadow:0 4px 0 rgba(159,61,109,.18)}
+.ann-card b{font-family:var(--fdisp); font-size:19px; color:var(--deep); font-weight:600}
+.ann-card span{font-size:12.5px; color:var(--ink-70)}
+.ann-card.ann-empty{background:#FFF9FC; border-style:dashed}
+#walkBtn{position:absolute; left:50%; transform:translateX(-50%); top:58px; z-index:6; font-size:12.5px; padding:8px 12px; display:flex; align-items:center; gap:7px}
+#walkBtn[hidden]{display:none}
+.rec-dot{width:9px; height:9px; background:#E0445E; display:inline-block; animation:blink 1.2s steps(2,end) infinite}
+@media (max-width:720px){ #walkBtn{top:56px; left:auto; right:10px; transform:none} }
+.jr-love{margin:12px 0 0; font-weight:700; color:var(--pink)}
+.gate-av{image-rendering:pixelated}
+
 /* ---------- placing mode ---------- */
 #placing{
   position:absolute; left:50%; top:56px; transform:translateX(-50%); z-index:7;
@@ -1690,6 +1704,7 @@ function drawMapOverlays() {
   }
 
   /* homes */
+  HOMEBOXES = {};
   ['bruce', 'elena'].forEach(function (k) {
     var h = HOMES[k]; var q = proj(h.lat, h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
@@ -1713,6 +1728,7 @@ function drawMapOverlays() {
       }
     }
     addHit({ x: box.x - 6, y: box.y - 10, w: box.w + 12, h: box.h + 12 }, { kind: 'home', who: k });
+    HOMEBOXES[k] = { x: box.x, y: box.y, w: box.w, h: box.h, sc: sc, baseY: q.y };
   });
 
   /* memories — pins sharing a spot fan out in a ring so none hides another */
@@ -2163,7 +2179,9 @@ function watch(name) {
 }
 
 function loadAll() {
-  ['deleted', 'discoveries', 'memories', 'surprises', 'trips', 'plans'].concat(Object.keys(ROWHOOKS)).forEach(watch);
+  var names = ['deleted', 'discoveries', 'memories', 'surprises', 'trips', 'plans'];
+  Object.keys(ROWHOOKS).forEach(function (n) { if (names.indexOf(n) < 0) names.push(n); });
+  names.forEach(watch);
 }
 
 var warnedOffline = false;
@@ -2497,12 +2515,14 @@ function surpriseForm(ll) {
   var them = other(S.who);
   openSheet(
     head('Leave a surprise', nt.name) +
-    '<p class="note">Sealed until ' + esc(whoName(them)) + ' is standing near this spot with the map open.</p>' +
+    '<p class="note">Sealed until ' + esc(whoName(them)) + ' is standing near this spot with the map open \u2014 or, if you pick a date, it opens that day wherever they are.</p>' +
     '<div class="field"><label for="s-title">What they see on the envelope</label>' +
       '<input id="s-title" type="text" maxlength="70" placeholder="Open me when you get here"></div>' +
     '<div class="field"><label for="s-note">The letter</label><textarea id="s-note" maxlength="1200" placeholder="Say it here."></textarea></div>' +
     '<div class="rowfields">' +
       '<div class="field"><label for="s-km">Unlocks within</label><select id="s-km"><option value="1">1 km</option><option value="3" selected>3 km</option><option value="8">8 km</option></select></div>' +
+      '<div class="field"><label for="s-date">Or opens on (optional)</label><input id="s-date" type="date" min="' + todayISO() + '"></div>' +
+    '</div><div class="rowfields">' +
       '<div class="field"><label for="s-for">For</label><select id="s-for"><option value="' + them + '" selected>' + esc(whoName(them)) + '</option><option value="' + S.who + '">' + esc(whoName(S.who)) + '</option></select></div>' +
     '</div>' +
     '<div class="sheet-actions">' +
@@ -2520,11 +2540,12 @@ function saveSurprise(btn) {
     title: title || 'A letter', note: note, by: S.who,
     forWho: document.getElementById('s-for').value,
     unlockKm: parseFloat(document.getElementById('s-km').value) || UNLOCK_KM,
+    unlockDate: document.getElementById('s-date').value || '',
     lat: parseFloat(btn.dataset.lat), lng: parseFloat(btn.dataset.lng),
     opened: false, at: Date.now()
   };
   btn.disabled = true; btn.textContent = 'Sealing…';
-  function after() { closeSheet(); draw(); toast('Sealed. It waits there until they arrive.', '💌', 4200); }
+  function after() { closeSheet(); draw(); toast(rec.unlockDate ? 'Sealed until ' + fmtDate(rec.unlockDate) + '.' : 'Sealed. It waits there until they arrive.', '💌', 4200); }
   if (S.db) S.db.collection('surprises').doc(uid()).set(rec).then(after, function () {
     btn.disabled = false; btn.textContent = 'Seal it'; toast('Could not seal that — try again.', '⚠️');
   });
@@ -2634,7 +2655,7 @@ function openItem(item) {
     if (!s) return;
     var mine = s.by === S.who, forMe = s.forWho === S.who;
     var d2 = S.me ? haversine(S.me.lat, S.me.lng, s.lat, s.lng) : null;
-    var near = d2 != null && d2 <= (s.unlockKm || UNLOCK_KM);
+    var near = (d2 != null && d2 <= (s.unlockKm || UNLOCK_KM)) || letterDateReady(s);
     if (s.opened || (mine && !forMe)) {
       openSheet(
         head(s.title, (s.opened ? 'Opened' : 'Sealed — yours') + ' · from ' + whoName(s.by)) +
@@ -2646,8 +2667,8 @@ function openItem(item) {
       openSheet(
         head(s.title, 'From ' + whoName(s.by)) +
         '<p><span class="pill locked">Sealed</span></p>' +
-        '<p class="note">' + (near ? 'You are here. Open it.' :
-          'It opens within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot.' + (d2 != null ? ' You are about ' + Math.round(d2) + ' km away.' : ' Use <b>Find me</b> to check.')) + '</p>' +
+        '<p class="note">' + (near ? (letterDateReady(s) ? 'Today is the day. Open it.' : 'You are here. Open it.') :
+          (s.unlockDate ? 'It opens on ' + fmtDate(s.unlockDate) + ' (' + countdownText(s.unlockDate) + '), wherever you are \u2014 or sooner, within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot. ' : '') + 'It opens within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot.' + (d2 != null ? ' You are about ' + Math.round(d2) + ' km away.' : ' Use <b>Find me</b> to check.')) + '</p>' +
         '<div class="sheet-actions">' +
           (near ? '<button class="pxbtn primary" type="button" data-act="open-surprise" data-id="' + esc(s.id) + '">Open it</button>' : '') +
           '<button class="pxbtn" type="button" data-act="close">Close</button></div>'
@@ -3124,13 +3145,17 @@ function hydrateLocal() {
 }
 
 //#include features/beacon.js
+//#include features/ambient.js
 //#include features/avatars.js
 //#include features/presence.js
 //#include features/notes.js
 //#include features/journal.js
+//#include features/letters.js
+//#include features/anniversary.js
+//#include features/heat.js
+//#include features/sound.js
 //#include features/bucket.js
 //#include features/albums.js
-//#include features/ambient.js
 //#include features/polaroid.js
 //#include features/more.js
 

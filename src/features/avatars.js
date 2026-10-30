@@ -15,6 +15,7 @@ var AV_COLORS = [
 /* average brightness of each original garment, so shading survives a recolour */
 var AV_REF = { bruce: { top: .12, bottom: .101, shoes: .183 }, elena: { top: .102, bottom: .535, shoes: .092 } };
 var AVIMG = {}, AVCACHE = {};
+var HOMEBOXES = {};         /* where each home sprite was drawn this frame (set by the map renderer) */
 S.avatars = {};
 try { S.avatars = JSON.parse(localStorage.getItem('ow.avatars') || '{}') || {}; } catch (e) {}
 ROWHOOKS.avatars = function (rows) {
@@ -57,8 +58,8 @@ function hslToRgb(h, s, l) {
   return [f(p, q, h + 1 / 3) * 255, f(p, q, h) * 255, f(p, q, h - 1 / 3) * 255];
 }
 
-/* recolour the masked garments (keeping their shading), then shrink to a chunky pixel grid */
-function avBuild(who, o) {
+/* Recolour the masked garments (keeping their shading). Cached per outfit. */
+function avRecolor(who, o) {
   var e = avLoad(who);
   if (!e.ready) return null;
   var key = who + '|' + (o.top || '') + '|' + (o.bottom || '') + '|' + (o.shoes || '');
@@ -78,41 +79,76 @@ function avBuild(who, o) {
     }
   });
   var c0 = document.createElement('canvas'); c0.width = w0; c0.height = h0; c0.getContext('2d').putImageData(img, 0, 0);
-  var PXH = 120, PXW = Math.round(w0 * PXH / h0);
-  var c1 = document.createElement('canvas'); c1.width = PXW; c1.height = PXH;
-  var g1 = c1.getContext('2d'); g1.imageSmoothingEnabled = true; g1.imageSmoothingQuality = 'high';
-  g1.drawImage(c0, 0, 0, PXW, PXH);
-  var id = g1.getImageData(0, 0, PXW, PXH);
-  for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 120 ? 255 : 0;
-  g1.putImageData(id, 0, 0);
-  AVCACHE[key] = c1;
-  return c1;
+  AVCACHE[key] = c0;
+  return c0;
 }
+/* A copy at exactly the pixel height it will be shown at — so it is sharp at
+   every zoom instead of being squashed from one big image. Aspect ratio kept. */
+var AVSIZED = {};
+function avSized(who, o, px) {
+  var src = avRecolor(who, o);
+  if (!src) return null;
+  px = Math.max(12, Math.round(px));
+  var key = who + '|' + (o.top || '') + '|' + (o.bottom || '') + '|' + (o.shoes || '') + '@' + px;
+  if (AVSIZED[key]) return AVSIZED[key];
+  var pw = Math.max(4, Math.round(src.width * px / src.height));
+  var c = document.createElement('canvas'); c.width = pw; c.height = px;
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(src, 0, 0, pw, px);
+  var id = g.getImageData(0, 0, pw, px);
+  for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 110 ? 255 : 0;
+  g.putImageData(id, 0, 0);
+  AVSIZED[key] = c;
+  return c;
+}
+/* the avatar's width for a given height */
+function avWidth(who, h) { var e = avLoad(who); return e.ready ? h * e.base.width / e.base.height : h * .42; }
 
-/* draws one avatar standing on (x, y); returns its box */
-function drawAvatar(g, who, x, y, h, outfit) {
-  var c = avBuild(who, outfit || avOutfit(who));
+/* Draws one avatar standing on (x, y), h tall (css px). `res` is device pixels
+   per css pixel of the target canvas. Returns its box. */
+function drawAvatar(g, who, x, y, h, outfit, opt) {
+  opt = opt || {};
+  var res = opt.res || 1;
+  var c = avSized(who, outfit || avOutfit(who), h * res);
   if (!c) return null;
-  var w = Math.round(c.width * h / c.height);
-  g.save(); g.imageSmoothingEnabled = false;
-  g.fillStyle = 'rgba(61,40,56,.22)';
-  g.beginPath(); g.ellipse(x, y, w * .55, h * .045, 0, 0, 6.283); g.fill();
-  g.drawImage(c, Math.round(x - w / 2), Math.round(y - h), w, h);
-  g.restore();
-  return { x: x - w / 2, y: y - h, w: w, h: h };
-}
-/* both of you, side by side, hearts between */
-function drawHoldingHands(g, x, y, h) {
-  var bw = h * .41;
-  var a = drawAvatar(g, 'bruce', x - bw * .46, y, h), b = drawAvatar(g, 'elena', x + bw * .5, y, h);
-  if (!a || !b) return null;
+  var w = c.width / res, hh = c.height / res;
   g.save();
-  var bob = Math.sin(cloudPhase / 7) * 2;
-  g.fillStyle = 'rgba(245,216,142,.55)'; g.beginPath(); g.arc(x, y - h * .40, h * .09, 0, 6.283); g.fill();
-  drawSprite(g, SP.heart, PAL.heartP, x, y - h * 1.03 + bob, Math.max(2, Math.round(h / 34)), '#FFFFFF');
+  g.fillStyle = 'rgba(61,40,56,.20)';
+  g.beginPath(); g.ellipse(x, y, w * .42, Math.max(1.5, hh * .035), 0, 0, 6.283); g.fill();
+  g.imageSmoothingEnabled = false;
+  var top = y - hh + (opt.lift || 0);
+  if (opt.flip) { g.translate(Math.round(x), 0); g.scale(-1, 1); g.drawImage(c, Math.round(-w / 2), Math.round(top), w, hh); }
+  else g.drawImage(c, Math.round(x - w / 2), Math.round(top), w, hh);
   g.restore();
-  return { x: a.x, y: a.y - 10, w: b.x + b.w - a.x, h: h + 10 };
+  return { x: x - w / 2, y: top, w: w, h: hh };
 }
+/* both of you side by side, shoulder to shoulder, a heart above */
+function drawTogetherPair(g, x, y, h, res) {
+  var wb = avWidth('bruce', h), we = avWidth('elena', h);
+  var a = drawAvatar(g, 'bruce', x - wb * .42, y, h, null, { res: res, lift: avBob(0) }),
+      b = drawAvatar(g, 'elena', x + we * .42, y, h, null, { res: res, lift: avBob(1.3) });
+  if (!a || !b) return null;
+  var bob = reduceMotion ? 0 : Math.sin(cloudPhase / 7) * 1.5;
+  drawSprite(g, SP.heart, PAL.heartP, x, Math.round(y - h - 3 + bob), Math.max(1, Math.min(4, Math.round(h / 40))), '#FFFFFF');
+  return { x: a.x, y: a.y - 8, w: b.x + b.w - a.x, h: h + 8 };
+}
+/* a slow breath while standing still */
+function avBob(phase) { return reduceMotion ? 0 : Math.round(Math.sin(cloudPhase / 16 + phase) * 0.6); }
+
+/* the sign-in screen shows the two of you once the art has loaded */
+(function gateAvatars(tries) {
+  var pair = document.querySelector('#gate .pair');
+  if (!pair) return;
+  var a = avLoad('bruce'), b = avLoad('elena');
+  if (!a.ready || !b.ready) { if ((tries || 0) < 60) setTimeout(function () { gateAvatars((tries || 0) + 1); }, 150); return; }
+  var dpr = Math.min(3, window.devicePixelRatio || 1), cssH = 116;
+  var c = document.createElement('canvas');
+  c.width = Math.round(110 * dpr); c.height = Math.round((cssH + 30) * dpr);
+  c.style.width = '110px'; c.style.height = (cssH + 30) + 'px'; c.className = 'gate-av';
+  var g = c.getContext('2d');
+  drawTogetherPair(g, c.width / 2, c.height - 3 * dpr, cssH * dpr, 1);
+  pair.innerHTML = ''; pair.appendChild(c);
+})();
 
 /* ---------- customise ---------- */
 var AVD = null;
@@ -120,7 +156,7 @@ function avPreviewDraw() {
   [['avA', S.who, AVD], ['avB', other(S.who), avOutfit(other(S.who))]].forEach(function (p) {
     var c = document.getElementById(p[0]); if (!c) return;
     var g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height);
-    if (!drawAvatar(g, p[1], c.width / 2, c.height - 8, c.height - 18, p[2])) setTimeout(avPreviewDraw, 200);
+    if (!drawAvatar(g, p[1], c.width / 2, c.height - 8, c.height - 22, p[2])) setTimeout(avPreviewDraw, 200);
   });
 }
 function openAvatars() {
