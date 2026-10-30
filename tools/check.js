@@ -10,7 +10,7 @@ function check(label, code) {
   catch (e) { bad++; console.error('  FAIL ' + label + ' — ' + e.message); }
 }
 
-const html = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+const html = require('./include').expand(fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8'));
 const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 console.log('inline scripts in src/index.html: ' + blocks.length);
 blocks.forEach((b, i) => check('src/index.html #' + (i + 1), b));

@@ -215,6 +215,27 @@ Static hosting only (Vercel serves the repo root; `vercel.json` skips the
 build step because `index.html` is committed). `vendor/supabase.js` is the
 pinned supabase-js 2.45.4 browser bundle, served next to the page.
 
+## Features added in the remaster
+
+Each lives in its own file under `src/features/` and plugs into the app through
+`HOOKS` (draw loop) and `ACTIONS` (sheet buttons). `//#include` lines in
+`src/index.html` pull them in; `tools/include.js` expands them for dev, build
+and check.
+
+| File | What it does |
+|---|---|
+| `ambient.js` | light that follows the real clock (dawn, dusk, night), seasonal weather (snow, petals, fireflies, leaves), sparkle burst when ground is cleared |
+| `polaroid.js` | memories with a photo appear on the map as little pixel polaroids |
+| `more.js` | the ✨ sheet: **trips** (gold thread through memories), **plans** (wish-list stars with countdowns), **look back** ("one year ago today"), **poster** export, atmosphere settings, sign out, install help |
+
+Also: `manifest.webmanifest`, `sw.js` and the icons make it installable as a
+home-screen app (network-first service worker, so updates arrive at once).
+
+Trips and plans are stored as two more collections (`trips`, `plans`) in the
+same `docs` table, so no database change is needed.
+
+---
+
 ## Completed features
 
 Real 2D geography (MD · DC · VA · DE · PA · WV · NJ · NC · NY · CT, plus

@@ -7,6 +7,12 @@
 <meta name="description" content="A pixel-art map of real places, drawn without map tiles. The world starts under cloud and clears where you have been.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#FFF8FB">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Our World">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta property="og:title" content="Our World">
 <meta property="og:description" content="A pixel-art map of real places, drawn without map tiles. The world starts under cloud and clears where you have been.">
 <meta property="og:type" content="website">
@@ -19,6 +25,11 @@
   [hidden] { display: none !important; }
 </style>
 <script src="vendor/supabase.js"></script>
+<script>
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function (e) { console.warn("service worker:", e); }); });
+}
+</script>
 </head>
 <body>
 <title>Our World</title>
@@ -204,6 +215,20 @@ button{font:inherit;color:inherit;cursor:pointer}
 .whobtn .n{font-family:var(--fdisp); font-size:17px; color:var(--deep)}
 .whobtn .r{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45)}
 
+/* ---------- polish ---------- */
+#stage::after{content:''; position:absolute; inset:0; z-index:3; pointer-events:none; box-shadow:inset 0 0 90px rgba(159,61,109,.17)}
+.pxbtn:not([disabled]):hover{transform:translateY(-1px)}
+.toast{box-shadow:0 5px 0 rgba(159,61,109,.35), var(--shadow)}
+#top{box-shadow:0 3px 0 rgba(159,61,109,.10)}
+#gate .pair{display:flex; justify-content:center; align-items:flex-end; gap:14px; margin-bottom:10px}
+#gate .pair canvas{image-rendering:pixelated; animation:bob 2.6s ease-in-out infinite}
+#gate .pair canvas+canvas{animation-delay:-1.3s}
+@keyframes bob{50%{transform:translateY(-5px)}}
+#gate .float{position:absolute; inset:0; overflow:hidden; pointer-events:none}
+#gate .float span{position:absolute; bottom:-30px; font-size:18px; opacity:0; animation:drift 9s linear infinite}
+@keyframes drift{0%{transform:translateY(0) scale(.7); opacity:0}12%{opacity:.8}100%{transform:translateY(-105vh) scale(1.15); opacity:0}}
+@media (prefers-reduced-motion:reduce){#gate .float,#gate .pair canvas{animation:none}}
+
 /* ---------- sign-in gate ---------- */
 body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{visibility:hidden}
 #gate{
@@ -222,6 +247,15 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 #gate input:focus{border-color:var(--pink)}
 #gate .pxbtn{width:100%; margin-top:4px; padding:12px}
 #gate .gerr{min-height:1.4em; margin:12px auto 0; color:#C2415F; font-weight:700; font-size:13px}
+
+
+/* ---------- checkbox list (trips) ---------- */
+.chks{max-height:260px; overflow:auto; border:3px solid var(--panel-edge); background:#fff}
+.chk{display:flex; gap:10px; align-items:flex-start; padding:9px 11px; border-bottom:2px solid #F6E4ED; cursor:pointer; font-size:13.5px; line-height:1.4; letter-spacing:0; text-transform:none; color:var(--ink); font-weight:500}
+.chk:last-child{border-bottom:none}
+.chk input{margin-top:3px; width:18px; height:18px; accent-color:var(--pink); flex:none}
+.chk i{font-style:normal; font-size:12px; color:var(--ink-45)}
+.pxbtn[aria-pressed="true"]{background:var(--princess); color:#4A1E38}
 
 /* ---------- placing mode ---------- */
 #placing{
@@ -471,6 +505,9 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
         <button class="pxbtn icon" id="btnMemory" title="Add a memory" aria-label="Add a memory">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7-4.6-7-9.2A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.8C19 15.4 12 20 12 20z"/></svg>
         </button>
+        <button class="pxbtn icon" id="btnMore" title="More of us" aria-label="More of us">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.2L21 9l-5 4.2L17.6 20 12 16.4 6.4 20 8 13.2 3 9l6.8-.8z"/></svg>
+        </button>
         <button class="pxbtn icon" id="btnSurprise" title="Leave a surprise" aria-label="Leave a surprise">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="13"/><path d="M3 7l9 6 9-6"/></svg>
         </button>
@@ -533,7 +570,9 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 </div>
 
 <div id="gate" hidden>
-  <form class="card" id="gateForm">
+  <div class="float" aria-hidden="true"><span style="left:8%;animation-delay:0s">💗</span><span style="left:24%;animation-delay:2.4s">✨</span><span style="left:42%;animation-delay:5s">💗</span><span style="left:63%;animation-delay:1.2s">✨</span><span style="left:80%;animation-delay:3.8s">💗</span><span style="left:92%;animation-delay:6.5s">✨</span></div>
+  <form class="card" id="gateForm" style="position:relative">
+    <div class="pair"><canvas width="72" height="72" data-sprite="cottage-gold"></canvas><canvas width="78" height="82" data-sprite="castle"></canvas></div>
     <h1>Our World</h1>
     <p>This world is only for the two of you. Sign in to open it.</p>
     <label>Email<input id="gEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
@@ -1168,6 +1207,17 @@ var GEO = { states: [], rivers: [], world: [] };
   GEO.world  = decodeRings(g.world, 10);
 })();
 
+/* ============================== hooks ============================== */
+/* Features in src/features/ plug into the draw loop and the sheet actions here. */
+var HOOKS = { afterFog: [], beforePins: [], afterOverlays: [] };
+function runHooks(name) {
+  var list = HOOKS[name];
+  for (var i = 0; i < list.length; i++) {
+    try { list[i](); } catch (e) { if (window.console) console.error('hook ' + name + ':', e); }
+  }
+}
+var ACTIONS = {};
+
 /* ============================== state ============================== */
 var S = {
   who: null,
@@ -1177,7 +1227,7 @@ var S = {
   zoom: 11.2,
   globe: { lon: -77, lat: 38, scale: 1 },   // scale 1 = earth view, <0.5 = space
   regions: [],                // discovered, from db
-  memories: [], surprises: [], deleted: {},
+  memories: [], surprises: [], deleted: {}, trips: [], plans: [],
   me: null,                   // last known gps fix
   placing: null,              // {kind:'memory'|'surprise'}
   selected: null,
@@ -1989,6 +2039,7 @@ function drawMapOverlays() {
   });
 
   /* memories — pins sharing a spot fan out in a ring so none hides another */
+  runHooks('beforePins');
   var pinCount = {}, pinSeen = {};
   for (i = 0; i < S.memories.length; i++) {
     var pk0 = S.memories[i].lat.toFixed(4) + ',' + S.memories[i].lng.toFixed(4);
@@ -2000,9 +2051,9 @@ function drawMapOverlays() {
     p = proj(m.lat, m.lng);
     var pk = m.lat.toFixed(4) + ',' + m.lng.toFixed(4), pn = pinCount[pk], pi = pinSeen[pk] || 0;
     pinSeen[pk] = pi + 1;
-    if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; p = { x: p.x + Math.cos(pa) * 15, y: p.y + Math.sin(pa) * 15 }; }
+    if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; var pr = z > 9.2 ? 30 : 15; p = { x: p.x + Math.cos(pa) * pr, y: p.y + Math.sin(pa) * pr }; }
     if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
-    var b = drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
+    var b = polaroidPin(m, p, z) || drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
     addHit({ x: b.x - 7, y: b.y - 7, w: b.w + 14, h: b.h + 14 }, { kind: 'memory', id: m.id });
   }
 
@@ -2079,7 +2130,9 @@ function draw() {
   ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
+  runHooks('afterFog');
   drawMapOverlays();
+  runHooks('afterOverlays');
 }
 
 var lastTick = 0;
@@ -2252,6 +2305,7 @@ sheet.addEventListener('click', function (e) {
   var b = e.target.closest('[data-act]'); if (!b) return;
   var act = b.dataset.act;
   if (act === 'close') closeSheet();
+  else if (ACTIONS[act]) ACTIONS[act](b);
   else if (act === 'save-memory') saveMemory(b);
   else if (act === 'save-surprise') saveSurprise(b);
   else if (act === 'open-surprise') openSurprise(b.dataset.id);
@@ -2388,7 +2442,12 @@ function applyRows(name, rows) {
   } else if (name === 'surprises') {
     S.surprises = mergeById(rows, S.surprises);
     LS.write('surprises', S.surprises);
+  } else if (name === 'trips') {
+    S.trips = rows; LS.write('trips', rows);
+  } else if (name === 'plans') {
+    S.plans = rows; LS.write('plans', rows); renderHop();
   }
+  if (name === 'memories') thisDayToast();
   DBS.counts[name] = rows.length;
   draw();
 }
@@ -2421,7 +2480,7 @@ function watch(name) {
 }
 
 function loadAll() {
-  ['deleted', 'discoveries', 'memories', 'surprises'].forEach(watch);
+  ['deleted', 'discoveries', 'memories', 'surprises', 'trips', 'plans'].forEach(watch);
 }
 
 var warnedOffline = false;
@@ -2445,6 +2504,7 @@ function discover(lat, lng, quiet) {
     rec.id = uid(); S.regions.push(rec);
   }
   baseDirty = true; renderHop(); draw();
+  fxDiscover(lat, lng);
   toast('New area discovered: ' + name, '🌟', 4200);
   sparkle();
   return true;
@@ -2634,7 +2694,7 @@ var crossEl = document.getElementById('crosshair');
 function startPlacing(kind, starterId) {
   S.placing = { kind: kind, starterId: starterId || null };
   document.getElementById('placingText').textContent =
-    kind === 'memory' ? 'Tap where this happened' : 'Tap where you want to hide it';
+    kind === 'memory' ? 'Tap where this happened' : (kind === 'plan' ? 'Tap where you want to go' : 'Tap where you want to hide it');
   placingEl.classList.add('on'); crossEl.classList.add('on');
   closeSheet();
 }
@@ -2647,6 +2707,7 @@ function placeAt(ll) {
   var p = S.placing; if (!p) return;
   stopPlacing();
   if (p.kind === 'memory') memoryForm(ll, p.starterId);
+  else if (p.kind === 'plan') planForm(ll);
   else surpriseForm(ll);
 }
 document.getElementById('btnMemory').addEventListener('click', function () { startPlacing('memory'); });
@@ -2813,6 +2874,7 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
+  if (item.kind === 'plan') { openPlan(item.id); return; }
   if (item.kind === 'home') {
     var h = HOMES[item.who];
     openSheet(
@@ -3370,8 +3432,505 @@ function hydrateLocal() {
   S.memories.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
   S.regions = LS.read('discoveries');
   S.surprises = LS.read('surprises');
+  S.trips = LS.read('trips');
+  S.plans = LS.read('plans');
   baseDirty = true;
 }
+
+/* ---- features/ambient.js ---- */
+/* Ambient life: light that follows the real time of day, weather that follows
+   the season, and a burst of sparkle when new ground is cleared. */
+
+var AMB = { tod: 'live', weather: true };
+try {
+  AMB.tod = localStorage.getItem('ow.tod') || 'live';
+  AMB.weather = localStorage.getItem('ow.weather') !== 'off';
+} catch (e) {}
+
+function ambHour() {
+  if (AMB.tod === 'day') return 12;
+  if (AMB.tod === 'night') return 23;
+  var d = new Date();
+  return d.getHours() + d.getMinutes() / 60;
+}
+function ambIsNight(h) { return h < 5.5 || h > 19.5; }
+
+/* [hour, r, g, b, alpha] — blended between neighbours, wrapping midnight */
+var AMB_LIGHT = [
+  [0, 22, 24, 70, .34], [5, 30, 32, 84, .30], [6.5, 255, 150, 110, .16], [8, 255, 230, 200, 0],
+  [16.5, 255, 240, 210, 0], [18, 255, 160, 80, .16], [19.5, 110, 70, 120, .24], [21, 25, 26, 74, .32],
+  [24, 22, 24, 70, .34]
+];
+function ambTint(h) {
+  for (var i = 0; i < AMB_LIGHT.length - 1; i++) {
+    var a = AMB_LIGHT[i], b = AMB_LIGHT[i + 1];
+    if (h >= a[0] && h <= b[0]) {
+      var t = (h - a[0]) / (b[0] - a[0]);
+      return [a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t, a[4] + (b[4] - a[4]) * t];
+    }
+  }
+  return [0, 0, 0, 0];
+}
+
+HOOKS.afterFog.push(function () {
+  var t = ambTint(ambHour());
+  if (t[3] < 0.01) return;
+  ctx.fillStyle = 'rgba(' + (t[0] | 0) + ',' + (t[1] | 0) + ',' + (t[2] | 0) + ',' + t[3].toFixed(3) + ')';
+  ctx.fillRect(0, 0, W, H);
+});
+
+/* ---------- seasonal weather ---------- */
+function ambSeason(night) {
+  var m = new Date().getMonth();
+  if (m === 11 || m < 2) return 'snow';
+  if (m < 5) return 'petal';
+  if (m < 8) return night ? 'firefly' : 'seed';
+  return 'leaf';
+}
+var AMB_COLORS = {
+  snow: ['#FFFFFF', '#EAF4FF'],
+  petal: ['#F3A9C7', '#FBD3E4', '#FFFFFF'],
+  leaf: ['#E7B765', '#D9825B', '#C2574A'],
+  seed: ['#FFFFFF'],
+  firefly: ['#F5D88E', '#FFE9A8']
+};
+var ambP = { list: [], kind: '', last: 0 };
+
+function ambMake(kind, initial) {
+  var cols = AMB_COLORS[kind];
+  var p = {
+    x: Math.random() * W, y: initial ? Math.random() * H : -6,
+    ph: Math.random() * 6.28, c: cols[(Math.random() * cols.length) | 0], sz: 2
+  };
+  if (kind === 'snow') { p.vx = -4 + Math.random() * 8; p.vy = 18 + Math.random() * 16; p.sz = Math.random() < .3 ? 3 : 2; }
+  else if (kind === 'petal') { p.vx = 14 + Math.random() * 16; p.vy = 16 + Math.random() * 14; p.sz = 3; }
+  else if (kind === 'leaf') { p.vx = -10 - Math.random() * 14; p.vy = 20 + Math.random() * 16; p.sz = 3; }
+  else if (kind === 'seed') { p.vx = 8 + Math.random() * 8; p.vy = -4 - Math.random() * 5; p.y = initial ? Math.random() * H : H + 6; }
+  else { p.vx = -3 + Math.random() * 6; p.vy = -3 + Math.random() * 6; p.y = initial ? Math.random() * H : Math.random() * H; }
+  return p;
+}
+
+HOOKS.afterOverlays.push(function () {
+  if (reduceMotion || !AMB.weather || S.mode !== 'map') return;
+  var now = performance.now(), dt = Math.min(0.1, (now - ambP.last) / 1000 || 0.05);
+  ambP.last = now;
+  var kind = ambSeason(ambIsNight(ambHour()));
+  var want = Math.min(48, Math.round(W * H / 11000));
+  if (kind !== ambP.kind) { ambP.kind = kind; ambP.list = []; }
+  while (ambP.list.length < want) ambP.list.push(ambMake(kind, true));
+  ctx.imageSmoothingEnabled = false;
+  for (var i = 0; i < ambP.list.length; i++) {
+    var p = ambP.list[i];
+    p.ph += dt * 2;
+    p.x += (p.vx + Math.sin(p.ph) * 6) * dt;
+    p.y += p.vy * dt;
+    if (p.y > H + 8 || p.x > W + 8 || p.x < -8 || p.y < -10) { ambP.list[i] = ambMake(kind, false); if (kind === 'leaf') ambP.list[i].x = Math.random() * (W + 80); continue; }
+    ctx.globalAlpha = kind === 'firefly' ? 0.25 + 0.75 * Math.max(0, Math.sin(p.ph * 1.3)) : (kind === 'seed' ? .55 : .85);
+    ctx.fillStyle = p.c;
+    ctx.fillRect(Math.round(p.x), Math.round(p.y), p.sz, kind === 'petal' ? 2 : p.sz);
+    if (kind === 'firefly') { ctx.globalAlpha *= .25; ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, p.sz + 2, p.sz + 2); }
+  }
+  ctx.globalAlpha = 1;
+});
+
+/* ---------- discovery burst ---------- */
+var AMB_BURST = { dots: [], rings: [], last: 0 };
+var AMB_BCOLS = ['#F3A9C7', '#E7B765', '#FFFFFF', '#D85A92', '#F5D88E'];
+function fxDiscover(lat, lng) {
+  if (reduceMotion) return;
+  var p = proj(lat, lng);
+  for (var i = 0; i < 38; i++) {
+    var a = Math.random() * 6.283, sp = 60 + Math.random() * 150;
+    AMB_BURST.dots.push({ x: p.x, y: p.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, life: 1, sz: Math.random() < .35 ? 4 : 3, c: AMB_BCOLS[i % AMB_BCOLS.length] });
+  }
+  AMB_BURST.rings.push({ x: p.x, y: p.y, r: 6, life: 1 });
+  AMB_BURST.rings.push({ x: p.x, y: p.y, r: 2, life: 1.25 });
+}
+HOOKS.afterOverlays.push(function () {
+  var B = AMB_BURST;
+  if (!B.dots.length && !B.rings.length) return;
+  var now = performance.now(), dt = Math.min(0.1, (now - B.last) / 1000 || 0.05);
+  B.last = now;
+  var i, d;
+  for (i = B.rings.length - 1; i >= 0; i--) {
+    d = B.rings[i]; d.r += 150 * dt; d.life -= dt * 1.1;
+    if (d.life <= 0) { B.rings.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, d.life); ctx.strokeStyle = '#E7B765'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.283); ctx.stroke();
+  }
+  ctx.imageSmoothingEnabled = false;
+  for (i = B.dots.length - 1; i >= 0; i--) {
+    d = B.dots[i]; d.vy += 190 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt * 0.8;
+    if (d.life <= 0) { B.dots.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, d.life * 1.4); ctx.fillStyle = d.c;
+    ctx.fillRect(Math.round(d.x), Math.round(d.y), d.sz, d.sz);
+  }
+  ctx.globalAlpha = 1;
+});
+
+/* ---- features/polaroid.js ---- */
+/* Memories with a photo show on the map as little pixel polaroids. */
+
+var POL = {};
+function polHash(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+
+/* The photo is shrunk to a tiny grid, then scaled up unsmoothed: real pixel art. */
+function polEntry(url) {
+  var e = POL[url];
+  if (e) return e;
+  e = POL[url] = { ok: false, cv: null };
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function () {
+    var n = 20, c = document.createElement('canvas'); c.width = n; c.height = n;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    var sq = Math.min(img.naturalWidth, img.naturalHeight);
+    g.drawImage(img, (img.naturalWidth - sq) / 2, (img.naturalHeight - sq) / 2, sq, sq, 0, 0, n, n);
+    e.cv = c; e.ok = true;
+  };
+  img.onerror = function () { e.bad = true; };
+  img.src = url;
+  return e;
+}
+
+function polaroidPin(m, p, z) {
+  if (z < 9.2) return null;
+  var urls = photoCandidates(m);
+  if (!urls.length) return null;
+  var e = polEntry(urls[0]);
+  if (!e.ok) return null;
+  var s = z > 11 ? 1.3 : 1, w = Math.round(34 * s), ph = Math.round(26 * s), h = ph + Math.round(14 * s), lift = Math.round(9 * s);
+  var rot = ((polHash(m.id) % 13) - 6) * Math.PI / 180;
+  ctx.save();
+  ctx.translate(p.x, p.y - lift - h / 2);
+  ctx.rotate(rot);
+  ctx.fillStyle = 'rgba(61,40,56,.28)'; ctx.fillRect(-w / 2 + 3, -h / 2 + 4, w, h);
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.strokeStyle = C.deep; ctx.lineWidth = 2; ctx.strokeRect(-w / 2 + 1, -h / 2 + 1, w - 2, h - 2);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(e.cv, 0, 0, 20, 20, -ph / 2, -h / 2 + Math.round(4 * s), ph, ph);
+  ctx.fillStyle = C.pink;
+  var hx = 0, hy = h / 2 - Math.round(6 * s), u = Math.max(2, Math.round(2 * s));
+  ctx.fillRect(hx - u, hy - u, u, u); ctx.fillRect(hx + 0, hy - u, u, u);
+  ctx.fillRect(hx - u, hy, u * 2, u);
+  ctx.restore();
+  ctx.fillStyle = C.deep;
+  ctx.beginPath(); ctx.moveTo(p.x - 4, p.y - lift); ctx.lineTo(p.x + 4, p.y - lift); ctx.lineTo(p.x, p.y); ctx.closePath(); ctx.fill();
+  ctx.imageSmoothingEnabled = true;
+  return { x: p.x - w / 2, y: p.y - lift - h, w: w, h: h + lift };
+}
+
+/* ---- features/more.js ---- */
+/* The "More of us" sheet: trips, plans, a look back at this day, a poster of the
+   map, and the atmosphere settings. */
+
+function moreRow(act, ic, title, sub, data) {
+  return '<button type="button" data-act="' + act + '"' + (data || '') + '><span class="ico">' + ic + '</span>' +
+    '<span><span class="t">' + esc(title) + '</span><br><span class="s">' + esc(sub) + '</span></span></button>';
+}
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function byDateThenTime(a, b) { return (a.date || '').localeCompare(b.date || '') || (a.at || 0) - (b.at || 0); }
+function sectionTitle(t) { return '<h3 style="font-family:var(--fdisp);font-size:15px;color:var(--deep);margin:18px 0 6px">' + esc(t) + '</h3>'; }
+
+/* ---------- this day, years ago ---------- */
+function thisDayList() {
+  var t = new Date(), mmdd = pad2(t.getMonth() + 1) + '-' + pad2(t.getDate()), y = t.getFullYear(), out = [];
+  S.memories.forEach(function (m) {
+    if (m.date && m.date.slice(5) === mmdd && parseInt(m.date.slice(0, 4), 10) < y) {
+      out.push({ m: m, years: y - parseInt(m.date.slice(0, 4), 10) });
+    }
+  });
+  return out.sort(function (a, b) { return a.years - b.years; });
+}
+function yearsAgo(n) { return n === 1 ? 'One year ago today' : n + ' years ago today'; }
+function thisDayToast() {
+  var list = thisDayList();
+  if (!list.length) return;
+  try { if (localStorage.getItem('ow.thisday') === todayISO()) return; localStorage.setItem('ow.thisday', todayISO()); } catch (e) {}
+  setTimeout(function () { toast(yearsAgo(list[0].years) + ': ' + list[0].m.title, '💗', 7000); }, 2500);
+}
+
+/* ---------- the sheet ---------- */
+function openMore() {
+  var td = thisDayList(), html = head('More of us', 'little extras');
+  if (td.length) {
+    html += sectionTitle('Looking back') + '<div class="list">' + td.map(function (it) {
+      return '<button type="button" data-act="goto" data-lat="' + it.m.lat + '" data-lng="' + it.m.lng + '" data-z="13">' +
+        '<span class="ico">💗</span><span><span class="t">' + esc(it.m.title) + '</span><br><span class="s">' + esc(yearsAgo(it.years)) + '</span></span></button>';
+    }).join('') + '</div>';
+  }
+  html += sectionTitle('Together') + '<div class="list">' +
+    moreRow('trips-list', '🧵', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') + ' threaded across the map' : 'Thread memories into a journey') +
+    moreRow('plans-list', '⭐', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
+    moreRow('poster', '🖼️', 'Save our map as a poster', 'Frame it, or send it to her') +
+    '</div>' + sectionTitle('This device') + '<div class="list">' +
+    moreRow('install', '\ud83d\udcf1', 'Add to your home screen', 'Opens full-screen like a real app') +
+    moreRow('atmos', '🌙', 'Time of day and weather', (AMB.tod === 'live' ? 'Follows the real clock' : AMB.tod === 'day' ? 'Always daytime' : 'Always night') + (AMB.weather ? ' · weather on' : ' · weather off')) +
+    moreRow('sign-out', '🚪', 'Sign out', 'Locks this device again') +
+    '</div>';
+  openSheet(html);
+}
+document.getElementById('btnMore').addEventListener('click', openMore);
+ACTIONS['more'] = openMore;
+ACTIONS['atmos'] = openAtmos;
+ACTIONS['poster'] = savePoster;
+ACTIONS['install'] = function () {
+  openSheet(head('Add to your home screen', 'so it opens like an app') +
+    '<p class="note"><b>iPhone (Safari):</b> tap the Share button, then <b>Add to Home Screen</b>.<br><br>' +
+    '<b>Android (Chrome):</b> tap the ⋮ menu, then <b>Install app</b> or <b>Add to Home screen</b>.</p>' +
+    '<p class="hint">You will get the little pixel castle on your home screen, and it opens full-screen with no browser bars.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+
+/* ---------- atmosphere ---------- */
+function openAtmos() {
+  function opt(act, v, label, on) { return '<button class="pxbtn" type="button" aria-pressed="' + (on ? 'true' : 'false') + '" data-act="' + act + '" data-v="' + v + '">' + label + '</button>'; }
+  openSheet(head('Atmosphere', 'light and weather') +
+    '<p class="note">The map can follow the real clock — dusk, night and dawn — and the seasons: snow in winter, petals in spring, fireflies on summer nights, leaves in autumn.</p>' +
+    sectionTitle('Time of day') + '<div class="sheet-actions">' +
+      opt('tod', 'live', 'Live clock', AMB.tod === 'live') + opt('tod', 'day', 'Always day', AMB.tod === 'day') + opt('tod', 'night', 'Always night', AMB.tod === 'night') + '</div>' +
+    sectionTitle('Weather') + '<div class="sheet-actions">' +
+      opt('weather', 'on', 'On', AMB.weather) + opt('weather', 'off', 'Off', !AMB.weather) + '</div>' +
+    '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+}
+ACTIONS['tod'] = function (b) { AMB.tod = b.dataset.v; try { localStorage.setItem('ow.tod', AMB.tod); } catch (e) {} openAtmos(); draw(); };
+ACTIONS['weather'] = function (b) { AMB.weather = b.dataset.v === 'on'; try { localStorage.setItem('ow.weather', AMB.weather ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
+ACTIONS['sign-out'] = function () { if (window.OWCloud && OWCloud.configured) OWCloud.signOut(); else location.reload(); };
+
+/* ---------- poster ---------- */
+function savePoster() {
+  closeSheet();
+  setTimeout(function () {
+    draw();
+    var mw = cv.width, mh = cv.height, pad = Math.round(mw * 0.06), cap = Math.round(mw * 0.34);
+    var out = document.createElement('canvas');
+    out.width = mw + pad * 2; out.height = mh + pad * 2 + cap;
+    var g = out.getContext('2d');
+    g.fillStyle = '#FFF8FB'; g.fillRect(0, 0, out.width, out.height);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(cv, pad, pad);
+    var lw = Math.max(4, Math.round(mw * 0.012));
+    g.strokeStyle = C.deep; g.lineWidth = lw; g.strokeRect(pad - lw / 2, pad - lw / 2, mw + lw, mh + lw);
+    g.strokeStyle = C.princess; g.lineWidth = lw; g.strokeRect(lw, lw, out.width - lw * 2, out.height - lw * 2);
+    var cx = out.width / 2, base = pad + mh + pad;
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillStyle = C.deep; g.font = Math.round(mw * 0.12) + 'px "Pixelify Sans", monospace';
+    g.fillText('Our World', cx, base + cap * 0.42);
+    g.fillStyle = C.pink; g.font = Math.round(mw * 0.05) + 'px "Pixelify Sans", monospace';
+    g.fillText('Bruce & Princess Elena', cx, base + cap * 0.62);
+    g.fillStyle = 'rgba(61,40,56,.55)'; g.font = Math.round(mw * 0.034) + 'px "Quicksand", sans-serif';
+    g.fillText(['January','February','March','April','May','June','July','August','September','October','November','December'][new Date().getMonth()] + ' ' + new Date().getFullYear(), cx, base + cap * 0.78);
+    out.toBlob(function (blob) {
+      if (!blob) { toast('Could not make the poster — try again.', '⚠️', 4000); return; }
+      var file = null;
+      try { file = new File([blob], 'our-world.png', { type: 'image/png' }); } catch (e) {}
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Our World' }).catch(function () {});
+      } else {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'our-world.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        toast('Poster saved', '🖼️', 3000);
+      }
+    }, 'image/png');
+  }, 250);
+  toast('Framing your poster…', '🖼️', 1800);
+}
+
+/* ---------- trips ---------- */
+function tripStops(t) {
+  var out = [];
+  (t.ids || []).forEach(function (id) {
+    for (var i = 0; i < S.memories.length; i++) if (S.memories[i].id === id) out.push(S.memories[i]);
+  });
+  return out.sort(byDateThenTime);
+}
+function tripById(id) { for (var i = 0; i < S.trips.length; i++) if (S.trips[i].id === id) return S.trips[i]; return null; }
+function fitStops(stops) {
+  if (!stops.length) return;
+  var la0 = 90, la1 = -90, ln0 = 180, ln1 = -180;
+  stops.forEach(function (s) { la0 = Math.min(la0, s.lat); la1 = Math.max(la1, s.lat); ln0 = Math.min(ln0, s.lng); ln1 = Math.max(ln1, s.lng); });
+  var z = 12.6;
+  for (; z > 4.8; z -= 0.3) {
+    var dx = Math.abs(lngToWX(ln1, z) - lngToWX(ln0, z)), dy = Math.abs(latToWY(la0, z) - latToWY(la1, z));
+    if (dx < W * 0.72 && dy < H * 0.42) break;
+  }
+  flyTo((la0 + la1) / 2, (ln0 + ln1) / 2, z);
+}
+ACTIONS['trips-list'] = function () {
+  var rows = S.trips.map(function (t) {
+    var st = tripStops(t);
+    return moreRow('trip-open', '🧵', t.name, st.length + ' stops' + (st.length ? ' · ' + fmtDate(st[0].date) : ''), ' data-id="' + esc(t.id) + '"');
+  }).join('');
+  openSheet(head('Our trips', 'a gold thread through the memories') +
+    (rows ? '<div class="list">' + rows + '</div>' : '<p class="hint">No trips yet. A trip links memories, in order, with a gold thread across the map.</p>') +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn primary" type="button" data-act="trip-new">New trip</button>' +
+    '<button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+ACTIONS['trip-new'] = function () {
+  var mems = S.memories.slice().sort(byDateThenTime);
+  if (mems.length < 2) {
+    openSheet(head('New trip', 'needs two memories') +
+      '<p class="hint">A trip connects memories, so add at least two first — then thread them together here.</p>' +
+      '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="trips-list">Back</button></div>');
+    return;
+  }
+  openSheet(head('New trip', 'pick the stops, in any order') +
+    '<div class="field"><label for="t-name">Name</label><input id="t-name" type="text" maxlength="60" placeholder="our September weekend"></div>' +
+    '<div class="field"><label>Stops (we order them by date)</label><div class="chks">' +
+    mems.map(function (m) {
+      return '<label class="chk"><input type="checkbox" value="' + esc(m.id) + '"><span><b>' + esc(m.title) + '</b><br><i>' + esc(fmtDate(m.date)) + '</i></span></label>';
+    }).join('') + '</div></div>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="trip-save">Thread it together</button>' +
+    '<button class="pxbtn" type="button" data-act="trips-list">Cancel</button></div>');
+};
+ACTIONS['trip-save'] = function () {
+  var name = (document.getElementById('t-name').value || '').trim();
+  var ids = [].map.call(sheet.querySelectorAll('.chks input:checked'), function (c) { return c.value; });
+  if (!name) { toast('Give the trip a name first.', '✏️', 3000); return; }
+  if (ids.length < 2) { toast('Pick at least two stops.', '📍', 3000); return; }
+  var rec = { id: uid(), name: name, ids: ids, by: S.who, at: Date.now() };
+  S.trips = [rec].concat(S.trips); LS.write('trips', S.trips);
+  if (S.db) S.db.collection('trips').doc(rec.id).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 5000); });
+  closeSheet(); fitStops(tripStops(rec)); sparkle();
+  toast('Trip threaded: ' + name, '🧵', 4000);
+};
+ACTIONS['trip-open'] = function (b) {
+  var t = tripById(b.dataset.id); if (!t) return;
+  var st = tripStops(t);
+  openSheet(head(t.name, st.length + ' stops') +
+    '<div class="list">' + st.map(function (m, i) {
+      return '<button type="button" data-act="goto" data-lat="' + m.lat + '" data-lng="' + m.lng + '" data-z="13"><span class="ico">' + (i + 1) + '</span><span><span class="t">' + esc(m.title) + '</span><br><span class="s">' + esc(fmtDate(m.date)) + '</span></span></button>';
+    }).join('') + '</div>' +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn primary" type="button" data-act="trip-show" data-id="' + esc(t.id) + '">Show on the map</button>' +
+    '<button class="pxbtn" type="button" data-act="trip-del" data-id="' + esc(t.id) + '">Delete trip</button>' +
+    '<button class="pxbtn" type="button" data-act="trips-list">Back</button></div>');
+};
+ACTIONS['trip-show'] = function (b) { var t = tripById(b.dataset.id); if (t) { closeSheet(); fitStops(tripStops(t)); } };
+ACTIONS['trip-del'] = function (b) {
+  var id = b.dataset.id;
+  S.trips = S.trips.filter(function (t) { return t.id !== id; }); LS.write('trips', S.trips);
+  if (S.db) S.db.collection('trips').doc(id).delete().catch(function () { toast('Removed here — could not reach the shared world.', '⚠️', 4000); });
+  toast('Trip removed (the memories are untouched).', '🧵', 3200);
+  ACTIONS['trips-list']();
+};
+
+/* the gold thread, drawn under the pins */
+HOOKS.beforePins.push(function () {
+  if (S.mode !== 'map' || !S.trips.length) return;
+  S.trips.forEach(function (t, ti) {
+    var st = tripStops(t);
+    if (st.length < 2) return;
+    var pts = st.map(function (m) { return proj(m.lat, m.lng); });
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    function path() {
+      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+      for (var i = 1; i < pts.length; i++) {
+        var a = pts[i - 1], b = pts[i], dx = b.x - a.x, dy = b.y - a.y;
+        ctx.quadraticCurveTo((a.x + b.x) / 2 - dy * 0.16, (a.y + b.y) / 2 + dx * 0.16, b.x, b.y);
+      }
+    }
+    path(); ctx.strokeStyle = 'rgba(245,216,142,.5)'; ctx.lineWidth = 8; ctx.stroke();
+    path(); ctx.strokeStyle = C.gold; ctx.lineWidth = 3; ctx.setLineDash([7, 5]); ctx.lineDashOffset = -cloudPhase * 0.35; ctx.stroke();
+    ctx.restore();
+    if (S.zoom > 8) {
+      ctx.font = '11px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      pts.forEach(function (p, i) {
+        ctx.fillStyle = C.gold; ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, 6.283); ctx.fill();
+        ctx.strokeStyle = C.deep; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = C.deep; ctx.fillText(String(i + 1), p.x, p.y + 1);
+      });
+      tryLabel(pts[0].x, pts[0].y - 16, t.name, { size: 11, border: C.gold });
+    }
+  });
+});
+
+/* ---------- plans: places we want to go ---------- */
+function planById(id) { for (var i = 0; i < S.plans.length; i++) if (S.plans[i].id === id) return S.plans[i]; return null; }
+function daysUntil(iso) {
+  if (!iso) return null;
+  var d = new Date(iso + 'T00:00:00'), t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((d - t) / 86400000);
+}
+function countdownText(iso) {
+  var n = daysUntil(iso);
+  if (n === null) return '';
+  if (n === 0) return 'today!';
+  if (n === 1) return 'tomorrow';
+  if (n > 1) return 'in ' + n + ' days';
+  return 'a while ago';
+}
+ACTIONS['plans-list'] = function () {
+  var rows = S.plans.slice().sort(function (a, b) { return (a.date || '9999').localeCompare(b.date || '9999'); }).map(function (p) {
+    return moreRow('plan-open', '⭐', p.title, p.date ? fmtDate(p.date) + ' · ' + countdownText(p.date) : 'someday', ' data-id="' + esc(p.id) + '"');
+  }).join('');
+  openSheet(head('Places we want to go', 'the next adventures') +
+    (rows ? '<div class="list">' + rows + '</div>' : '<p class="hint">Nothing planned yet. Drop a star where you want to go next — it waits on the map, and counts down if you give it a date.</p>') +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn primary" type="button" data-act="plan-new">Add a plan</button>' +
+    '<button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+ACTIONS['plan-new'] = function () { startPlacing('plan'); };
+function planForm(ll) {
+  var nt = nearestTown(ll.lat, ll.lng);
+  openSheet(head('New plan', nt.name) +
+    '<div class="field"><label for="p-title">Where / what</label><input id="p-title" type="text" maxlength="80" placeholder="e.g. Chicago weekend"></div>' +
+    '<div class="field"><label for="p-date">Date (optional)</label><input id="p-date" type="date"></div>' +
+    '<div class="field"><label for="p-note">Note</label><textarea id="p-note" maxlength="600" placeholder="Why we want to go."></textarea></div>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="plan-save" data-lat="' + ll.lat + '" data-lng="' + ll.lng + '">Save plan</button>' +
+    '<button class="pxbtn" type="button" data-act="close">Cancel</button></div>');
+  setTimeout(function () { var e = document.getElementById('p-title'); if (e) e.focus(); }, 120);
+}
+ACTIONS['plan-save'] = function (b) {
+  var title = (document.getElementById('p-title').value || '').trim();
+  if (!title) { toast('Name the plan first.', '✏️', 3000); return; }
+  var rec = { id: uid(), title: title, date: document.getElementById('p-date').value || '', note: (document.getElementById('p-note').value || '').trim(),
+    lat: parseFloat(b.dataset.lat), lng: parseFloat(b.dataset.lng), by: S.who, at: Date.now() };
+  S.plans = [rec].concat(S.plans); LS.write('plans', S.plans);
+  if (S.db) S.db.collection('plans').doc(rec.id).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 5000); });
+  closeSheet(); draw();
+  toast('On the list: ' + title, '⭐', 3600); sparkle();
+};
+function openPlan(id) {
+  var p = planById(id); if (!p) return;
+  openSheet(head(p.title, nearestTown(p.lat, p.lng).name) +
+    (p.date ? '<p><span class="pill locked">' + esc(fmtDate(p.date) + ' · ' + countdownText(p.date)) + '</span></p>' : '<p><span class="pill locked">Someday</span></p>') +
+    (p.note ? '<p class="note">' + esc(p.note) + '</p>' : '') +
+    '<p class="hint">Planned by ' + esc(whoName(p.by)) + '. When you get there, turn it into a memory.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="plan-done" data-id="' + esc(p.id) + '">We went! Make it a memory</button>' +
+    '<button class="pxbtn" type="button" data-act="plan-del" data-id="' + esc(p.id) + '">Remove</button>' +
+    '<button class="pxbtn" type="button" data-act="close">Close</button></div>');
+}
+ACTIONS['plan-open'] = function (b) { openPlan(b.dataset.id); };
+function removePlan(id) {
+  S.plans = S.plans.filter(function (p) { return p.id !== id; }); LS.write('plans', S.plans);
+  if (S.db) S.db.collection('plans').doc(id).delete().catch(function () {});
+}
+ACTIONS['plan-del'] = function (b) { removePlan(b.dataset.id); closeSheet(); draw(); toast('Plan removed.', '⭐', 2600); };
+ACTIONS['plan-done'] = function (b) {
+  var p = planById(b.dataset.id); if (!p) return;
+  removePlan(p.id);
+  memoryForm({ lat: p.lat, lng: p.lng }, null, p.title);
+};
+HOOKS.beforePins.push(function () {
+  if (S.mode !== 'map' || !S.plans.length) return;
+  S.plans.forEach(function (pl) {
+    var p = proj(pl.lat, pl.lng);
+    if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 40) return;
+    ctx.save();
+    ctx.strokeStyle = C.gold; ctx.lineWidth = 3; ctx.setLineDash([6, 5]); ctx.lineDashOffset = cloudPhase * 0.3;
+    ctx.beginPath(); ctx.arc(p.x, p.y - 12, 17, 0, 6.283); ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = .9 + Math.sin(cloudPhase / 9) * .1;
+    ctx.fillStyle = C.softgold; ctx.beginPath(); ctx.arc(p.x, p.y - 12, 12, 0, 6.283); ctx.fill();
+    ctx.fillStyle = C.deep; ctx.font = '16px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('★', p.x, p.y - 11);
+    ctx.globalAlpha = 1;
+    addHit({ x: p.x - 20, y: p.y - 34, w: 40, h: 40 }, { kind: 'plan', id: pl.id });
+    tryLabel(p.x, p.y - 32, pl.title + (pl.date ? ' · ' + countdownText(pl.date) : ''), { size: 11, border: C.gold });
+  });
+});
+
 
 function boot() {
   hydrateLocal();
@@ -3387,6 +3946,7 @@ function boot() {
 
 /* Nothing personal loads until someone has signed in. */
 function startBehindGate() {
+  paintIntroSprites();
   var gate = document.getElementById('gate'), form = document.getElementById('gateForm');
   var err = document.getElementById('gErr'), btn = document.getElementById('gBtn');
   var booted = false;
