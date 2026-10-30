@@ -225,6 +225,69 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 .chk i{font-style:normal; font-size:12px; color:var(--ink-45)}
 .pxbtn[aria-pressed="true"]{background:var(--princess); color:#4A1E38}
 
+
+/* ---------- presence, avatars, notes, journal, bucket list, albums ---------- */
+#partnerchip{position:absolute; right:10px; top:10px; z-index:4; max-width:190px; white-space:nowrap}
+#partnerchip span:last-child{overflow:hidden; text-overflow:ellipsis}
+#partnerchip .dot{background:#B9AEB8}
+#partnerchip.live .dot{background:#57B894}
+#togetherBtn{position:absolute; left:10px; bottom:122px; z-index:5; font-size:13px; padding:9px 12px}
+@media (min-width:721px){ #togetherBtn{bottom:90px} }
+.av-stage{display:flex; justify-content:center; gap:14px; background:linear-gradient(180deg,#FFF4F9,#FBE3EE); border:3px solid var(--panel-edge); padding:12px 8px 8px; margin-bottom:12px}
+.av-stage>div{display:flex; flex-direction:column; align-items:center; gap:4px}
+.av-stage canvas{width:110px; height:194px; image-rendering:pixelated}
+.av-stage span{font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-45)}
+.av-row{margin-bottom:10px}
+.av-row b{display:block; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-45); margin-bottom:5px}
+.swatches{display:flex; flex-wrap:wrap; gap:6px}
+.sw{width:30px; height:30px; border:3px solid var(--panel-edge); background:#fff; padding:0; font-size:14px; line-height:1; color:var(--deep)}
+.sw.on{border-color:var(--deep); box-shadow:0 3px 0 var(--deep); transform:translateY(-2px)}
+.chips{display:flex; flex-wrap:wrap; gap:7px}
+.chipb{background:#fff; border:2.5px solid var(--panel-edge); padding:7px 10px; font-size:13px; font-weight:600; color:var(--ink)}
+.chipb.on{background:var(--princess); border-color:var(--deep); color:#4A1E38}
+.jr-photos{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin-top:10px}
+.jr-photos img{width:100%; aspect-ratio:1; object-fit:cover; border:3px solid #fff; box-shadow:0 2px 0 rgba(159,61,109,.35); cursor:zoom-in}
+.bk-add{display:flex; gap:8px; margin-bottom:8px}
+.bk-add input{flex:1; min-width:0; font:inherit; font-size:16px; padding:9px 11px; border:2.5px solid var(--panel-edge); background:#FFF9FC}
+.bk-add input:focus{outline:none; border-color:var(--pink)}
+.bk-list{display:flex; flex-direction:column; gap:7px; margin-top:12px}
+.bk{display:flex; align-items:center; gap:9px; background:#fff; border:3px solid var(--panel-edge); padding:8px 9px}
+.bk.both{border-color:var(--gold); background:#FFFBF0}
+.bk.done .bk-main b{text-decoration:line-through; color:var(--ink-45)}
+.bk-tick{width:26px; height:26px; flex:none; border:3px solid var(--deep); background:#fff; padding:0; color:var(--deep); font-size:15px; line-height:1}
+.bk.done .bk-tick{background:var(--princess)}
+.bk-main{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; font-size:14px}
+.bk-main span{font-size:11.5px; color:var(--ink-45)}
+.bk-votes{display:flex; gap:4px}
+.bk-v{width:26px; height:26px; padding:0; border:2px solid var(--panel-edge); background:#fff; font-family:var(--fdisp); font-size:12px; color:var(--ink-45)}
+.bk-v.on{background:var(--pink); border-color:var(--deep); color:#fff}
+.bk-x{border:none; background:none; color:var(--ink-45); font-size:13px; padding:4px}
+.notecard{position:fixed; inset:0; z-index:30; display:none; place-items:center; padding:22px; background:rgba(61,40,56,.5)}
+.notecard.on{display:grid}
+.nc-card{width:min(380px,100%); background:var(--panel); border:4px solid var(--princess); box-shadow:0 18px 60px rgba(0,0,0,.4); padding:22px 20px 18px; text-align:center; animation:pop .3s cubic-bezier(.2,1.4,.5,1)}
+.nc-env{font-size:40px; line-height:1}
+.nc-from{font-family:var(--fdisp); font-size:19px; color:var(--deep); margin:8px 0 10px}
+.nc-text{font-size:16.5px; line-height:1.6; color:var(--ink); margin:0 0 8px; white-space:pre-wrap}
+.nc-when{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45); margin-bottom:14px}
+.list .ico .alb-cover{width:44px; height:44px; object-fit:cover; display:block; border:2px solid #fff; box-shadow:0 2px 0 rgba(159,61,109,.35)}
+.list .ico:has(.alb-cover){width:48px; height:48px}
+.albumview{position:fixed; inset:0; z-index:28; display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:linear-gradient(160deg,#3D2838,#1F1D39); padding:20px; outline:none}
+.albumview.on{display:flex}
+.alb-close{position:absolute; right:14px; top:14px}
+.alb-title{font-family:var(--fdisp); font-size:20px; color:#FFE9F3}
+.alb-stack{position:relative; width:min(78vw,320px); height:min(98vw,400px); touch-action:pan-y; cursor:pointer}
+.pol-card{position:absolute; inset:0 0 auto 0; margin:auto; width:100%; background:#fff; padding:12px 12px 14px; box-shadow:0 14px 34px rgba(0,0,0,.45); transition:transform .3s}
+.pol-card img{display:block; width:100%; aspect-ratio:1; object-fit:cover; background:#EADFE5}
+.pc-cap{display:flex; flex-direction:column; gap:2px; text-align:center; padding-top:10px; color:var(--ink)}
+.pc-cap b{font-family:var(--fdisp); font-size:16px; color:var(--deep)}
+.pc-cap span{font-size:12px; color:var(--ink-45)}
+.pol-card.in-r{animation:flipR .32s ease-out}
+.pol-card.in-l{animation:flipL .32s ease-out}
+@keyframes flipR{from{opacity:.2; transform:translateX(120px) rotate(14deg)}}
+@keyframes flipL{from{opacity:.2; transform:translateX(-120px) rotate(-14deg)}}
+.alb-nav{display:flex; align-items:center; gap:18px; color:#FFE9F3; font-weight:700}
+.alb-nav .pxbtn{width:46px; height:46px; font-size:24px; padding:0}
+
 /* ---------- placing mode ---------- */
 #placing{
   position:absolute; left:50%; top:56px; transform:translateX(-50%); z-index:7;
@@ -492,6 +555,8 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
       <button type="button" id="placeCancel">Cancel</button>
     </div>
 
+    <button class="chip" id="partnerchip" type="button" hidden><span class="dot"></span><span id="partnernam"></span></button>
+    <button class="pxbtn primary" id="togetherBtn" type="button" hidden></button>
     <div id="toasts" aria-live="polite"></div>
     <p id="credits">Map: US Census &amp; Natural Earth (public domain). Routes are simplified corridors.</p>
     <section id="cal" aria-label="Our calendar">
@@ -833,6 +898,7 @@ function runHooks(name) {
   }
 }
 var ACTIONS = {};
+var ROWHOOKS = {};          /* features subscribe to extra collections here */
 
 /* ============================== state ============================== */
 var S = {
@@ -2063,6 +2129,7 @@ function applyRows(name, rows) {
   } else if (name === 'plans') {
     S.plans = rows; LS.write('plans', rows); renderHop();
   }
+  if (ROWHOOKS[name]) ROWHOOKS[name](rows);
   if (name === 'memories') thisDayToast();
   DBS.counts[name] = rows.length;
   draw();
@@ -2096,7 +2163,7 @@ function watch(name) {
 }
 
 function loadAll() {
-  ['deleted', 'discoveries', 'memories', 'surprises', 'trips', 'plans'].forEach(watch);
+  ['deleted', 'discoveries', 'memories', 'surprises', 'trips', 'plans'].concat(Object.keys(ROWHOOKS)).forEach(watch);
 }
 
 var warnedOffline = false;
@@ -2490,6 +2557,7 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
+  if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
   if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
   if (item.kind === 'plan') { openPlan(item.id); return; }
   if (item.kind === 'home') {
@@ -2965,6 +3033,7 @@ function setWho(k) {
   setViewButtons('local');
   renderHop();
   resize();
+  startPresence();
   if (k === 'elena') showQuote();
   else setTimeout(function () { toast('Welcome back to Our World, Bruce.', '\ud83d\uddfa\ufe0f', 3600); }, 500);
 }
@@ -3055,6 +3124,12 @@ function hydrateLocal() {
 }
 
 //#include features/beacon.js
+//#include features/avatars.js
+//#include features/presence.js
+//#include features/notes.js
+//#include features/journal.js
+//#include features/bucket.js
+//#include features/albums.js
 //#include features/ambient.js
 //#include features/polaroid.js
 //#include features/more.js

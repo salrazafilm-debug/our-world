@@ -21,6 +21,7 @@ var SIGN_SECONDS = 4 * 60 * 60;
 var photoUrls = {};
 var userId = null;
 var userWho = null;
+var presenceCh = null;
 function readWho(sess) {
   var w = sess && sess.user && sess.user.user_metadata && sess.user.user_metadata.who;
   userWho = (w === 'bruce' || w === 'elena') ? w : null;
@@ -109,7 +110,45 @@ function signPhotos(rows) {
   }).catch(function () {});
 }
 
+/* ---------- private journal (only its author can read it; enforced in the database) ---------- */
+var journal = {
+  list: function () {
+    return sb.from('journal').select('*').order('day', { ascending: false }).order('created_at', { ascending: false }).limit(500)
+      .then(ck).then(function (r) { return r.data || []; });
+  },
+  add: function (e) { return sb.from('journal').insert(e).select().single().then(ck).then(function (r) { return r.data; }); },
+  update: function (id, patch) { return sb.from('journal').update(patch).eq('id', id).then(ck); },
+  remove: function (id) { return sb.from('journal').delete().eq('id', id).then(ck); },
+  uploadPhoto: function (blob) {
+    var path = (userId || 'x') + '/' + uid() + '.jpg';
+    return sb.storage.from('diary').upload(path, blob, { contentType: 'image/jpeg', upsert: false }).then(ck).then(function () { return path; });
+  },
+  signPhotos: function (paths) {
+    if (!paths || !paths.length) return Promise.resolve({});
+    return sb.storage.from('diary').createSignedUrls(paths, SIGN_SECONDS).then(function (r) {
+      var out = {};
+      (r.data || []).forEach(function (it) { if (it && it.signedUrl && it.path) out[it.path] = it.signedUrl; });
+      return out;
+    }).catch(function () { return {}; });
+  }
+};
+
+/* ---------- live presence over a private realtime channel ---------- */
+function presenceJoin(who, meta, onSync) {
+  if (!sb || presenceCh) return;
+  presenceCh = sb.channel('ow-presence', { config: { private: true, presence: { key: who } } });
+  presenceCh.on('presence', { event: 'sync' }, function () { onSync(presenceCh.presenceState()); });
+  presenceCh.subscribe(function (status) {
+    if (status === 'SUBSCRIBED') presenceCh.track(meta);
+    else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') onSync(null, status);
+  });
+}
+function presenceTrack(meta) { if (presenceCh) presenceCh.track(meta); }
+
 window.OWCloud = {
+  journal: journal,
+  presenceJoin: presenceJoin,
+  presenceTrack: presenceTrack,
   configured: !!sb,
   photoUrl: function (path) { return photoUrls[path] || ''; },
   signPhotos: signPhotos,

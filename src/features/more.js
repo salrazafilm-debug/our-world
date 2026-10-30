@@ -36,14 +36,22 @@ function openMore() {
         '<span class="ico">💗</span><span><span class="t">' + esc(it.m.title) + '</span><br><span class="s">' + esc(yearsAgo(it.years)) + '</span></span></button>';
     }).join('') + '</div>';
   }
+  var online = PR.partner ? 'online now' : 'offline';
   html += sectionTitle('Together') + '<div class="list">' +
-    moreRow('trips-list', '🧵', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') + ' threaded across the map' : 'Thread memories into a journey') +
-    moreRow('plans-list', '⭐', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
-    moreRow('poster', '🖼️', 'Save our map as a poster', 'Frame it, or send it to her') +
+    moreRow('share-loc', '\ud83d\udccd', PR.mine.sharing ? 'Live location is ON' : 'Share my live location', PR.mine.sharing ? 'Tap to stop · ' + whoName(other(S.who)).replace('Princess ', '') + ' is ' + online : 'Appear on the map when we are both here') +
+    moreRow('note-edit', '\ud83d\udc8c', 'My daily love note', S.notes[S.who] && S.notes[S.who].text ? 'Showing: ' + S.notes[S.who].text.slice(0, 40) + (S.notes[S.who].text.length > 40 ? '…' : '') : 'Waits for them every time they open the map') +
+    moreRow('bucket', '\ud83c\udf20', 'Our bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' things to do together' : 'Things we want to do together') +
+    moreRow('albums', '\ud83d\uddbc\ufe0f', 'Photo albums', 'Polaroid stacks, by place') +
+    moreRow('trips-list', '\ud83e\uddf5', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') + ' threaded across the map' : 'Thread memories into a journey') +
+    moreRow('plans-list', '\u2b50', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
+    moreRow('poster', '\ud83d\uddbc\ufe0f', 'Save our map as a poster', 'Frame it, or send it to her') +
+    '</div>' + sectionTitle('Just for me') + '<div class="list">' +
+    moreRow('journal', '\ud83d\udcd3', 'My private journal', 'How I felt, who I miss, my day in photos \u00b7 only I can see it') +
+    moreRow('avatars', '\ud83d\udc57', 'Our avatars', 'Change your outfit colours') +
     '</div>' + sectionTitle('This device') + '<div class="list">' +
     moreRow('install', '\ud83d\udcf1', 'Add to your home screen', 'Opens full-screen like a real app') +
-    moreRow('atmos', '🌙', 'Time of day and weather', (AMB.tod === 'live' ? 'Follows the real clock' : AMB.tod === 'day' ? 'Always daytime' : 'Always night') + (AMB.weather ? ' · weather on' : ' · weather off')) +
-    moreRow('sign-out', '🚪', 'Sign out', 'Locks this device again') +
+    moreRow('atmos', '\ud83c\udf19', 'Time of day and weather', (AMB.tod === 'live' ? 'Follows the real clock' : AMB.tod === 'day' ? 'Always daytime' : 'Always night') + (AMB.weather ? ' \u00b7 weather on' : ' \u00b7 weather off')) +
+    moreRow('sign-out', '\ud83d\udeaa', 'Sign out', 'Locks this device again') +
     '</div>';
   openSheet(html);
 }
