@@ -1142,10 +1142,10 @@ window.OWCloud = {
 /* ============================== constants ============================== */
 var C = {
   bg:'#FFF8FB', pink:'#D85A92', deep:'#9F3D6D', princess:'#F3A9C7',
-  gold:'#E7B765', softgold:'#F5D88E', land:'#91B979', landdeep:'#5E8D63',
-  water:'#63B9C7', waterlite:'#A5E1E5', fog:'#C5C1CF', cloud:'#E2DDE7',
+  gold:'#E7B765', softgold:'#F5D88E', land:'#8CBC68', landdeep:'#5E8D63',
+  water:'#58A6D6', waterlite:'#9ED5EE', fog:'#C5C1CF', cloud:'#E2DDE7',
   ink:'#3D2838', space:'#1F1D39',
-  landmuted:'#BFCBA6', landmutededge:'#A9B592'
+  landmuted:'#9DBE7C', landmutededge:'#8EAE6E'
 };
 var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
@@ -1581,7 +1581,7 @@ function drawBase() {
   /* water: a pastel wash, then chunky wave dashes pinned to the world so they
      stay put as you pan rather than swimming about */
   var grad = g.createLinearGradient(0, 0, 0, bh);
-  grad.addColorStop(0, '#BDECEF'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
+  grad.addColorStop(0, '#B4E1F2'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
   g.fillStyle = grad; g.fillRect(0, 0, bw, bh);
 
   var z = S.zoom;
@@ -1761,7 +1761,7 @@ function drawFog() {
 
   /* The milky veil over unexplored ground fades away as you zoom out, so the
      far views stay crisp and colourful; only the drifting clouds remain. */
-  var haze = Math.max(0, Math.min(1, (S.zoom - 6.6) / 2.6));
+  var haze = Math.max(0, Math.min(1, (S.zoom - 8.4) / 2.2));
   if (haze > 0.005) { g.fillStyle = 'rgba(213,207,222,' + haze.toFixed(3) + ')'; g.fillRect(0, 0, bw, bh); }
 
   /* Clouds live over the ground, not over the screen: each one belongs to a
@@ -1792,7 +1792,8 @@ function drawFog() {
 
   var gy0 = Math.floor(latLo / CELL), gy1 = Math.ceil(latHi / CELL);
   var gx0 = Math.floor(lngLo / CELL), gx1 = Math.ceil(lngHi / CELL);
-  if ((gy1 - gy0) * (gx1 - gx0) < 4000) {
+  /* the old blocky clouds are retired: soft cloud sprites (src/features/terrain.js) replace them */
+  if (false && (gy1 - gy0) * (gx1 - gx0) < 4000) {
     for (var gy = gy0; gy <= gy1; gy++) {
       for (var gx = gx0; gx <= gx1; gx++) {
         var h0 = hash2(gx, gy);
@@ -3675,7 +3676,7 @@ function artLoad(name) {
 }
 ['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
   .forEach(artLoad);
-['city-ghost', 'blossom'].forEach(artLoad);
+['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 
 function artSized(name, h, res) {
   var e = artLoad(name);
@@ -3684,7 +3685,8 @@ function artSized(name, h, res) {
   if (ARTSIZED[key]) return ARTSIZED[key];
   var pw = Math.max(4, Math.round(e.img.width * px / e.img.height));
   var c = document.createElement('canvas'); c.width = pw; c.height = px;
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  /* shrinking: smooth (keeps detail); enlarging: chunky nearest-neighbour (keeps the pixel-art look) */
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = px < e.img.height; g.imageSmoothingQuality = 'high';
   g.drawImage(e.img, 0, 0, pw, px);
   var id = g.getImageData(0, 0, pw, px);
   for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 100 ? 255 : 0;
@@ -3698,20 +3700,24 @@ function artSoft(name, h, res) {
   if (!sharp) return null;
   var key = name + '@' + sharp.height + '~soft';
   if (ARTSIZED[key]) return ARTSIZED[key];
-  var sw = Math.max(2, Math.round(sharp.width / 3)), sh = Math.max(2, Math.round(sharp.height / 3));
+  /* a clear margin all round so the soft edge fades out instead of being cut off square */
+  var pad = Math.ceil(sharp.height * 0.18), W2 = sharp.width + pad * 2, H2 = sharp.height + pad * 2;
+  var sw = Math.max(2, Math.round(W2 / 3)), sh = Math.max(2, Math.round(H2 / 3));
   var t = document.createElement('canvas'); t.width = sw; t.height = sh;
-  var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high'; tg.drawImage(sharp, 0, 0, sw, sh);
-  var c = document.createElement('canvas'); c.width = sharp.width; c.height = sharp.height;
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, sharp.width, sharp.height);
+  var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high';
+  tg.drawImage(sharp, pad * sw / W2, pad * sh / H2, sharp.width * sw / W2, sharp.height * sh / H2);
+  var c = document.createElement('canvas'); c.width = W2; c.height = H2;
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, W2, H2);
+  c.pad = pad;
   return (ARTSIZED[key] = c);
 }
 /* stands on (x, y), h tall (css px); returns its box, or null while the art loads */
 function drawArt(g, name, x, y, h, res, soft) {
   var c = soft ? artSoft(name, h, res) : artSized(name, h, res);
   if (!c) return null;
-  var w = c.width / (res || 1), hh = c.height / (res || 1);
+  var w = c.width / (res || 1), hh = c.height / (res || 1), pad = (c.pad || 0) / (res || 1);
   g.save(); g.imageSmoothingEnabled = !!soft;
-  g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh), w, hh);
+  g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh + pad), w, hh);
   g.restore();
   return { x: x - w / 2, y: y - hh, w: w, h: hh };
 }
@@ -3932,6 +3938,8 @@ HOOKS.terrain.push(function () {
     ctx.restore();
   }
 
+  drawSkyClouds(z);
+
   /* pink haze at the top and bottom of the view, like distance in a film shot */
   var hz = ctx.createLinearGradient(0, 0, 0, H);
   hz.addColorStop(0, 'rgba(250,226,238,.62)'); hz.addColorStop(0.2, 'rgba(250,226,238,0)');
@@ -3950,6 +3958,43 @@ function terGrain() {
   return TER_GRAIN;
 }
 HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fillRect(0, 0, baseCv.width, baseCv.height); });
+
+/* Soft clouds over the ground we have not explored yet. They sit on the world
+   (drifting very slowly), gather thickest at the edges of the screen and thin
+   out toward the middle, so the view is framed like the reference art. */
+var SKY_LADDER = [0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56];
+function drawSkyClouds(z) {
+  var want = 120 * kmPerPx(S.center.lat, z) / 111, cell = SKY_LADDER[SKY_LADDER.length - 1];
+  for (var li = 0; li < SKY_LADDER.length; li++) if (SKY_LADDER[li] >= want) { cell = SKY_LADDER[li]; break; }
+  var px = cell * 111 / kmPerPx(S.center.lat, z);                 /* the cell's size on screen */
+  var tl = unproj(-px, -px), br = unproj(W + px, H + px);
+  var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
+  var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
+  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 400) return;
+  var drift = reduceMotion ? 0 : cloudPhase * 0.00035 * cell / 0.16;
+  var list = [];
+  for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+    var h0 = terHash(gx, gy, 31);
+    if (h0 > 0.38) continue;
+    var lat = (gy + 0.5 + (terHash(gx, gy, 32) - 0.5) * 0.8) * cell, lng0 = (gx + 0.5 + (terHash(gx, gy, 33) - 0.5) * 0.8) * cell;
+    var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
+    if (isRevealed(lat, lng0, 1.25) || isRevealed(lat, lng0 - half, 1.25) || isRevealed(lat, lng0 + half, 1.25) ||
+        isRevealed(lat + half * 0.5, lng0, 1.25) || isRevealed(lat - half * 0.5, lng0, 1.25)) continue;
+    var lng = lng0 + drift * (0.6 + terHash(gx, gy, 34) * 0.6);
+    var p = proj(lat, lng);
+    var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
+    edge = Math.max(0, Math.min(1, edge));
+    if (edge > 0.7) continue;        /* keep the middle of the view clear, like a framed shot */
+    var w = Math.max(110, Math.min(230, px * (0.75 + terHash(gx, gy, 35) * 0.5)));   /* clouds, not slabs */
+    list.push({ x: p.x, y: p.y, h: w * 0.4, n: h0 < 0.3 ? 'cloud1' : 'cloud2', a: 0.8 - 0.65 * edge });
+  }
+  list.sort(function (a, b) { return a.y - b.y; });
+  list.forEach(function (c) {
+    ctx.save(); ctx.globalAlpha = c.a;
+    drawArt(ctx, c.n, c.x, c.y + c.h * 0.5, c.h, DPR, true);
+    ctx.restore();
+  });
+}
 
 /* ---- features/beacon.js ---- */
 /* Location markers: a pin on "home" (and on far-off places we have been) that

@@ -125,6 +125,8 @@ HOOKS.terrain.push(function () {
     ctx.restore();
   }
 
+  drawSkyClouds(z);
+
   /* pink haze at the top and bottom of the view, like distance in a film shot */
   var hz = ctx.createLinearGradient(0, 0, 0, H);
   hz.addColorStop(0, 'rgba(250,226,238,.62)'); hz.addColorStop(0.2, 'rgba(250,226,238,0)');
@@ -143,3 +145,40 @@ function terGrain() {
   return TER_GRAIN;
 }
 HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fillRect(0, 0, baseCv.width, baseCv.height); });
+
+/* Soft clouds over the ground we have not explored yet. They sit on the world
+   (drifting very slowly), gather thickest at the edges of the screen and thin
+   out toward the middle, so the view is framed like the reference art. */
+var SKY_LADDER = [0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56];
+function drawSkyClouds(z) {
+  var want = 120 * kmPerPx(S.center.lat, z) / 111, cell = SKY_LADDER[SKY_LADDER.length - 1];
+  for (var li = 0; li < SKY_LADDER.length; li++) if (SKY_LADDER[li] >= want) { cell = SKY_LADDER[li]; break; }
+  var px = cell * 111 / kmPerPx(S.center.lat, z);                 /* the cell's size on screen */
+  var tl = unproj(-px, -px), br = unproj(W + px, H + px);
+  var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
+  var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
+  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 400) return;
+  var drift = reduceMotion ? 0 : cloudPhase * 0.00035 * cell / 0.16;
+  var list = [];
+  for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+    var h0 = terHash(gx, gy, 31);
+    if (h0 > 0.38) continue;
+    var lat = (gy + 0.5 + (terHash(gx, gy, 32) - 0.5) * 0.8) * cell, lng0 = (gx + 0.5 + (terHash(gx, gy, 33) - 0.5) * 0.8) * cell;
+    var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
+    if (isRevealed(lat, lng0, 1.25) || isRevealed(lat, lng0 - half, 1.25) || isRevealed(lat, lng0 + half, 1.25) ||
+        isRevealed(lat + half * 0.5, lng0, 1.25) || isRevealed(lat - half * 0.5, lng0, 1.25)) continue;
+    var lng = lng0 + drift * (0.6 + terHash(gx, gy, 34) * 0.6);
+    var p = proj(lat, lng);
+    var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
+    edge = Math.max(0, Math.min(1, edge));
+    if (edge > 0.7) continue;        /* keep the middle of the view clear, like a framed shot */
+    var w = Math.max(110, Math.min(230, px * (0.75 + terHash(gx, gy, 35) * 0.5)));   /* clouds, not slabs */
+    list.push({ x: p.x, y: p.y, h: w * 0.4, n: h0 < 0.3 ? 'cloud1' : 'cloud2', a: 0.8 - 0.65 * edge });
+  }
+  list.sort(function (a, b) { return a.y - b.y; });
+  list.forEach(function (c) {
+    ctx.save(); ctx.globalAlpha = c.a;
+    drawArt(ctx, c.n, c.x, c.y + c.h * 0.5, c.h, DPR, true);
+    ctx.restore();
+  });
+}

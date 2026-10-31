@@ -668,10 +668,10 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 /* ============================== constants ============================== */
 var C = {
   bg:'#FFF8FB', pink:'#D85A92', deep:'#9F3D6D', princess:'#F3A9C7',
-  gold:'#E7B765', softgold:'#F5D88E', land:'#91B979', landdeep:'#5E8D63',
-  water:'#63B9C7', waterlite:'#A5E1E5', fog:'#C5C1CF', cloud:'#E2DDE7',
+  gold:'#E7B765', softgold:'#F5D88E', land:'#8CBC68', landdeep:'#5E8D63',
+  water:'#58A6D6', waterlite:'#9ED5EE', fog:'#C5C1CF', cloud:'#E2DDE7',
   ink:'#3D2838', space:'#1F1D39',
-  landmuted:'#BFCBA6', landmutededge:'#A9B592'
+  landmuted:'#9DBE7C', landmutededge:'#8EAE6E'
 };
 var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
@@ -1107,7 +1107,7 @@ function drawBase() {
   /* water: a pastel wash, then chunky wave dashes pinned to the world so they
      stay put as you pan rather than swimming about */
   var grad = g.createLinearGradient(0, 0, 0, bh);
-  grad.addColorStop(0, '#BDECEF'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
+  grad.addColorStop(0, '#B4E1F2'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
   g.fillStyle = grad; g.fillRect(0, 0, bw, bh);
 
   var z = S.zoom;
@@ -1287,7 +1287,7 @@ function drawFog() {
 
   /* The milky veil over unexplored ground fades away as you zoom out, so the
      far views stay crisp and colourful; only the drifting clouds remain. */
-  var haze = Math.max(0, Math.min(1, (S.zoom - 6.6) / 2.6));
+  var haze = Math.max(0, Math.min(1, (S.zoom - 8.4) / 2.2));
   if (haze > 0.005) { g.fillStyle = 'rgba(213,207,222,' + haze.toFixed(3) + ')'; g.fillRect(0, 0, bw, bh); }
 
   /* Clouds live over the ground, not over the screen: each one belongs to a
@@ -1318,7 +1318,8 @@ function drawFog() {
 
   var gy0 = Math.floor(latLo / CELL), gy1 = Math.ceil(latHi / CELL);
   var gx0 = Math.floor(lngLo / CELL), gx1 = Math.ceil(lngHi / CELL);
-  if ((gy1 - gy0) * (gx1 - gx0) < 4000) {
+  /* the old blocky clouds are retired: soft cloud sprites (src/features/terrain.js) replace them */
+  if (false && (gy1 - gy0) * (gx1 - gx0) < 4000) {
     for (var gy = gy0; gy <= gy1; gy++) {
       for (var gx = gx0; gx <= gx1; gx++) {
         var h0 = hash2(gx, gy);
