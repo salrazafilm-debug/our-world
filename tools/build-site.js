@@ -11,7 +11,8 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT  = path.join(__dirname, '..');
-const frag  = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+const { expand } = require('./include');
+const frag  = expand(fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8'));
 const shell = fs.readFileSync(path.join(ROOT, 'tools', 'site-shell.html'), 'utf8');
 
 let inlined = frag;

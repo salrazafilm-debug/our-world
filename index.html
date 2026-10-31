@@ -2,11 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Our World</title>
 <meta name="description" content="A pixel-art map of real places, drawn without map tiles. The world starts under cloud and clears where you have been.">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#FFF8FB">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Our World">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta property="og:title" content="Our World">
 <meta property="og:description" content="A pixel-art map of real places, drawn without map tiles. The world starts under cloud and clears where you have been.">
 <meta property="og:type" content="website">
@@ -19,6 +25,16 @@
   [hidden] { display: none !important; }
 </style>
 <script src="vendor/supabase.js"></script>
+<script>
+/* The map zooms, never the page. iOS ignores user-scalable=no, so stop its pinch / double-tap zoom directly. */
+["gesturestart", "gesturechange", "gestureend"].forEach(function (n) { document.addEventListener(n, function (e) { e.preventDefault(); }, { passive: false }); });
+document.addEventListener("dblclick", function (e) { e.preventDefault(); }, { passive: false });
+</script>
+<script>
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function (e) { console.warn("service worker:", e); }); });
+}
+</script>
 </head>
 <body>
 <title>Our World</title>
@@ -46,6 +62,8 @@ body{
   -webkit-font-smoothing:antialiased; overscroll-behavior:none;
 }
 button{font:inherit;color:inherit;cursor:pointer}
+html,body,button{touch-action:manipulation}
+input,textarea,select{font-size:16px}
 :focus-visible{outline:3px solid var(--pink); outline-offset:2px}
 
 /* ---------- shell ---------- */
@@ -155,7 +173,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .field{display:flex; flex-direction:column; gap:5px; margin-bottom:11px}
 .field label{font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-45)}
 .field input,.field textarea,.field select{
-  font:inherit; font-weight:500; color:var(--ink); background:#FFF9FC;
+  font:inherit; font-size:16px; font-weight:500; color:var(--ink); background:#FFF9FC;
   border:2.5px solid var(--panel-edge); padding:9px 11px; width:100%;
 }
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--pink); outline:none}
@@ -204,6 +222,20 @@ button{font:inherit;color:inherit;cursor:pointer}
 .whobtn .n{font-family:var(--fdisp); font-size:17px; color:var(--deep)}
 .whobtn .r{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45)}
 
+/* ---------- polish ---------- */
+#stage::after{content:''; position:absolute; inset:0; z-index:3; pointer-events:none; box-shadow:inset 0 0 90px rgba(159,61,109,.17)}
+.pxbtn:not([disabled]):hover{transform:translateY(-1px)}
+.toast{box-shadow:0 5px 0 rgba(159,61,109,.35), var(--shadow)}
+#top{box-shadow:0 3px 0 rgba(159,61,109,.10)}
+#gate .pair{display:flex; justify-content:center; align-items:flex-end; gap:14px; margin-bottom:10px}
+#gate .pair canvas{image-rendering:pixelated; animation:bob 2.6s ease-in-out infinite}
+#gate .pair canvas+canvas{animation-delay:-1.3s}
+@keyframes bob{50%{transform:translateY(-5px)}}
+#gate .float{position:absolute; inset:0; overflow:hidden; pointer-events:none}
+#gate .float span{position:absolute; bottom:-30px; font-size:18px; opacity:0; animation:drift 9s linear infinite}
+@keyframes drift{0%{transform:translateY(0) scale(.7); opacity:0}12%{opacity:.8}100%{transform:translateY(-105vh) scale(1.15); opacity:0}}
+@media (prefers-reduced-motion:reduce){#gate .float,#gate .pair canvas{animation:none}}
+
 /* ---------- sign-in gate ---------- */
 body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{visibility:hidden}
 #gate{
@@ -222,6 +254,92 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 #gate input:focus{border-color:var(--pink)}
 #gate .pxbtn{width:100%; margin-top:4px; padding:12px}
 #gate .gerr{min-height:1.4em; margin:12px auto 0; color:#C2415F; font-weight:700; font-size:13px}
+
+
+/* ---------- checkbox list (trips) ---------- */
+.chks{max-height:260px; overflow:auto; border:3px solid var(--panel-edge); background:#fff}
+.chk{display:flex; gap:10px; align-items:flex-start; padding:9px 11px; border-bottom:2px solid #F6E4ED; cursor:pointer; font-size:13.5px; line-height:1.4; letter-spacing:0; text-transform:none; color:var(--ink); font-weight:500}
+.chk:last-child{border-bottom:none}
+.chk input{margin-top:3px; width:18px; height:18px; accent-color:var(--pink); flex:none}
+.chk i{font-style:normal; font-size:12px; color:var(--ink-45)}
+.pxbtn[aria-pressed="true"]{background:var(--princess); color:#4A1E38}
+
+
+/* ---------- presence, avatars, notes, journal, bucket list, albums ---------- */
+#partnerchip{position:absolute; right:10px; top:10px; z-index:4; max-width:190px; white-space:nowrap}
+#partnerchip span:last-child{overflow:hidden; text-overflow:ellipsis}
+#partnerchip .dot{background:#B9AEB8}
+#partnerchip.live .dot{background:#57B894}
+#togetherBtn{position:absolute; left:10px; bottom:122px; z-index:5; font-size:13px; padding:9px 12px}
+@media (min-width:721px){ #togetherBtn{bottom:90px} }
+.av-stage{display:flex; justify-content:center; gap:14px; background:linear-gradient(180deg,#FFF4F9,#FBE3EE); border:3px solid var(--panel-edge); padding:12px 8px 8px; margin-bottom:12px}
+.av-stage>div{display:flex; flex-direction:column; align-items:center; gap:4px}
+.av-stage canvas{width:110px; height:194px; image-rendering:pixelated}
+.av-stage span{font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-45)}
+.av-row{margin-bottom:10px}
+.av-row b{display:block; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-45); margin-bottom:5px}
+.swatches{display:flex; flex-wrap:wrap; gap:6px}
+.sw{width:30px; height:30px; border:3px solid var(--panel-edge); background:#fff; padding:0; font-size:14px; line-height:1; color:var(--deep)}
+.sw.on{border-color:var(--deep); box-shadow:0 3px 0 var(--deep); transform:translateY(-2px)}
+.chips{display:flex; flex-wrap:wrap; gap:7px}
+.chipb{background:#fff; border:2.5px solid var(--panel-edge); padding:7px 10px; font-size:13px; font-weight:600; color:var(--ink)}
+.chipb.on{background:var(--princess); border-color:var(--deep); color:#4A1E38}
+.jr-photos{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin-top:10px}
+.jr-photos img{width:100%; aspect-ratio:1; object-fit:cover; border:3px solid #fff; box-shadow:0 2px 0 rgba(159,61,109,.35); cursor:zoom-in}
+.bk-add{display:flex; gap:8px; margin-bottom:8px}
+.bk-add input{flex:1; min-width:0; font:inherit; font-size:16px; padding:9px 11px; border:2.5px solid var(--panel-edge); background:#FFF9FC}
+.bk-add input:focus{outline:none; border-color:var(--pink)}
+.bk-list{display:flex; flex-direction:column; gap:7px; margin-top:12px}
+.bk{display:flex; align-items:center; gap:9px; background:#fff; border:3px solid var(--panel-edge); padding:8px 9px}
+.bk.both{border-color:var(--gold); background:#FFFBF0}
+.bk.done .bk-main b{text-decoration:line-through; color:var(--ink-45)}
+.bk-tick{width:26px; height:26px; flex:none; border:3px solid var(--deep); background:#fff; padding:0; color:var(--deep); font-size:15px; line-height:1}
+.bk.done .bk-tick{background:var(--princess)}
+.bk-main{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; font-size:14px}
+.bk-main span{font-size:11.5px; color:var(--ink-45)}
+.bk-votes{display:flex; gap:4px}
+.bk-v{width:26px; height:26px; padding:0; border:2px solid var(--panel-edge); background:#fff; font-family:var(--fdisp); font-size:12px; color:var(--ink-45)}
+.bk-v.on{background:var(--pink); border-color:var(--deep); color:#fff}
+.bk-x{border:none; background:none; color:var(--ink-45); font-size:13px; padding:4px}
+.notecard{position:fixed; inset:0; z-index:30; display:none; place-items:center; padding:22px; background:rgba(61,40,56,.5)}
+.notecard.on{display:grid}
+.nc-card{width:min(380px,100%); background:var(--panel); border:4px solid var(--princess); box-shadow:0 18px 60px rgba(0,0,0,.4); padding:22px 20px 18px; text-align:center; animation:pop .3s cubic-bezier(.2,1.4,.5,1)}
+.nc-env{font-size:40px; line-height:1}
+.nc-from{font-family:var(--fdisp); font-size:19px; color:var(--deep); margin:8px 0 10px}
+.nc-text{font-size:16.5px; line-height:1.6; color:var(--ink); margin:0 0 8px; white-space:pre-wrap}
+.nc-when{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45); margin-bottom:14px}
+.list .ico .alb-cover{width:44px; height:44px; object-fit:cover; display:block; border:2px solid #fff; box-shadow:0 2px 0 rgba(159,61,109,.35)}
+.list .ico:has(.alb-cover){width:48px; height:48px}
+.albumview{position:fixed; inset:0; z-index:28; display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:linear-gradient(160deg,#3D2838,#1F1D39); padding:20px; outline:none}
+.albumview.on{display:flex}
+.alb-close{position:absolute; right:14px; top:14px}
+.alb-title{font-family:var(--fdisp); font-size:20px; color:#FFE9F3}
+.alb-stack{position:relative; width:min(78vw,320px); height:min(98vw,400px); touch-action:pan-y; cursor:pointer}
+.pol-card{position:absolute; inset:0 0 auto 0; margin:auto; width:100%; background:#fff; padding:12px 12px 14px; box-shadow:0 14px 34px rgba(0,0,0,.45); transition:transform .3s}
+.pol-card img{display:block; width:100%; aspect-ratio:1; object-fit:cover; background:#EADFE5}
+.pc-cap{display:flex; flex-direction:column; gap:2px; text-align:center; padding-top:10px; color:var(--ink)}
+.pc-cap b{font-family:var(--fdisp); font-size:16px; color:var(--deep)}
+.pc-cap span{font-size:12px; color:var(--ink-45)}
+.pol-card.in-r{animation:flipR .32s ease-out}
+.pol-card.in-l{animation:flipL .32s ease-out}
+@keyframes flipR{from{opacity:.2; transform:translateX(120px) rotate(14deg)}}
+@keyframes flipL{from{opacity:.2; transform:translateX(-120px) rotate(-14deg)}}
+.alb-nav{display:flex; align-items:center; gap:18px; color:#FFE9F3; font-weight:700}
+.alb-nav .pxbtn{width:46px; height:46px; font-size:24px; padding:0}
+
+
+/* ---------- anniversary, walks, journal hearts ---------- */
+.ann-card{display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; padding:13px 14px; margin:2px 0 4px;
+  background:linear-gradient(135deg,#FFE3EF,#FFF4D9); border:3px solid var(--princess); box-shadow:0 4px 0 rgba(159,61,109,.18)}
+.ann-card b{font-family:var(--fdisp); font-size:19px; color:var(--deep); font-weight:600}
+.ann-card span{font-size:12.5px; color:var(--ink-70)}
+.ann-card.ann-empty{background:#FFF9FC; border-style:dashed}
+#walkBtn{position:absolute; left:50%; transform:translateX(-50%); top:58px; z-index:6; font-size:12.5px; padding:8px 12px; display:flex; align-items:center; gap:7px}
+#walkBtn[hidden]{display:none}
+.rec-dot{width:9px; height:9px; background:#E0445E; display:inline-block; animation:blink 1.2s steps(2,end) infinite}
+@media (max-width:720px){ #walkBtn{top:56px; left:auto; right:10px; transform:none} }
+.jr-love{margin:12px 0 0; font-weight:700; color:var(--pink)}
+.gate-av{image-rendering:pixelated}
 
 /* ---------- placing mode ---------- */
 #placing{
@@ -250,7 +368,12 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
   #zoomer{bottom:auto; top:54px; left:10px; flex-direction:row}
   #zoomer .pxbtn{width:36px;height:36px}
   #actions{left:10px; right:10px; bottom:10px; align-items:stretch}
-  #actions .row{justify-content:flex-end}
+  /* the icon buttons become a rail down the right edge, freeing the middle of the map */
+  #actions .row{flex-direction:column; flex-wrap:nowrap; align-items:flex-end; align-self:flex-end}
+  /* the container spans the screen but must not block the map under it: only the buttons take taps */
+  #actions, #actions .row{pointer-events:none}
+  #actions .pxbtn{pointer-events:auto}
+  #toasts{top:100px}
   #credits{display:none}
   #brand h1{font-size:20px}
   #where{display:none}
@@ -379,7 +502,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 .hop-name:hover{background:#FFF1F7}
 .hop-name .ic{font-size:13px}
-@media (max-width:720px){ #hop{bottom:110px} .hop-name{font-size:12.5px; padding:0 10px !important} }
+@media (max-width:720px){ #hop{bottom:68px; left:10px; transform:none; max-width:calc(100vw - 76px)} .hop-name{font-size:12.5px; padding:0 10px !important} }
 
 /* ---------- full photo ---------- */
 #lightbox{
@@ -469,6 +592,9 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
         <button class="pxbtn icon" id="btnMemory" title="Add a memory" aria-label="Add a memory">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7-4.6-7-9.2A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.8C19 15.4 12 20 12 20z"/></svg>
         </button>
+        <button class="pxbtn icon" id="btnMore" title="More of us" aria-label="More of us">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.2L21 9l-5 4.2L17.6 20 12 16.4 6.4 20 8 13.2 3 9l6.8-.8z"/></svg>
+        </button>
         <button class="pxbtn icon" id="btnSurprise" title="Leave a surprise" aria-label="Leave a surprise">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="13"/><path d="M3 7l9 6 9-6"/></svg>
         </button>
@@ -482,6 +608,8 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
       <button type="button" id="placeCancel">Cancel</button>
     </div>
 
+    <button class="chip" id="partnerchip" type="button" hidden><span class="dot"></span><span id="partnernam"></span></button>
+    <button class="pxbtn primary" id="togetherBtn" type="button" hidden></button>
     <div id="toasts" aria-live="polite"></div>
     <p id="credits">Map: US Census &amp; Natural Earth (public domain). Routes are simplified corridors.</p>
     <section id="cal" aria-label="Our calendar">
@@ -531,7 +659,9 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 </div>
 
 <div id="gate" hidden>
-  <form class="card" id="gateForm">
+  <div class="float" aria-hidden="true"><span style="left:8%;animation-delay:0s">💗</span><span style="left:24%;animation-delay:2.4s">✨</span><span style="left:42%;animation-delay:5s">💗</span><span style="left:63%;animation-delay:1.2s">✨</span><span style="left:80%;animation-delay:3.8s">💗</span><span style="left:92%;animation-delay:6.5s">✨</span></div>
+  <form class="card" id="gateForm" style="position:relative">
+    <div class="pair"><canvas width="72" height="72" data-sprite="cottage-gold"></canvas><canvas width="78" height="82" data-sprite="castle"></canvas></div>
     <h1>Our World</h1>
     <p>This world is only for the two of you. Sign in to open it.</p>
     <label>Email<input id="gEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
@@ -769,6 +899,12 @@ var BUCKET = 'photos';
 var SIGN_SECONDS = 4 * 60 * 60;
 var photoUrls = {};
 var userId = null;
+var userWho = null;
+var presenceCh = null;
+function readWho(sess) {
+  var w = sess && sess.user && sess.user.user_metadata && sess.user.user_metadata.who;
+  userWho = (w === 'bruce' || w === 'elena') ? w : null;
+}
 
 function ck(r) {
   if (r && r.error) {
@@ -784,15 +920,55 @@ function snapOf(rows) {
   return { docs: (rows || []).map(function (r) { return { id: r.id, data: function () { return r.data || {}; } }; }) };
 }
 
+/* ---------- offline outbox ----------
+   A write that fails because the phone is offline is kept on the device and
+   sent again once it is back online, so nothing typed on a train is lost.
+   Real refusals (permissions, bad data) are not queued: they surface as errors. */
+var OUTBOX_KEY = 'ow.outbox';
+function outboxRead() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
+function outboxWrite(q) { try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(q)); } catch (e) {} }
+function isOffline(e) {
+  return (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+    /failed to fetch|load failed|network|fetch/i.test(String((e && e.message) || ''));
+}
+function rawOp(op) {
+  var t = sb.from('docs');
+  if (op.op === 'set') return t.upsert({ collection: op.c, id: op.id, data: op.data, updated_at: new Date().toISOString() }).then(ck);
+  if (op.op === 'update') return sb.rpc('doc_merge', { c: op.c, i: op.id, patch: op.data }).then(ck);
+  return t.delete().eq('collection', op.c).eq('id', op.id).then(ck);
+}
+function queued(op) {
+  return rawOp(op).catch(function (e) {
+    if (!isOffline(e)) throw e;
+    var q = outboxRead(); q.push(op); outboxWrite(q);
+    return { queued: true };
+  });
+}
+var flushing = false;
+function flushOutbox() {
+  if (!sb || flushing || !userId) return;
+  var q = outboxRead(); if (!q.length) return;
+  flushing = true;
+  var left = [], chain = Promise.resolve();
+  q.forEach(function (op) {
+    chain = chain.then(function () { return rawOp(op); }).catch(function (e) { if (isOffline(e)) left.push(op); else console.warn('dropped queued write:', e); });
+  });
+  chain.then(function () { outboxWrite(left); flushing = false; });
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', flushOutbox);
+  setInterval(flushOutbox, 30000);
+}
+
 function docRef(c, id) {
   return {
     get: function () {
       return sb.from('docs').select('id,data').eq('collection', c).eq('id', id).maybeSingle().then(ck)
         .then(function (r) { return { exists: !!r.data, id: id, data: function () { return r.data ? r.data.data : undefined; } }; });
     },
-    set: function (d) { return sb.from('docs').upsert({ collection: c, id: id, data: d, updated_at: new Date().toISOString() }).then(ck); },
-    update: function (p) { return sb.rpc('doc_merge', { c: c, i: id, patch: p }).then(ck); },
-    delete: function () { return sb.from('docs').delete().eq('collection', c).eq('id', id).then(ck); }
+    set: function (d) { return queued({ op: 'set', c: c, id: id, data: d }); },
+    update: function (p) { return queued({ op: 'update', c: c, id: id, data: p }); },
+    delete: function () { return queued({ op: 'delete', c: c, id: id }); }
   };
 }
 
@@ -853,7 +1029,45 @@ function signPhotos(rows) {
   }).catch(function () {});
 }
 
+/* ---------- private journal (only its author can read it; enforced in the database) ---------- */
+var journal = {
+  list: function () {
+    return sb.from('journal').select('*').order('day', { ascending: false }).order('created_at', { ascending: false }).limit(500)
+      .then(ck).then(function (r) { return r.data || []; });
+  },
+  add: function (e) { e.who = e.who || userWho; return sb.from('journal').insert(e).select().single().then(ck).then(function (r) { return r.data; }); },
+  update: function (id, patch) { return sb.from('journal').update(patch).eq('id', id).then(ck); },
+  remove: function (id) { return sb.from('journal').delete().eq('id', id).then(ck); },
+  uploadPhoto: function (blob) {
+    var path = (userId || 'x') + '/' + uid() + '.jpg';
+    return sb.storage.from('diary').upload(path, blob, { contentType: 'image/jpeg', upsert: false }).then(ck).then(function () { return path; });
+  },
+  signPhotos: function (paths) {
+    if (!paths || !paths.length) return Promise.resolve({});
+    return sb.storage.from('diary').createSignedUrls(paths, SIGN_SECONDS).then(function (r) {
+      var out = {};
+      (r.data || []).forEach(function (it) { if (it && it.signedUrl && it.path) out[it.path] = it.signedUrl; });
+      return out;
+    }).catch(function () { return {}; });
+  }
+};
+
+/* ---------- live presence over a private realtime channel ---------- */
+function presenceJoin(who, meta, onSync) {
+  if (!sb || presenceCh) return;
+  presenceCh = sb.channel('ow-presence', { config: { private: true, presence: { key: who } } });
+  presenceCh.on('presence', { event: 'sync' }, function () { onSync(presenceCh.presenceState()); });
+  presenceCh.subscribe(function (status) {
+    if (status === 'SUBSCRIBED') presenceCh.track(meta);
+    else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') onSync(null, status);
+  });
+}
+function presenceTrack(meta) { if (presenceCh) presenceCh.track(meta); }
+
 window.OWCloud = {
+  journal: journal,
+  presenceJoin: presenceJoin,
+  presenceTrack: presenceTrack,
   configured: !!sb,
   photoUrl: function (path) { return photoUrls[path] || ''; },
   signPhotos: signPhotos,
@@ -862,6 +1076,8 @@ window.OWCloud = {
     return sb.auth.getSession().then(function (r) {
       var s = r && r.data && r.data.session;
       userId = s ? s.user.id : null;
+      readWho(s);
+      if (s) setTimeout(flushOutbox, 1500);
       return s || null;
     }).catch(function () { return null; });
   },
@@ -869,8 +1085,15 @@ window.OWCloud = {
     return sb.auth.signInWithPassword({ email: email, password: password }).then(function (r) {
       if (r.error) throw r.error;
       userId = r.data.user.id;
+      readWho(r.data.session);
       return r.data.session;
     });
+  },
+  /* who this account is (bruce / elena) lives on the account, so every device knows */
+  who: function () { return userWho; },
+  setWho: function (k) {
+    userWho = k;
+    return sb ? sb.auth.updateUser({ data: { who: k } }).catch(function () {}) : Promise.resolve();
   },
   signOut: function () { return sb ? sb.auth.signOut() : Promise.resolve(); },
   onSignedOut: function (fn) {
@@ -1153,6 +1376,18 @@ var GEO = { states: [], rivers: [], world: [] };
   GEO.world  = decodeRings(g.world, 10);
 })();
 
+/* ============================== hooks ============================== */
+/* Features in src/features/ plug into the draw loop and the sheet actions here. */
+var HOOKS = { afterFog: [], beforePins: [], afterOverlays: [] };
+function runHooks(name) {
+  var list = HOOKS[name];
+  for (var i = 0; i < list.length; i++) {
+    try { list[i](); } catch (e) { if (window.console) console.error('hook ' + name + ':', e); }
+  }
+}
+var ACTIONS = {};
+var ROWHOOKS = {};          /* features subscribe to extra collections here */
+
 /* ============================== state ============================== */
 var S = {
   who: null,
@@ -1162,7 +1397,7 @@ var S = {
   zoom: 11.2,
   globe: { lon: -77, lat: 38, scale: 1 },   // scale 1 = earth view, <0.5 = space
   regions: [],                // discovered, from db
-  memories: [], surprises: [], deleted: {},
+  memories: [], surprises: [], deleted: {}, trips: [], plans: [],
   me: null,                   // last known gps fix
   placing: null,              // {kind:'memory'|'surprise'}
   selected: null,
@@ -1334,6 +1569,26 @@ function drawBase() {
   /* land — county polygons overlap into one silhouette; core states read brighter */
   var i, k, j, st, ring, p;
 
+  /* the rest of the planet: coarse world land sits under the detailed states so
+     the map never runs out of ground when you zoom out or pan away */
+  var wr, wskip, wj, wprev;
+  for (k = 0; k < GEO.world.length; k++) {
+    wr = GEO.world[k]; wskip = false; wprev = wr[0];
+    for (wj = 0; wj < wr.length; wj += 2) {
+      if (Math.abs(wr[wj] - wprev) > 180 || Math.abs(wr[wj + 1]) > 84) { wskip = true; break; }
+      wprev = wr[wj];
+    }
+    if (wskip) continue;
+    g.beginPath();
+    for (wj = 0; wj < wr.length; wj += 2) {
+      p = P(wr[wj], wr[wj + 1]);
+      if (wj === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
+    }
+    g.closePath();
+    g.strokeStyle = 'rgba(255,255,255,.62)'; g.lineWidth = 2.2; g.lineJoin = 'round'; g.stroke();
+    g.fillStyle = C.landmuted; g.fill();
+  }
+
   /* foam where water meets land */
   g.strokeStyle = 'rgba(255,255,255,.62)';
   g.lineWidth = 2.2; g.lineJoin = 'round';
@@ -1471,7 +1726,10 @@ function drawFog() {
   g.globalCompositeOperation = 'source-over';
   g.clearRect(0, 0, bw, bh);
 
-  g.fillStyle = '#D5CFDE'; g.fillRect(0, 0, bw, bh);
+  /* The milky veil over unexplored ground fades away as you zoom out, so the
+     far views stay crisp and colourful; only the drifting clouds remain. */
+  var haze = Math.max(0, Math.min(1, (S.zoom - 6.6) / 2.6));
+  if (haze > 0.005) { g.fillStyle = 'rgba(213,207,222,' + haze.toFixed(3) + ')'; g.fillRect(0, 0, bw, bh); }
 
   /* Clouds live over the ground, not over the screen: each one belongs to a
      patch of the world, so panning moves the map underneath them and every
@@ -1556,7 +1814,7 @@ function drawGlobe() {
      step anywhere between. */
   var skyMix = Math.max(0, Math.min(1, (1.30 - sc) / 0.88));
   skyMix = skyMix * skyMix * (3 - 2 * skyMix);              /* smoothstep */
-  var NEAR = [255, 242, 248], FAR = [31, 29, 57];
+  var NEAR = [190, 222, 240], FAR = [31, 29, 57];
   function mixc(k) {
     return 'rgb(' + Math.round(NEAR[0] + (FAR[0] - NEAR[0]) * k) + ',' +
                     Math.round(NEAR[1] + (FAR[1] - NEAR[1]) * k) + ',' +
@@ -1598,37 +1856,28 @@ function drawGlobe() {
   og.addColorStop(0, C.waterlite); og.addColorStop(0.75, C.water); og.addColorStop(1, '#3F8F9E');
   g.fillStyle = og; g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.fill();
 
-  /* land — draw each visible run of a ring */
+  /* land — points behind the planet are pushed out to its edge, so a coastline
+     curves round the horizon instead of being sliced by a straight line */
   g.save(); g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.clip();
   g.fillStyle = C.landmuted;
   for (var k = 0; k < GEO.world.length; k++) {
-    var ring = GEO.world[k], run = [];
+    var ring = GEO.world[k], seenFront = false, pts = [];
     for (var j = 0; j < ring.length; j += 2) {
-      var q = pt(ring[j], ring[j+1]);
-      if (q) run.push(q);
-      else if (run.length > 2) { fillRun(run); run = []; }
-      else run = [];
+      var dl = rad(ring[j]) - l0, ph = rad(ring[j + 1]);
+      var cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
+      var gx = Rp * Math.cos(ph) * Math.sin(dl);
+      var gy = Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl));
+      if (cosc >= 0) seenFront = true;
+      else { var gm = Math.hypot(gx, gy) || 1; gx = gx / gm * Rp; gy = gy / gm * Rp; }
+      pts.push(cx + gx, cy - gy);
     }
-    if (run.length > 2) fillRun(run);
-  }
-  function fillRun(run) {
-    g.beginPath(); g.moveTo(run[0][0], run[0][1]);
-    for (var m = 1; m < run.length; m++) g.lineTo(run[m][0], run[m][1]);
+    if (!seenFront) continue;
+    g.beginPath(); g.moveTo(pts[0], pts[1]);
+    for (var m = 2; m < pts.length; m += 2) g.lineTo(pts[m], pts[m + 1]);
     g.closePath(); g.fill();
   }
 
   /* the part of the world that is ours */
-  var rs = allRegions();
-  for (var i2 = 0; i2 < rs.length; i2++) {
-    var hp = pt(rs[i2].lng, rs[i2].lat);
-    if (!hp) continue;
-    var gr2 = g.createRadialGradient(hp[0], hp[1], 0, hp[0], hp[1], Math.max(4, Rp * 0.10));
-    gr2.addColorStop(0, 'rgba(243,169,199,.95)');
-    gr2.addColorStop(0.5, 'rgba(231,183,101,.55)');
-    gr2.addColorStop(1, 'rgba(231,183,101,0)');
-    g.fillStyle = gr2; g.beginPath(); g.arc(hp[0], hp[1], Math.max(4, Rp * 0.10), 0, 7); g.fill();
-  }
-
   /* cloud band */
   for (var c = 0; c < 26; c++) {
     var ang = c * 2.399963;
@@ -1657,6 +1906,9 @@ function drawGlobe() {
   g.fillStyle = atm; g.beginPath(); g.arc(cx, cy, Rp * 1.20, 0, 7); g.fill();
   g.strokeStyle = 'rgba(243,169,199,' + (0.55 + skyMix * 0.3) + ')'; g.lineWidth = 1;
   g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.stroke();
+
+  /* our place in the world — drawn last so no shading or atmosphere ever dulls it */
+  drawGlobeBeacons(g, pt, cx, cy, Rp, l0, sinp0, cosp0);
   baseDirty = false;
 }
 
@@ -1926,6 +2178,7 @@ function drawMapOverlays() {
   }
 
   /* homes */
+  HOMEBOXES = {};
   ['bruce', 'elena'].forEach(function (k) {
     var h = HOMES[k]; var q = proj(h.lat, h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
@@ -1949,15 +2202,25 @@ function drawMapOverlays() {
       }
     }
     addHit({ x: box.x - 6, y: box.y - 10, w: box.w + 12, h: box.h + 12 }, { kind: 'home', who: k });
+    HOMEBOXES[k] = { x: box.x, y: box.y, w: box.w, h: box.h, sc: sc, baseY: q.y };
   });
 
-  /* memories */
+  /* memories — pins sharing a spot fan out in a ring so none hides another */
+  runHooks('beforePins');
+  var pinCount = {}, pinSeen = {};
+  for (i = 0; i < S.memories.length; i++) {
+    var pk0 = S.memories[i].lat.toFixed(4) + ',' + S.memories[i].lng.toFixed(4);
+    pinCount[pk0] = (pinCount[pk0] || 0) + 1;
+  }
   for (i = 0; i < S.memories.length; i++) {
     var m = S.memories[i];
     if (!isRevealed(m.lat, m.lng, 1.06)) continue;
     p = proj(m.lat, m.lng);
+    var pk = m.lat.toFixed(4) + ',' + m.lng.toFixed(4), pn = pinCount[pk], pi = pinSeen[pk] || 0;
+    pinSeen[pk] = pi + 1;
+    if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; var pr = z > 9.2 ? 30 : 15; p = { x: p.x + Math.cos(pa) * pr, y: p.y + Math.sin(pa) * pr }; }
     if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
-    var b = drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
+    var b = polaroidPin(m, p, z) || drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
     addHit({ x: b.x - 7, y: b.y - 7, w: b.w + 14, h: b.h + 14 }, { kind: 'memory', id: m.id });
   }
 
@@ -2034,7 +2297,9 @@ function draw() {
   ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
+  runHooks('afterFog');
   drawMapOverlays();
+  runHooks('afterOverlays');
 }
 
 var lastTick = 0;
@@ -2068,7 +2333,7 @@ cv.addEventListener('pointermove', function (e) {
     var z = S.zoom;
     var nx = lngToWX(S.center.lng, z) - dx, ny = latToWY(S.center.lat, z) - dy;
     S.center.lng = wxToLng(nx, z);
-    S.center.lat = Math.max(24, Math.min(46, wyToLat(ny, z)));
+    S.center.lat = Math.max(5, Math.min(62, wyToLat(ny, z)));
     baseDirty = true;
   }
   draw();
@@ -2079,6 +2344,7 @@ function endDrag(e) {
   var wasTap = !drag.moved && Date.now() - drag.t < 500;
   drag = null;
   if (wasTap && S.mode === 'map') handleTap(evPos(e));
+  else if (wasTap && S.mode === 'globe') handleGlobeTap(evPos(e));
 }
 cv.addEventListener('pointerup', endDrag);
 cv.addEventListener('pointercancel', endDrag);
@@ -2109,19 +2375,20 @@ cv.addEventListener('pointercancel', clearPt);
 
 function zoomBy(d, at) {
   if (S.mode === 'globe') {
-    S.globe.scale = Math.max(0.20, Math.min(1.55, S.globe.scale * (1 + d * 0.55)));
+    if (performance.now() - lastModeSwitch < 350) return;      /* a switch has just happened: let it settle */
+    S.globe.scale = Math.max(0.62, Math.min(1.55, S.globe.scale * (1 + d * 0.55)));
     if (S.globe.scale > 1.50) { enterMap(S.globe.lat, S.globe.lon, 5.2); return; }
-    setViewButtons(S.globe.scale < 0.62 ? 'space' : 'earth');
+    setViewButtons(S.globe.scale < 0.7 ? 'space' : 'earth');
     draw(); return;
   }
   var before = at ? unproj(at.x, at.y) : null;
   var nz = Math.max(4.6, Math.min(14.5, S.zoom + d * 3));
-  if (nz <= 4.62 && d < 0) { enterGlobe(); return; }
+  if (nz <= 4.62 && d < 0) { if (performance.now() - lastModeSwitch < 350) return; enterGlobe(); return; }
   S.zoom = nz;
   if (before && at) {
     var after = unproj(at.x, at.y);
     S.center.lng += before.lng - after.lng;
-    S.center.lat = Math.max(24, Math.min(46, S.center.lat + before.lat - after.lat));
+    S.center.lat = Math.max(5, Math.min(62, S.center.lat + before.lat - after.lat));
   }
   baseDirty = true;
   setViewButtons(S.zoom >= 9.6 ? 'local' : 'dmv');
@@ -2150,14 +2417,17 @@ function flyTo(lat, lng, z) {
   baseDirty = true; setViewButtons(z >= 9.6 ? 'local' : 'dmv'); draw();
 }
 function enterMap(lat, lng, z) {
-  S.mode = 'map'; S.center.lat = Math.max(24, Math.min(46, lat)); S.center.lng = lng;
+  lastModeSwitch = performance.now();
+  S.mode = 'map'; S.center.lat = Math.max(5, Math.min(62, lat)); S.center.lng = lng;
   S.zoom = z; baseDirty = true; setViewButtons(z >= 9.6 ? 'local' : 'dmv'); draw();
 }
+var lastModeSwitch = 0;
 function enterGlobe(scale) {
   S.mode = 'globe';
   S.globe.lon = S.center.lng; S.globe.lat = S.center.lat;
-  S.globe.scale = scale || 1.42;          /* arrive big, matching the map you left */
-  setViewButtons(S.globe.scale < 0.62 ? 'space' : 'earth');
+  S.globe.scale = scale || 1.2;           /* arrive a little under the exit threshold */
+  lastModeSwitch = performance.now();
+  setViewButtons(S.globe.scale < 0.7 ? 'space' : 'earth');
   draw();
 }
 [].forEach.call(document.querySelectorAll('#views .pxbtn'), function (b) {
@@ -2166,7 +2436,7 @@ function enterGlobe(scale) {
     if (v === 'local') { var h = HOMES[S.who] || HOMES.bruce; flyTo(h.lat, h.lng, 11.2); }
     else if (v === 'dmv') flyTo(38.55, -77.1, 6.9);
     else if (v === 'earth') enterGlobe(1.05);
-    else enterGlobe(0.34);
+    else enterGlobe(0.62);
   });
 });
 document.getElementById('zin').addEventListener('click', function () { zoomBy(0.34, { x: W/2, y: H/2 }); });
@@ -2174,7 +2444,7 @@ document.getElementById('zout').addEventListener('click', function () { zoomBy(-
 
 function updateWhere() {
   var el = document.getElementById('where');
-  if (S.mode === 'globe') { el.textContent = S.globe.scale < 0.62 ? 'Outer space' : 'Earth'; return; }
+  if (S.mode === 'globe') { el.textContent = S.globe.scale < 0.7 ? 'Outer space' : 'Earth'; return; }
   var reg = regionAt(S.center.lat, S.center.lng);
   if (reg) { el.textContent = reg.name; return; }
   var nt = nearestTown(S.center.lat, S.center.lng);
@@ -2207,6 +2477,7 @@ sheet.addEventListener('click', function (e) {
   var b = e.target.closest('[data-act]'); if (!b) return;
   var act = b.dataset.act;
   if (act === 'close') closeSheet();
+  else if (ACTIONS[act]) ACTIONS[act](b);
   else if (act === 'save-memory') saveMemory(b);
   else if (act === 'save-surprise') saveSurprise(b);
   else if (act === 'open-surprise') openSurprise(b.dataset.id);
@@ -2235,8 +2506,14 @@ sheet.addEventListener('click', function (e) {
     closeSheet();
     discover(S.center.lat, S.center.lng);
   }
-  else if (act === 'goto') { flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), parseFloat(b.dataset.z) || 12.2); closeSheet(); }
-  else if (act === 'switch-who') { localStorage.removeItem('ow.who'); location.reload(); }
+  else if (act === 'goto') {
+    var gl = parseFloat(b.dataset.lat), gg = parseFloat(b.dataset.lng), prow = placesList();
+    for (var gi = 0; gi < prow.length; gi++) if (prow[gi].lat === gl && prow[gi].lng === gg) { hopIdx = gi; renderHop(); break; }
+    flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), parseFloat(b.dataset.z) || 12.2); closeSheet(); }
+  else if (act === 'switch-who') {
+    localStorage.removeItem('ow.who');
+    if (window.OWCloud && OWCloud.configured) OWCloud.setWho(null).then(function () { location.reload(); }); else location.reload();
+  }
   else if (act === 'sign-out') { if (window.OWCloud) OWCloud.signOut(); else location.reload(); }
 });
 
@@ -2337,7 +2614,13 @@ function applyRows(name, rows) {
   } else if (name === 'surprises') {
     S.surprises = mergeById(rows, S.surprises);
     LS.write('surprises', S.surprises);
+  } else if (name === 'trips') {
+    S.trips = rows; LS.write('trips', rows);
+  } else if (name === 'plans') {
+    S.plans = rows; LS.write('plans', rows); renderHop();
   }
+  if (ROWHOOKS[name]) ROWHOOKS[name](rows);
+  if (name === 'memories') thisDayToast();
   DBS.counts[name] = rows.length;
   draw();
 }
@@ -2370,7 +2653,9 @@ function watch(name) {
 }
 
 function loadAll() {
-  ['deleted', 'discoveries', 'memories', 'surprises'].forEach(watch);
+  var names = ['deleted', 'discoveries', 'memories', 'surprises', 'trips', 'plans'];
+  Object.keys(ROWHOOKS).forEach(function (n) { if (names.indexOf(n) < 0) names.push(n); });
+  names.forEach(watch);
 }
 
 var warnedOffline = false;
@@ -2394,6 +2679,7 @@ function discover(lat, lng, quiet) {
     rec.id = uid(); S.regions.push(rec);
   }
   baseDirty = true; renderHop(); draw();
+  fxDiscover(lat, lng);
   toast('New area discovered: ' + name, '🌟', 4200);
   sparkle();
   return true;
@@ -2583,7 +2869,7 @@ var crossEl = document.getElementById('crosshair');
 function startPlacing(kind, starterId) {
   S.placing = { kind: kind, starterId: starterId || null };
   document.getElementById('placingText').textContent =
-    kind === 'memory' ? 'Tap where this happened' : 'Tap where you want to hide it';
+    kind === 'memory' ? 'Tap where this happened' : (kind === 'plan' ? 'Tap where you want to go' : 'Tap where you want to hide it');
   placingEl.classList.add('on'); crossEl.classList.add('on');
   closeSheet();
 }
@@ -2596,6 +2882,7 @@ function placeAt(ll) {
   var p = S.placing; if (!p) return;
   stopPlacing();
   if (p.kind === 'memory') memoryForm(ll, p.starterId);
+  else if (p.kind === 'plan') planForm(ll);
   else surpriseForm(ll);
 }
 document.getElementById('btnMemory').addEventListener('click', function () { startPlacing('memory'); });
@@ -2702,12 +2989,14 @@ function surpriseForm(ll) {
   var them = other(S.who);
   openSheet(
     head('Leave a surprise', nt.name) +
-    '<p class="note">Sealed until ' + esc(whoName(them)) + ' is standing near this spot with the map open.</p>' +
+    '<p class="note">Sealed until ' + esc(whoName(them)) + ' is standing near this spot with the map open \u2014 or, if you pick a date, it opens that day wherever they are.</p>' +
     '<div class="field"><label for="s-title">What they see on the envelope</label>' +
       '<input id="s-title" type="text" maxlength="70" placeholder="Open me when you get here"></div>' +
     '<div class="field"><label for="s-note">The letter</label><textarea id="s-note" maxlength="1200" placeholder="Say it here."></textarea></div>' +
     '<div class="rowfields">' +
       '<div class="field"><label for="s-km">Unlocks within</label><select id="s-km"><option value="1">1 km</option><option value="3" selected>3 km</option><option value="8">8 km</option></select></div>' +
+      '<div class="field"><label for="s-date">Or opens on (optional)</label><input id="s-date" type="date" min="' + todayISO() + '"></div>' +
+    '</div><div class="rowfields">' +
       '<div class="field"><label for="s-for">For</label><select id="s-for"><option value="' + them + '" selected>' + esc(whoName(them)) + '</option><option value="' + S.who + '">' + esc(whoName(S.who)) + '</option></select></div>' +
     '</div>' +
     '<div class="sheet-actions">' +
@@ -2725,11 +3014,12 @@ function saveSurprise(btn) {
     title: title || 'A letter', note: note, by: S.who,
     forWho: document.getElementById('s-for').value,
     unlockKm: parseFloat(document.getElementById('s-km').value) || UNLOCK_KM,
+    unlockDate: document.getElementById('s-date').value || '',
     lat: parseFloat(btn.dataset.lat), lng: parseFloat(btn.dataset.lng),
     opened: false, at: Date.now()
   };
   btn.disabled = true; btn.textContent = 'Sealing…';
-  function after() { closeSheet(); draw(); toast('Sealed. It waits there until they arrive.', '💌', 4200); }
+  function after() { closeSheet(); draw(); toast(rec.unlockDate ? 'Sealed until ' + fmtDate(rec.unlockDate) + '.' : 'Sealed. It waits there until they arrive.', '💌', 4200); }
   if (S.db) S.db.collection('surprises').doc(uid()).set(rec).then(after, function () {
     btn.disabled = false; btn.textContent = 'Seal it'; toast('Could not seal that — try again.', '⚠️');
   });
@@ -2762,6 +3052,9 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
+  if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
+  if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
+  if (item.kind === 'plan') { openPlan(item.id); return; }
   if (item.kind === 'home') {
     var h = HOMES[item.who];
     openSheet(
@@ -2836,7 +3129,7 @@ function openItem(item) {
     if (!s) return;
     var mine = s.by === S.who, forMe = s.forWho === S.who;
     var d2 = S.me ? haversine(S.me.lat, S.me.lng, s.lat, s.lng) : null;
-    var near = d2 != null && d2 <= (s.unlockKm || UNLOCK_KM);
+    var near = (d2 != null && d2 <= (s.unlockKm || UNLOCK_KM)) || letterDateReady(s);
     if (s.opened || (mine && !forMe)) {
       openSheet(
         head(s.title, (s.opened ? 'Opened' : 'Sealed — yours') + ' · from ' + whoName(s.by)) +
@@ -2848,8 +3141,8 @@ function openItem(item) {
       openSheet(
         head(s.title, 'From ' + whoName(s.by)) +
         '<p><span class="pill locked">Sealed</span></p>' +
-        '<p class="note">' + (near ? 'You are here. Open it.' :
-          'It opens within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot.' + (d2 != null ? ' You are about ' + Math.round(d2) + ' km away.' : ' Use <b>Find me</b> to check.')) + '</p>' +
+        '<p class="note">' + (near ? (letterDateReady(s) ? 'Today is the day. Open it.' : 'You are here. Open it.') :
+          (s.unlockDate ? 'It opens on ' + fmtDate(s.unlockDate) + ' (' + countdownText(s.unlockDate) + '), wherever you are \u2014 or sooner, within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot. ' : '') + 'It opens within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot.' + (d2 != null ? ' You are about ' + Math.round(d2) + ' km away.' : ' Use <b>Find me</b> to check.')) + '</p>' +
         '<div class="sheet-actions">' +
           (near ? '<button class="pxbtn primary" type="button" data-act="open-surprise" data-id="' + esc(s.id) + '">Open it</button>' : '') +
           '<button class="pxbtn" type="button" data-act="close">Close</button></div>'
@@ -3225,6 +3518,8 @@ function paintIntroSprites() {
 function setWho(k) {
   S.who = k;
   try { localStorage.setItem('ow.who', k); } catch (e) {}
+  if (window.OWCloud && OWCloud.configured && OWCloud.who() !== k) OWCloud.setWho(k);
+  hopIdx = Math.max(0, placesList().map(function (r) { return r.t; }).indexOf(k === 'elena' ? 'Arnold & Annapolis' : 'Chesapeake Beach'));
   document.getElementById('menam').textContent = whoName(k);
   var h = HOMES[k];
   S.center.lat = h.lat; S.center.lng = h.lng; S.zoom = 11.2;
@@ -3233,6 +3528,7 @@ function setWho(k) {
   setViewButtons('local');
   renderHop();
   resize();
+  startPresence();
   if (k === 'elena') showQuote();
   else setTimeout(function () { toast('Welcome back to Our World, Bruce.', '\ud83d\uddfa\ufe0f', 3600); }, 500);
 }
@@ -3317,8 +3613,1704 @@ function hydrateLocal() {
   S.memories.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
   S.regions = LS.read('discoveries');
   S.surprises = LS.read('surprises');
+  S.trips = LS.read('trips');
+  S.plans = LS.read('plans');
   baseDirty = true;
 }
+
+/* ---- features/beacon.js ---- */
+/* Location markers: a pin on "home" (and on far-off places we have been) that
+   stays visible on the globe and on the zoomed-out map, so our place in the
+   world is always easy to find. Tap a pin to fly straight there. */
+
+SP.mapPin = [
+  '..ooooo..', '.oPPPPPo.', 'oPPPPPPPo', 'oPPwwwPPo', 'oPPwwwPPo',
+  'oPPPPPPPo', '.oPPPPPo.', '..oPPPo..', '...oPo...', '....o....'
+];
+PAL.mapPin = { P: C.pink, w: '#FFF0F6', o: '#6E2549' };
+
+var globePins = [];
+
+/* home first, then each far-off place we have cleared (one pin per ~3 degrees) */
+function beaconSpots() {
+  var hm = { lat: (HOMES.bruce.lat + HOMES.elena.lat) / 2, lng: (HOMES.bruce.lng + HOMES.elena.lng) / 2, home: true };
+  var out = [hm], seen = {};
+  allRegions().forEach(function (r) {
+    if (r.home || haversine(hm.lat, hm.lng, r.lat, r.lng) < 420) return;
+    var k = Math.round(r.lat / 3) + ',' + Math.round(r.lng / 3);
+    if (seen[k]) return;
+    seen[k] = 1; out.push({ lat: r.lat, lng: r.lng });
+  });
+  return out;
+}
+
+function drawBeaconPin(g, x, y, home, unit) {
+  var ph = (cloudPhase / 38) % 1, bob = Math.round(Math.sin(cloudPhase / 6));
+  g.save();
+  g.strokeStyle = 'rgba(231,183,101,' + (0.9 * (1 - ph)).toFixed(2) + ')'; g.lineWidth = Math.max(1, unit);
+  g.beginPath(); g.ellipse(x, y, (3 + ph * (home ? 11 : 7)) * unit, (1.4 + ph * (home ? 5 : 3)) * unit, 0, 0, 6.283); g.stroke();
+  g.fillStyle = 'rgba(31,29,57,.30)'; g.fillRect(Math.round(x - 2 * unit), Math.round(y), 4 * unit, unit);
+  g.restore();
+  drawSprite(g, SP.mapPin, PAL.mapPin, x, y - unit + bob * unit, home ? unit : unit, '#FFFFFF');
+}
+
+/* called from the globe renderer; draws into the low-res base canvas */
+function drawGlobeBeacons(g, pt, cx, cy, Rp, l0, sinp0, cosp0) {
+  var k = W / baseCv.width, spots = beaconSpots();
+  globePins = [];
+  spots.forEach(function (sp) {
+    var p = pt(sp.lng, sp.lat);
+    if (p) {
+      drawBeaconPin(g, p[0], p[1], sp.home, 1);
+      globePins.push({ x: p[0] * k, y: p[1] * k, lat: sp.lat, lng: sp.lng, home: sp.home, edge: false });
+    } else if (sp.home) {
+      /* home is round the back: a small marker on the rim shows which way to turn */
+      var dl = rad(sp.lng) - l0, ph = rad(sp.lat);
+      var gx = Rp * Math.cos(ph) * Math.sin(dl), gy = Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl));
+      var m = Math.hypot(gx, gy) || 1, ex = cx + gx / m * Rp * 0.92, ey = cy - gy / m * Rp * 0.92;
+      g.save(); g.globalAlpha = 0.6; drawSprite(g, SP.mapPin, PAL.mapPin, ex, ey + 4, 1, '#FFFFFF'); g.restore();
+      globePins.push({ x: ex * k, y: (ey - 4) * k, lat: sp.lat, lng: sp.lng, home: true, edge: true });
+    }
+  });
+}
+function handleGlobeTap(pos) {
+  for (var i = 0; i < globePins.length; i++) {
+    var p = globePins[i];
+    if (Math.hypot(pos.x - p.x, pos.y - p.y) < 30) {
+      if (p.edge) { S.globe.lon = p.lng; S.globe.lat = p.lat; draw(); }
+      else enterMap(p.lat, p.lng, p.home ? 9.6 : 10.8);
+      return;
+    }
+  }
+}
+
+/* on the flat map, pins appear once you are far enough out that the sprites shrink */
+HOOKS.afterOverlays.push(function () {
+  if (S.mode !== 'map' || S.zoom >= 8.6) return;
+  var fade = Math.max(0, Math.min(1, (8.6 - S.zoom) / 1.4));
+  ctx.imageSmoothingEnabled = false;
+  beaconSpots().forEach(function (sp) {
+    var p = proj(sp.lat, sp.lng);
+    if (p.x < -30 || p.y < -40 || p.x > W + 30 || p.y > H + 30) return;
+    ctx.globalAlpha = fade;
+    drawBeaconPin(ctx, p.x, p.y - 22, sp.home, 3);
+    ctx.globalAlpha = 1;
+    addHit({ x: p.x - 18, y: p.y - 74, w: 36, h: 60 }, { kind: 'beacon', lat: sp.lat, lng: sp.lng });
+  });
+  ctx.imageSmoothingEnabled = true;
+});
+
+/* ---- features/ambient.js ---- */
+/* Ambient life: light that follows the real time of day, weather that follows
+   the season, and a burst of sparkle when new ground is cleared. */
+
+var AMB = { tod: 'live', weather: true };
+try {
+  AMB.tod = localStorage.getItem('ow.tod') || 'live';
+  AMB.weather = localStorage.getItem('ow.weather') !== 'off';
+} catch (e) {}
+
+function ambHour() {
+  if (AMB.tod === 'day') return 12;
+  if (AMB.tod === 'night') return 23;
+  var d = new Date();
+  return d.getHours() + d.getMinutes() / 60;
+}
+function ambIsNight(h) { return h < 5.5 || h > 19.5; }
+
+/* [hour, r, g, b, alpha] — blended between neighbours, wrapping midnight */
+var AMB_LIGHT = [
+  [0, 22, 24, 70, .34], [5, 30, 32, 84, .30], [6.5, 255, 150, 110, .16], [8, 255, 230, 200, 0],
+  [16.5, 255, 240, 210, 0], [18, 255, 160, 80, .16], [19.5, 110, 70, 120, .24], [21, 25, 26, 74, .32],
+  [24, 22, 24, 70, .34]
+];
+function ambTint(h) {
+  for (var i = 0; i < AMB_LIGHT.length - 1; i++) {
+    var a = AMB_LIGHT[i], b = AMB_LIGHT[i + 1];
+    if (h >= a[0] && h <= b[0]) {
+      var t = (h - a[0]) / (b[0] - a[0]);
+      return [a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, a[3] + (b[3] - a[3]) * t, a[4] + (b[4] - a[4]) * t];
+    }
+  }
+  return [0, 0, 0, 0];
+}
+
+HOOKS.afterFog.push(function () {
+  var t = ambTint(ambHour());
+  if (t[3] < 0.01) return;
+  ctx.fillStyle = 'rgba(' + (t[0] | 0) + ',' + (t[1] | 0) + ',' + (t[2] | 0) + ',' + t[3].toFixed(3) + ')';
+  ctx.fillRect(0, 0, W, H);
+});
+
+/* ---------- seasonal weather ---------- */
+function ambSeason(night) {
+  var m = new Date().getMonth();
+  if (m === 11 || m < 2) return 'snow';
+  if (m < 5) return 'petal';
+  if (m < 8) return night ? 'firefly' : 'seed';
+  return 'leaf';
+}
+var AMB_COLORS = {
+  snow: ['#FFFFFF', '#EAF4FF'],
+  petal: ['#F3A9C7', '#FBD3E4', '#FFFFFF'],
+  leaf: ['#E7B765', '#D9825B', '#C2574A'],
+  seed: ['#FFFFFF'],
+  firefly: ['#F5D88E', '#FFE9A8']
+};
+var ambP = { list: [], kind: '', last: 0 };
+
+function ambMake(kind, initial) {
+  var cols = AMB_COLORS[kind];
+  var p = {
+    x: Math.random() * W, y: initial ? Math.random() * H : -6,
+    ph: Math.random() * 6.28, c: cols[(Math.random() * cols.length) | 0], sz: 2
+  };
+  if (kind === 'snow') { p.vx = -4 + Math.random() * 8; p.vy = 18 + Math.random() * 16; p.sz = Math.random() < .3 ? 3 : 2; }
+  else if (kind === 'petal') { p.vx = 14 + Math.random() * 16; p.vy = 16 + Math.random() * 14; p.sz = 3; }
+  else if (kind === 'leaf') { p.vx = -10 - Math.random() * 14; p.vy = 20 + Math.random() * 16; p.sz = 3; }
+  else if (kind === 'seed') { p.vx = 8 + Math.random() * 8; p.vy = -4 - Math.random() * 5; p.y = initial ? Math.random() * H : H + 6; }
+  else { p.vx = -3 + Math.random() * 6; p.vy = -3 + Math.random() * 6; p.y = initial ? Math.random() * H : Math.random() * H; }
+  return p;
+}
+
+HOOKS.afterOverlays.push(function () {
+  if (reduceMotion || !AMB.weather || S.mode !== 'map') return;
+  var now = performance.now(), dt = Math.min(0.1, (now - ambP.last) / 1000 || 0.05);
+  ambP.last = now;
+  var kind = ambSeason(ambIsNight(ambHour()));
+  var want = Math.min(48, Math.round(W * H / 11000));
+  if (kind !== ambP.kind) { ambP.kind = kind; ambP.list = []; }
+  while (ambP.list.length < want) ambP.list.push(ambMake(kind, true));
+  ctx.imageSmoothingEnabled = false;
+  for (var i = 0; i < ambP.list.length; i++) {
+    var p = ambP.list[i];
+    p.ph += dt * 2;
+    p.x += (p.vx + Math.sin(p.ph) * 6) * dt;
+    p.y += p.vy * dt;
+    if (p.y > H + 8 || p.x > W + 8 || p.x < -8 || p.y < -10) { ambP.list[i] = ambMake(kind, false); if (kind === 'leaf') ambP.list[i].x = Math.random() * (W + 80); continue; }
+    ctx.globalAlpha = kind === 'firefly' ? 0.25 + 0.75 * Math.max(0, Math.sin(p.ph * 1.3)) : (kind === 'seed' ? .55 : .85);
+    ctx.fillStyle = p.c;
+    ctx.fillRect(Math.round(p.x), Math.round(p.y), p.sz, kind === 'petal' ? 2 : p.sz);
+    if (kind === 'firefly') { ctx.globalAlpha *= .25; ctx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, p.sz + 2, p.sz + 2); }
+  }
+  ctx.globalAlpha = 1;
+});
+
+/* ---------- discovery burst ---------- */
+var AMB_BURST = { dots: [], rings: [], last: 0 };
+var AMB_BCOLS = ['#F3A9C7', '#E7B765', '#FFFFFF', '#D85A92', '#F5D88E'];
+function fxDiscover(lat, lng) {
+  if (reduceMotion) return;
+  var p = proj(lat, lng);
+  for (var i = 0; i < 38; i++) {
+    var a = Math.random() * 6.283, sp = 60 + Math.random() * 150;
+    AMB_BURST.dots.push({ x: p.x, y: p.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, life: 1, sz: Math.random() < .35 ? 4 : 3, c: AMB_BCOLS[i % AMB_BCOLS.length] });
+  }
+  AMB_BURST.rings.push({ x: p.x, y: p.y, r: 6, life: 1 });
+  AMB_BURST.rings.push({ x: p.x, y: p.y, r: 2, life: 1.25 });
+}
+/* confetti from the top of the screen, for anniversaries */
+function fxConfetti() {
+  if (reduceMotion) return;
+  for (var i = 0; i < 90; i++) {
+    AMB_BURST.dots.push({ x: Math.random() * W, y: -10 - Math.random() * 120, vx: -40 + Math.random() * 80, vy: 20 + Math.random() * 90,
+      life: 1.6 + Math.random(), sz: Math.random() < .4 ? 4 : 3, c: AMB_BCOLS[i % AMB_BCOLS.length] });
+  }
+}
+HOOKS.afterOverlays.push(function () {
+  var B = AMB_BURST;
+  if (!B.dots.length && !B.rings.length) return;
+  var now = performance.now(), dt = Math.min(0.1, (now - B.last) / 1000 || 0.05);
+  B.last = now;
+  var i, d;
+  for (i = B.rings.length - 1; i >= 0; i--) {
+    d = B.rings[i]; d.r += 150 * dt; d.life -= dt * 1.1;
+    if (d.life <= 0) { B.rings.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, d.life); ctx.strokeStyle = '#E7B765'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.283); ctx.stroke();
+  }
+  ctx.imageSmoothingEnabled = false;
+  for (i = B.dots.length - 1; i >= 0; i--) {
+    d = B.dots[i]; d.vy += (d.life > 1.2 ? 40 : 190) * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt * 0.8;
+    if (d.life <= 0) { B.dots.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, d.life * 1.4); ctx.fillStyle = d.c;
+    ctx.fillRect(Math.round(d.x), Math.round(d.y), d.sz, d.sz);
+  }
+  ctx.globalAlpha = 1;
+});
+
+/* ---- features/avatars.js ---- */
+/* Avatars: the two of you as little characters. They appear on the map when
+   you are live, hold hands when you are together, and each can change outfit
+   colours (top, bottom, shoes). The art is avatars/<who>.png plus a mask PNG
+   whose red / green / blue channels mark the top / bottom / shoes. */
+
+var AV_SLOTS = ['top', 'bottom', 'shoes'];
+var AV_COLORS = [
+  { id: 'orig', name: 'Original', c: null },
+  { id: 'rose', name: 'Rose', c: '#D85A92' }, { id: 'blush', name: 'Blush', c: '#F3A9C7' },
+  { id: 'coral', name: 'Coral', c: '#E8765C' }, { id: 'gold', name: 'Gold', c: '#E7B765' },
+  { id: 'mint', name: 'Mint', c: '#6BBF8E' }, { id: 'sky', name: 'Sky', c: '#63B9C7' },
+  { id: 'blue', name: 'Blue', c: '#4F74C9' }, { id: 'violet', name: 'Violet', c: '#A58BD9' },
+  { id: 'cream', name: 'Cream', c: '#F2EBDD' }, { id: 'black', name: 'Black', c: '#2B2530' }
+];
+/* average brightness of each original garment, so shading survives a recolour */
+var AV_REF = { bruce: { top: .12, bottom: .101, shoes: .183 }, elena: { top: .102, bottom: .535, shoes: .092 } };
+var AVIMG = {}, AVCACHE = {};
+var HOMEBOXES = {};         /* where each home sprite was drawn this frame (set by the map renderer) */
+S.avatars = {};
+try { S.avatars = JSON.parse(localStorage.getItem('ow.avatars') || '{}') || {}; } catch (e) {}
+ROWHOOKS.avatars = function (rows) {
+  rows.forEach(function (r) { S.avatars[r.id] = { top: r.top || null, bottom: r.bottom || null, shoes: r.shoes || null }; });
+  try { localStorage.setItem('ow.avatars', JSON.stringify(S.avatars)); } catch (e) {}
+};
+
+function avLoad(who) {
+  if (AVIMG[who]) return AVIMG[who];
+  var e = AVIMG[who] = { ready: false }, a = new Image(), m = new Image(), n = 0;
+  function done() {
+    if (++n < 2) return;
+    function grab(img) {
+      var c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      var g = c.getContext('2d'); g.drawImage(img, 0, 0); return g.getImageData(0, 0, c.width, c.height);
+    }
+    e.base = grab(a); e.mask = grab(m); e.ready = true;
+  }
+  a.onload = done; m.onload = done;
+  a.onerror = m.onerror = function () { e.bad = true; };
+  a.src = 'avatars/' + who + '.png'; m.src = 'avatars/' + who + '-mask.png';
+  return e;
+}
+function avColor(id) { for (var i = 0; i < AV_COLORS.length; i++) if (AV_COLORS[i].id === id) return AV_COLORS[i].c; return null; }
+function avOutfit(who) { return S.avatars[who] || {}; }
+
+function hexToHsl(hex) {
+  var r = parseInt(hex.substr(1, 2), 16) / 255, g = parseInt(hex.substr(3, 2), 16) / 255, b = parseInt(hex.substr(5, 2), 16) / 255;
+  var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn, h = 0, s = 0;
+  if (d) {
+    s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6;
+  }
+  return { h: h, s: s, l: l };
+}
+function hslToRgb(h, s, l) {
+  function f(p, q, t) { if (t < 0) t += 1; if (t > 1) t -= 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }
+  if (!s) return [l * 255, l * 255, l * 255];
+  var q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  return [f(p, q, h + 1 / 3) * 255, f(p, q, h) * 255, f(p, q, h - 1 / 3) * 255];
+}
+
+/* Recolour the masked garments (keeping their shading). Cached per outfit. */
+function avRecolor(who, o) {
+  var e = avLoad(who);
+  if (!e.ready) return null;
+  var key = who + '|' + (o.top || '') + '|' + (o.bottom || '') + '|' + (o.shoes || '');
+  if (AVCACHE[key]) return AVCACHE[key];
+  var w0 = e.base.width, h0 = e.base.height;
+  var img = new ImageData(new Uint8ClampedArray(e.base.data), w0, h0), d = img.data, md = e.mask.data;
+  AV_SLOTS.forEach(function (slot, si) {
+    var col = avColor(o[slot]);
+    if (!col) return;
+    var t = hexToHsl(col), ref = AV_REF[who][slot];
+    for (var i = 0; i < d.length; i += 4) {
+      if (!d[i + 3] || md[i + si] < 128) continue;
+      var L = (.299 * d[i] + .587 * d[i + 1] + .114 * d[i + 2]) / 255;
+      var nl = Math.max(.05, Math.min(.95, t.l + (L - ref) * 1.25));
+      var rgb = hslToRgb(t.h, t.s, nl);
+      d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2];
+    }
+  });
+  var c0 = document.createElement('canvas'); c0.width = w0; c0.height = h0; c0.getContext('2d').putImageData(img, 0, 0);
+  AVCACHE[key] = c0;
+  return c0;
+}
+/* A copy at exactly the pixel height it will be shown at — so it is sharp at
+   every zoom instead of being squashed from one big image. Aspect ratio kept. */
+var AVSIZED = {};
+function avSized(who, o, px) {
+  var src = avRecolor(who, o);
+  if (!src) return null;
+  px = Math.max(12, Math.round(px));
+  var key = who + '|' + (o.top || '') + '|' + (o.bottom || '') + '|' + (o.shoes || '') + '@' + px;
+  if (AVSIZED[key]) return AVSIZED[key];
+  var pw = Math.max(4, Math.round(src.width * px / src.height));
+  var c = document.createElement('canvas'); c.width = pw; c.height = px;
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(src, 0, 0, pw, px);
+  var id = g.getImageData(0, 0, pw, px);
+  for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 110 ? 255 : 0;
+  g.putImageData(id, 0, 0);
+  AVSIZED[key] = c;
+  return c;
+}
+/* the avatar's width for a given height */
+function avWidth(who, h) { var e = avLoad(who); return e.ready ? h * e.base.width / e.base.height : h * .42; }
+
+/* Draws one avatar standing on (x, y), h tall (css px). `res` is device pixels
+   per css pixel of the target canvas. Returns its box. */
+function drawAvatar(g, who, x, y, h, outfit, opt) {
+  opt = opt || {};
+  var res = opt.res || 1;
+  var c = avSized(who, outfit || avOutfit(who), h * res);
+  if (!c) return null;
+  var w = c.width / res, hh = c.height / res;
+  g.save();
+  g.fillStyle = 'rgba(61,40,56,.20)';
+  g.beginPath(); g.ellipse(x, y, w * .42, Math.max(1.5, hh * .035), 0, 0, 6.283); g.fill();
+  g.imageSmoothingEnabled = false;
+  var top = y - hh + (opt.lift || 0);
+  if (opt.flip) { g.translate(Math.round(x), 0); g.scale(-1, 1); g.drawImage(c, Math.round(-w / 2), Math.round(top), w, hh); }
+  else g.drawImage(c, Math.round(x - w / 2), Math.round(top), w, hh);
+  g.restore();
+  return { x: x - w / 2, y: top, w: w, h: hh };
+}
+/* both of you side by side, shoulder to shoulder, a heart above */
+function drawTogetherPair(g, x, y, h, res) {
+  var wb = avWidth('bruce', h), we = avWidth('elena', h);
+  var a = drawAvatar(g, 'bruce', x - wb * .42, y, h, null, { res: res, lift: avBob(0) }),
+      b = drawAvatar(g, 'elena', x + we * .42, y, h, null, { res: res, lift: avBob(1.3) });
+  if (!a || !b) return null;
+  var bob = reduceMotion ? 0 : Math.sin(cloudPhase / 7) * 1.5;
+  drawSprite(g, SP.heart, PAL.heartP, x, Math.round(y - h - 3 + bob), Math.max(1, Math.min(4, Math.round(h / 40))), '#FFFFFF');
+  return { x: a.x, y: a.y - 8, w: b.x + b.w - a.x, h: h + 8 };
+}
+/* a slow breath while standing still */
+function avBob(phase) { return reduceMotion ? 0 : Math.round(Math.sin(cloudPhase / 16 + phase) * 0.6); }
+
+/* the sign-in screen shows the two of you once the art has loaded */
+(function gateAvatars(tries) {
+  var pair = document.querySelector('#gate .pair');
+  if (!pair) return;
+  var a = avLoad('bruce'), b = avLoad('elena');
+  if (!a.ready || !b.ready) { if ((tries || 0) < 60) setTimeout(function () { gateAvatars((tries || 0) + 1); }, 150); return; }
+  var dpr = Math.min(3, window.devicePixelRatio || 1), cssH = 116;
+  var c = document.createElement('canvas');
+  c.width = Math.round(110 * dpr); c.height = Math.round((cssH + 30) * dpr);
+  c.style.width = '110px'; c.style.height = (cssH + 30) + 'px'; c.className = 'gate-av';
+  var g = c.getContext('2d');
+  drawTogetherPair(g, c.width / 2, c.height - 3 * dpr, cssH * dpr, 1);
+  pair.innerHTML = ''; pair.appendChild(c);
+})();
+
+/* ---------- customise ---------- */
+var AVD = null;
+function avPreviewDraw() {
+  [['avA', S.who, AVD], ['avB', other(S.who), avOutfit(other(S.who))]].forEach(function (p) {
+    var c = document.getElementById(p[0]); if (!c) return;
+    var g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height);
+    if (!drawAvatar(g, p[1], c.width / 2, c.height - 8, c.height - 22, p[2])) setTimeout(avPreviewDraw, 200);
+  });
+}
+function openAvatars() {
+  avLoad('bruce'); avLoad('elena');
+  AVD = { top: avOutfit(S.who).top || 'orig', bottom: avOutfit(S.who).bottom || 'orig', shoes: avOutfit(S.who).shoes || 'orig' };
+  var label = { top: 'Top', bottom: S.who === 'elena' ? 'Skirt' : 'Trousers', shoes: 'Shoes' };
+  openSheet(head('Our avatars', 'change your outfit colours') +
+    '<div class="av-stage"><div><canvas id="avA" width="170" height="300"></canvas><span>' + esc(whoName(S.who)) + ' (you)</span></div>' +
+    '<div><canvas id="avB" width="170" height="300"></canvas><span>' + esc(whoName(other(S.who))) + '</span></div></div>' +
+    AV_SLOTS.map(function (slot) {
+      return '<div class="av-row"><b>' + label[slot] + '</b><div class="swatches">' + AV_COLORS.map(function (c) {
+        return '<button type="button" class="sw' + (AVD[slot] === c.id ? ' on' : '') + '" data-act="av-set" data-slot="' + slot + '" data-c="' + c.id + '" title="' + c.name + '" aria-label="' + label[slot] + ' ' + c.name + '"' +
+          (c.c ? ' style="background:' + c.c + '"' : '') + '>' + (c.c ? '' : '↺') + '</button>';
+      }).join('') + '</div></div>';
+    }).join('') +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn primary" type="button" data-act="av-save">Save my outfit</button>' +
+    '<button class="pxbtn" type="button" data-act="more">Back</button></div>');
+  avPreviewDraw();
+}
+ACTIONS['avatars'] = openAvatars;
+ACTIONS['av-set'] = function (b) {
+  AVD[b.dataset.slot] = b.dataset.c;
+  [].forEach.call(sheet.querySelectorAll('.sw[data-slot="' + b.dataset.slot + '"]'), function (x) { x.classList.toggle('on', x === b); });
+  avPreviewDraw();
+};
+ACTIONS['av-save'] = function () {
+  var rec = { top: AVD.top === 'orig' ? null : AVD.top, bottom: AVD.bottom === 'orig' ? null : AVD.bottom, shoes: AVD.shoes === 'orig' ? null : AVD.shoes, by: S.who, at: Date.now() };
+  S.avatars[S.who] = { top: rec.top, bottom: rec.bottom, shoes: rec.shoes };
+  try { localStorage.setItem('ow.avatars', JSON.stringify(S.avatars)); } catch (e) {}
+  if (S.db) S.db.collection('avatars').doc(S.who).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 4000); });
+  toast('Looking good!', '👗', 2600); sparkle();
+  draw();
+};
+
+/* ---- features/presence.js ---- */
+/* Presence and "together". Shows whether the other person is online, and — only
+   if both of you switch on live location — where they are. When you are close
+   and both tap "We're together", your avatars hold hands on the map.
+
+   Live location travels over a private realtime channel only while the app is
+   open, is never written to the database, and is off until you turn it on. */
+
+var PR = {
+  partner: null,                     /* the other person's live presence, or null when offline */
+  mine: { sharing: false, lat: null, lng: null, acc: null, together: false },
+  seen: {},                          /* last time each of us had the app open */
+  joined: false, near: false, hands: false, dist: null, wasHands: false, watchId: null, lastPush: 0, nearSince: 0
+};
+try { PR.mine.sharing = localStorage.getItem('ow.share') === 'on'; } catch (e) {}
+
+ROWHOOKS.seen = function (rows) { rows.forEach(function (r) { PR.seen[r.id] = r.at; }); paintPartner(); };
+
+function presMeta() {
+  return { who: S.who, at: Date.now(), sharing: PR.mine.sharing, lat: PR.mine.lat, lng: PR.mine.lng, acc: PR.mine.acc, together: PR.mine.together };
+}
+var pushTimer = null;
+function pushPresence(force) {
+  if (!PR.joined) return;
+  var now = Date.now(), wait = 3500 - (now - PR.lastPush);
+  if (!force && wait > 0) {                      /* too soon: send once, a moment later, with the latest values */
+    if (!pushTimer) pushTimer = setTimeout(function () { pushTimer = null; pushPresence(true); }, wait);
+    return;
+  }
+  PR.lastPush = now;
+  OWCloud.presenceTrack(presMeta());
+}
+function agoText(ts) {
+  if (!ts) return '';
+  var m = Math.round((Date.now() - ts) / 60000);
+  if (m < 2) return 'just now';
+  if (m < 60) return m + ' min ago';
+  var h = Math.round(m / 60);
+  if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
+  var d = Math.round(h / 24); return d + (d === 1 ? ' day ago' : ' days ago');
+}
+
+/* ---------- the little status pill ---------- */
+var partnerChip = document.getElementById('partnerchip'), partnerNam = document.getElementById('partnernam');
+function paintPartner() {
+  if (!S.who || !window.OWCloud || !OWCloud.configured) { partnerChip.hidden = true; return; }
+  var them = other(S.who), n = whoName(them).replace('Princess ', '');
+  partnerChip.hidden = false;
+  var on = !!PR.partner;
+  partnerChip.classList.toggle('live', on);
+  if (on) partnerNam.textContent = n + (PR.partner.sharing ? ' · live' : ' · online');
+  else partnerNam.textContent = n + ' · offline' + (PR.seen[them] ? ' · ' + agoText(PR.seen[them]) : '');
+}
+partnerChip.addEventListener('click', function () {
+  var them = other(S.who);
+  openSheet(head(whoName(them), PR.partner ? 'online right now' : 'offline') +
+    '<p class="note">' + (PR.partner
+      ? (PR.partner.sharing ? 'Sharing live location — you can see them on the map.' : 'Online, but not sharing a live location.')
+      : (PR.seen[them] ? 'Last had Our World open ' + agoText(PR.seen[them]) + '.' : 'Has not opened Our World yet.')) + '</p>' +
+    '<div class="sheet-actions">' + (PR.partner && PR.partner.sharing && PR.partner.lat != null
+      ? '<button class="pxbtn primary" type="button" data-act="goto" data-lat="' + PR.partner.lat + '" data-lng="' + PR.partner.lng + '" data-z="13">Find them on the map</button>' : '') +
+    '<button class="pxbtn" type="button" data-act="share-loc">' + (PR.mine.sharing ? 'Stop sharing my location' : 'Share my live location') + '</button>' +
+    '<button class="pxbtn" type="button" data-act="close">Close</button></div>');
+});
+
+/* ---------- joining, and last-seen ---------- */
+function startPresence() {
+  if (PR.joined || !S.who || !window.OWCloud || !OWCloud.configured || !OWCloud.presenceJoin) { paintPartner(); return; }
+  PR.joined = true;
+  OWCloud.presenceJoin(S.who, presMeta(), function (state) {
+    var arr = state && state[other(S.who)];
+    PR.partner = arr && arr.length ? arr[arr.length - 1] : null;
+    recomputeTogether(); paintPartner(); draw();
+  });
+  function beat() {
+    if (document.visibilityState === 'hidden' || !S.db) return;
+    S.db.collection('seen').doc(S.who).set({ at: Date.now(), by: S.who }).catch(function (e) { console.warn('last-seen:', e); });
+  }
+  beat(); setInterval(beat, 60000);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { beat(); pushPresence(true); } });
+  setInterval(paintPartner, 30000);
+  if (PR.mine.sharing) startWatch();
+  paintPartner();
+  jrCheckNew();
+}
+
+/* ---------- live location ---------- */
+function startWatch() {
+  if (PR.watchId != null || !navigator.geolocation) return;
+  PR.watchId = navigator.geolocation.watchPosition(function (pos) {
+    PR.mine.lat = pos.coords.latitude; PR.mine.lng = pos.coords.longitude; PR.mine.acc = Math.round(pos.coords.accuracy);
+    recomputeTogether(); pushPresence(false); draw();
+  }, function (err) {
+    if (err && err.code === 1) {            /* refused: switch sharing off and say how to fix it */
+      PR.mine.sharing = false; stopWatch();
+      try { localStorage.setItem('ow.share', 'off'); } catch (e) {}
+      pushPresence(true); paintPartner();
+      toast('Location is blocked for this site — allow it in your browser settings.', '📍', 5200);
+    }
+    /* a timeout or weak signal: keep watching, the next fix will come */
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 60000 });
+}
+function stopWatch() { if (PR.watchId != null) navigator.geolocation.clearWatch(PR.watchId); PR.watchId = null; }
+function setSharing(on) {
+  PR.mine.sharing = on;
+  try { localStorage.setItem('ow.share', on ? 'on' : 'off'); } catch (e) {}
+  if (on) startWatch();
+  else { stopWatch(); PR.mine.lat = PR.mine.lng = PR.mine.acc = null; PR.mine.together = false; }
+  recomputeTogether(); pushPresence(true); paintPartner(); draw();
+}
+ACTIONS['share-loc'] = function () {
+  setSharing(!PR.mine.sharing);
+  toast(PR.mine.sharing ? 'Sharing your live location while the app is open.' : 'Live location is off.', '📍', 3200);
+  if (sheet.classList.contains('open')) openMore();
+};
+
+/* ---------- are we together? ---------- */
+function recomputeTogether() {
+  var p = PR.partner, m = PR.mine;
+  PR.near = false; PR.dist = null;
+  if (p && p.sharing && m.sharing && m.lat != null && p.lat != null) {
+    PR.dist = haversine(m.lat, m.lng, p.lat, p.lng) * 1000;
+    PR.near = PR.dist < Math.max(150, (m.acc || 0) + (p.acc || 0));
+  }
+  if (!PR.near && m.together) { if (!PR.nearSince) PR.nearSince = Date.now(); if (Date.now() - PR.nearSince > 45000) { m.together = false; PR.nearSince = 0; pushPresence(true); } }
+  else PR.nearSince = 0;
+  PR.hands = PR.near && m.together && !!(p && p.together);
+  if (PR.hands && !PR.wasHands) celebrateTogether();
+  PR.wasHands = PR.hands;
+  paintTogetherBtn();
+}
+function midpoint() { return { lat: (PR.mine.lat + PR.partner.lat) / 2, lng: (PR.mine.lng + PR.partner.lng) / 2 }; }
+function celebrateTogether() {
+  var mid = midpoint(), town = nearestTown(mid.lat, mid.lng).name;
+  discover(mid.lat, mid.lng, false);
+  logMoment(mid);
+  playSound('heart');
+  flyTo(mid.lat, mid.lng, Math.max(S.zoom, 12.4));
+  sparkle();
+  openSheet(head('Together, right now', town) +
+    '<p class="note">You are both here, holding hands on the map. 💗</p>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="mem-at" data-lat="' + mid.lat + '" data-lng="' + mid.lng + '">Save this moment</button>' +
+    '<button class="pxbtn" type="button" data-act="close">Not now</button></div>');
+}
+
+var togetherBtn = document.getElementById('togetherBtn');
+function paintTogetherBtn() {
+  var them = whoName(other(S.who || 'bruce')).replace('Princess ', '');
+  if (!PR.near) { togetherBtn.hidden = true; return; }
+  togetherBtn.hidden = false;
+  if (PR.hands) togetherBtn.textContent = '💗 Together — tap to let go';
+  else if (PR.mine.together) togetherBtn.textContent = 'Waiting for ' + them + '… (tap to cancel)';
+  else togetherBtn.textContent = '💗 We’re together';
+}
+togetherBtn.addEventListener('click', function () {
+  PR.mine.together = !PR.mine.together;
+  recomputeTogether(); pushPresence(true); draw();
+});
+
+/* ---------- on the map ----------
+   Avatars are drawn at the same scale as the home icons (a touch shorter than
+   the castle), keep their proportions, glide to new positions instead of
+   jumping, breathe when standing still, and step aside rather than cover a
+   house. When someone is online but not sharing a location, they wait beside
+   their own home. */
+function homeScaleNow() { var z = S.zoom; return z > 10.6 ? 4 : (z > 9 ? 3 : 2); }
+function avatarHeight() { return S.zoom < 7.2 ? 0 : Math.round(13 * homeScaleNow()); }
+
+var AVPOS = {};   /* who -> smoothed screen position and facing */
+function glide(key, tx, ty) {
+  var p = AVPOS[key];
+  if (!p || Math.hypot(tx - p.x, ty - p.y) > 400) p = AVPOS[key] = { x: tx, y: ty, flip: false, moving: 0 };
+  var dx = tx - p.x, dy = ty - p.y;
+  if (Math.abs(dx) > 0.6 || Math.abs(dy) > 0.6) {
+    p.x += dx * 0.18; p.y += dy * 0.18;
+    if (Math.abs(dx) > 1.5) p.flip = dx < 0;
+    p.moving = 8;
+  } else { p.x = tx; p.y = ty; if (p.moving > 0) p.moving--; }
+  return p;
+}
+/* nudge a figure of width w off any home sprite it would overlap */
+function besideHomes(x, y, w) {
+  ['bruce', 'elena'].forEach(function (k) {
+    var hb = HOMEBOXES[k];
+    if (!hb) return;
+    var overlapX = x + w / 2 > hb.x - 2 && x - w / 2 < hb.x + hb.w + 2;
+    var overlapY = y > hb.y && y - 10 < hb.y + hb.h + 6;
+    if (overlapX && overlapY) x = (x >= hb.x + hb.w / 2) ? hb.x + hb.w + w / 2 + 2 : hb.x - w / 2 - 2;
+  });
+  return x;
+}
+function drawFigure(who, key, x, y, h) {
+  var w = avWidth(who, h);
+  var g = glide(key, besideHomes(x, y, w), y);
+  var hop = g.moving > 0 && !reduceMotion ? -Math.abs(Math.round(Math.sin(cloudPhase / 2.2) * 2)) : avBob(who === 'elena' ? 1.3 : 0);
+  return drawAvatar(ctx, who, g.x, g.y, h, null, { res: DPR, lift: hop, flip: g.flip });
+}
+HOOKS.afterOverlays.push(function () {
+  if (S.mode !== 'map' || !S.who) return;
+  var h = avatarHeight(); if (!h) return;
+  var m = PR.mine, p = PR.partner, box, pt, labels = S.zoom > 9;
+  function tag(x, y, text) { if (labels) tryLabel(x, y, text, { size: 10, border: C.princess }); }
+
+  if (PR.hands && m.lat != null && p && p.lat != null) {
+    var mid = midpoint(); pt = proj(mid.lat, mid.lng);
+    var pw = avWidth('bruce', h) + avWidth('elena', h);
+    var gp = glide('pair', besideHomes(pt.x, pt.y, pw), pt.y);
+    box = drawTogetherPair(ctx, gp.x, gp.y, h, DPR);
+    if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(gp.x, box.y - 2, 'Together'); }
+    return;
+  }
+  var them = other(S.who);
+  [[them, p, p && p.sharing && p.lat != null], [S.who, m, m.sharing && m.lat != null]].forEach(function (it) {
+    var who = it[0], st = it[1], live = it[2], online = who === S.who ? true : !!st;
+    if (live) {
+      pt = proj(st.lat, st.lng);
+      box = drawFigure(who, who + '-live', pt.x, pt.y, h);
+      if (box) { addHit(box, { kind: 'avatar', who: who }); tag(box.x + box.w / 2, box.y - 2, who === S.who ? 'You' : jrShortName(who) + ' \u00b7 live'); }
+    } else if (online && HOMEBOXES[who] && S.zoom > 8.6) {
+      /* waiting at home: stand just beside the house, on the same ground line */
+      var hb = HOMEBOXES[who], w = avWidth(who, h);
+      var x = who === 'elena' ? hb.x - w / 2 - 1 : hb.x + hb.w + w / 2 + 1;
+      box = drawFigure(who, who + '-home', x, hb.baseY, h);
+      if (box) addHit(box, { kind: 'avatar', who: who });
+    }
+  });
+});
+function jrShortName(k) { return whoName(k).replace('Princess ', ''); }
+function openAvatarInfo(who) {
+  if (who === 'both') { openSheet(head('Together', 'holding hands') + '<p class="note">You are both here. 💗</p><div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'); return; }
+  var live = who === S.who ? PR.mine.sharing : !!(PR.partner && PR.partner.sharing);
+  openSheet(head(whoName(who), who === S.who ? (live ? 'you, live' : 'you, at home') : (live ? 'live location' : (PR.partner ? 'online, at home' : 'offline'))) +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="avatars">Change outfit</button><button class="pxbtn" type="button" data-act="close">Close</button></div>');
+}
+
+/* ---- features/notes.js ---- */
+/* Daily love note. Each of you writes a note for the other; whenever the other
+   opens Our World, your latest note is waiting for them. */
+
+S.notes = {};
+try { S.notes = JSON.parse(localStorage.getItem('ow.notes') || '{}') || {}; } catch (e) {}
+ROWHOOKS.notes = function (rows) {
+  rows.forEach(function (r) { S.notes[r.id] = r; });
+  try { localStorage.setItem('ow.notes', JSON.stringify(S.notes)); } catch (e) {}
+  maybeShowNote();
+};
+
+var noteShown = false;
+function noteWhen(ts) {
+  if (!ts) return '';
+  var d = new Date(ts), now = new Date();
+  if (d.toDateString() === now.toDateString()) return 'written today';
+  var y = new Date(now.getTime() - 86400000);
+  if (d.toDateString() === y.toDateString()) return 'written yesterday';
+  return 'written ' + ['January','February','March','April','May','June','July','August','September','October','November','December'][d.getMonth()] + ' ' + d.getDate();
+}
+function maybeShowNote(tries) {
+  if (noteShown || !S.who) return;
+  var n = S.notes[other(S.who)];
+  if (!n || !n.text) return;
+  var intro = document.getElementById('intro'), quote = document.getElementById('quote');
+  if ((intro && intro.style.display !== 'none') || (quote && quote.classList.contains('on'))) {
+    if ((tries || 0) < 120) setTimeout(function () { maybeShowNote((tries || 0) + 1); }, 1000);
+    return;
+  }
+  noteShown = true;
+  var el = document.getElementById('noteCard');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'noteCard'; el.className = 'notecard';
+    el.innerHTML = '<div class="nc-card" role="dialog" aria-label="A note for you"><div class="nc-env">💌</div><div class="nc-from"></div><p class="nc-text"></p><div class="nc-when"></div><button class="pxbtn primary" type="button">Aww 💗</button></div>';
+    document.body.appendChild(el);
+    el.addEventListener('click', function (e) { if (e.target === el || e.target.tagName === 'BUTTON') el.classList.remove('on'); });
+  }
+  el.querySelector('.nc-from').textContent = 'A note from ' + whoName(other(S.who)).replace('Princess ', '');
+  el.querySelector('.nc-text').textContent = n.text;
+  el.querySelector('.nc-when').textContent = noteWhen(n.at);
+  el.classList.add('on');
+  sparkle();
+}
+
+ACTIONS['note-edit'] = function () {
+  var mine = S.notes[S.who] || {};
+  openSheet(head('My daily note', 'for ' + whoName(other(S.who)).replace('Princess ', '')) +
+    '<p class="note">Write something sweet. It shows up for them every time they open Our World, until you change it.</p>' +
+    '<div class="field"><label for="n-text">Your note</label><textarea id="n-text" maxlength="280" placeholder="Good morning, I’m thinking about you…">' + esc(mine.text || '') + '</textarea></div>' +
+    '<p class="hint">' + (mine.at ? 'Currently showing: ' + noteWhen(mine.at) + '.' : 'You have not written one yet.') + '</p>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="note-save">Send it</button>' +
+    '<button class="pxbtn" type="button" data-act="more">Back</button></div>');
+  setTimeout(function () { var e = document.getElementById('n-text'); if (e) e.focus(); }, 120);
+};
+ACTIONS['note-save'] = function () {
+  var text = (document.getElementById('n-text').value || '').trim();
+  if (!text) { toast('Write a few words first.', '✏️', 2800); return; }
+  var rec = { text: text, by: S.who, at: Date.now() };
+  S.notes[S.who] = rec;
+  try { localStorage.setItem('ow.notes', JSON.stringify(S.notes)); } catch (e) {}
+  if (S.db) S.db.collection('notes').doc(S.who).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 4500); });
+  closeSheet(); sparkle();
+  toast('Note sent — it will be waiting for them.', '💌', 3600);
+};
+
+/* ---- features/journal.js ---- */
+/* Our journal: daily entries you write for each other — how the day felt, how
+   much you miss them, photos from your day. Both of you can read every entry;
+   only its author can change or delete it (enforced by the database). The other
+   person can send a heart back. */
+
+var JR = { entries: [], paths: {}, form: null, filter: 'all', edit: null };
+var JR_MOODS = [['loved', '🥰', 'Loved'], ['happy', '😊', 'Happy'], ['calm', '😌', 'Calm'], ['tired', '😴', 'Tired'],
+  ['sad', '🥺', 'Sad'], ['low', '😢', 'Low'], ['stressed', '😤', 'Stressed']];
+var JR_MISS = ['Not today', 'A little', 'A lot', 'So much'];
+S.jrLove = {};
+ROWHOOKS.jrlove = function (rows) { rows.forEach(function (r) { S.jrLove[r.id] = r; }); if (sheet.dataset.view === 'jr-entry') reopenEntry(); };
+
+function jrMood(k) { for (var i = 0; i < JR_MOODS.length; i++) if (JR_MOODS[i][0] === k) return JR_MOODS[i]; return null; }
+function jrApi() { return window.OWCloud && OWCloud.configured && OWCloud.journal ? OWCloud.journal : null; }
+function jrHearts(n) { var s = ''; for (var i = 0; i < 3; i++) s += i < n ? '💗' : '🤍'; return s; }
+function jrWho(r) { return r.who === 'bruce' || r.who === 'elena' ? r.who : null; }
+function jrShort(k) { return whoName(k).replace('Princess ', ''); }
+function jrById(id) { for (var i = 0; i < JR.entries.length; i++) if (JR.entries[i].id === id) return JR.entries[i]; return null; }
+
+function jrLoad() {
+  var api = jrApi();
+  if (!api) return Promise.reject(new Error('Sign in to use the journal.'));
+  return api.list().then(function (rows) {
+    JR.entries = rows;
+    var paths = []; rows.forEach(function (r) { (r.photos || []).forEach(function (p) { paths.push(p); }); });
+    return api.signPhotos(paths.slice(0, 300));
+  }).then(function (map) { JR.paths = map; return JR.entries; });
+}
+
+/* a gentle nudge when the other person has written something new */
+function jrCheckNew() {
+  if (!jrApi() || !S.who) return;
+  jrLoad().then(function (rows) {
+    var them = other(S.who), last = 0;
+    try { last = parseInt(localStorage.getItem('ow.jr.seen') || '0', 10); } catch (e) {}
+    var fresh = rows.filter(function (r) { return jrWho(r) === them && new Date(r.created_at).getTime() > last; });
+    if (fresh.length) setTimeout(function () { toast(jrShort(them) + ' wrote in our journal', '📓', 5200); }, 6000);
+  }).catch(function () {});
+}
+function jrMarkSeen() { try { localStorage.setItem('ow.jr.seen', String(Date.now())); } catch (e) {} }
+
+ACTIONS['journal'] = function () {
+  if (!jrApi()) { openSheet(head('Our journal', 'notes for each other') + '<p class="hint">The journal needs you to be signed in.</p><div class="sheet-actions"><button class="pxbtn" type="button" data-act="more">Back</button></div>'); return; }
+  openSheet(head('Our journal', 'notes for each other') + '<p class="hint">Loading…</p>');
+  jrLoad().then(function () { jrMarkSeen(); renderJournal(); }).catch(function (e) {
+    openSheet(head('Our journal', 'notes for each other') + '<p class="note">Could not load the journal (' + esc((e && (e.message || e.code)) || 'error') +
+      '). If this is the first time, the Phase 4 setup script needs to be run in Supabase.</p><div class="sheet-actions"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+  });
+};
+function renderJournal() {
+  var f = JR.filter, rows = JR.entries.filter(function (r) { return f === 'all' || jrWho(r) === f; });
+  function tab(v, label) { return '<button type="button" class="chipb' + (f === v ? ' on' : '') + '" data-act="jr-filter" data-v="' + v + '">' + label + '</button>'; }
+  var html = head('Our journal', 'notes for each other') +
+    '<div class="chips" style="margin-bottom:10px">' + tab('all', 'Both of us') + tab('bruce', 'Bruce') + tab('elena', 'Elena') + '</div>' +
+    '<div class="sheet-actions" style="margin:4px 0 12px"><button class="pxbtn primary" type="button" data-act="jr-new">Write today’s entry</button><button class="pxbtn" type="button" data-act="more">Back</button></div>';
+  if (!rows.length) html += '<p class="hint">Nothing here yet. Write how today felt, whether you miss them, add photos from your day — they will read it, and you will read theirs.</p>';
+  else html += '<div class="list">' + rows.map(function (r) {
+    var mo = jrMood(r.mood), first = (r.body || '').split('\n')[0].slice(0, 64), w = jrWho(r), loved = S.jrLove[r.id] && w && S.jrLove[r.id][other(w)];
+    return '<button type="button" data-act="jr-open" data-id="' + esc(r.id) + '"><span class="ico">' + (mo ? mo[1] : '📓') + '</span><span><span class="t">' +
+      (w ? esc(jrShort(w)) + ' · ' : '') + esc(fmtDate(r.day)) + (loved ? ' 💗' : '') +
+      '</span><br><span class="s">' + jrHearts(r.miss || 0) + (r.photos && r.photos.length ? ' · 📷 ' + r.photos.length : '') + (first ? ' · ' + esc(first) : '') + '</span></span></button>';
+  }).join('') + '</div>';
+  sheet.dataset.view = 'jr-list';
+  openSheet(html);
+}
+ACTIONS['jr-filter'] = function (b) { JR.filter = b.dataset.v; renderJournal(); };
+
+function jrForm(entry) {
+  JR.edit = entry ? entry.id : null;
+  JR.form = { mood: entry ? entry.mood : 'loved', miss: entry ? (entry.miss || 0) : 1 };
+  var them = jrShort(other(S.who));
+  openSheet(head(entry ? 'Edit entry' : 'Today’s entry', 'for you and ' + them) +
+    '<div class="field"><label for="j-day">Day</label><input id="j-day" type="date" value="' + esc(entry ? entry.day : todayISO()) + '"></div>' +
+    '<div class="field"><label>How are you feeling?</label><div class="chips" id="j-moods">' + JR_MOODS.map(function (m) {
+      return '<button type="button" class="chipb' + (m[0] === JR.form.mood ? ' on' : '') + '" data-act="jr-mood" data-v="' + m[0] + '">' + m[1] + ' ' + m[2] + '</button>'; }).join('') + '</div></div>' +
+    '<div class="field"><label>Do you miss ' + esc(them) + '?</label><div class="chips" id="j-miss">' + JR_MISS.map(function (t, i) {
+      return '<button type="button" class="chipb' + (i === JR.form.miss ? ' on' : '') + '" data-act="jr-miss" data-v="' + i + '">' + jrHearts(i) + ' ' + t + '</button>'; }).join('') + '</div></div>' +
+    '<div class="field"><label for="j-body">Your day</label><textarea id="j-body" maxlength="4000" placeholder="What happened, how it felt, what you want them to know…" style="min-height:130px">' + esc(entry ? entry.body : '') + '</textarea></div>' +
+    (entry ? '' : '<div class="field"><label for="j-photos">Photos from your day (optional)</label><input id="j-photos" type="file" accept="image/*" multiple></div>') +
+    '<p class="hint">' + esc(them) + ' can read this. Only you can change or delete it.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="jr-save">' + (entry ? 'Save changes' : 'Share entry') + '</button><button class="pxbtn" type="button" data-act="journal">Cancel</button></div>');
+}
+ACTIONS['jr-new'] = function () { jrForm(null); };
+ACTIONS['jr-edit'] = function (b) { var r = jrById(b.dataset.id); if (r) jrForm(r); };
+ACTIONS['jr-mood'] = function (b) { JR.form.mood = b.dataset.v; [].forEach.call(sheet.querySelectorAll('#j-moods .chipb'), function (x) { x.classList.toggle('on', x === b); }); };
+ACTIONS['jr-miss'] = function (b) { JR.form.miss = parseInt(b.dataset.v, 10); [].forEach.call(sheet.querySelectorAll('#j-miss .chipb'), function (x) { x.classList.toggle('on', x === b); }); };
+ACTIONS['jr-save'] = function (b) {
+  var api = jrApi(); if (!api) return;
+  var input = document.getElementById('j-photos');
+  var files = input ? [].slice.call(input.files || [], 0, 8) : [];
+  var entry = { day: document.getElementById('j-day').value || todayISO(), mood: JR.form.mood, miss: JR.form.miss, body: (document.getElementById('j-body').value || '').trim() };
+  if (!entry.body && !files.length && !JR.edit) { toast('Write something or add a photo first.', '✏️', 3000); return; }
+  b.disabled = true; b.textContent = 'Saving…';
+  var done;
+  if (JR.edit) done = api.update(JR.edit, entry);
+  else {
+    entry.photos = []; entry.who = S.who;
+    var chain = Promise.resolve();
+    files.forEach(function (f) {
+      chain = chain.then(function () {
+        return new Promise(function (res) { shrinkImage(f, function (blob) { res(blob); }); }).then(function (blob) {
+          return blob ? api.uploadPhoto(blob).then(function (p) { entry.photos.push(p); }) : null;
+        });
+      });
+    });
+    done = chain.then(function () { return api.add(entry); });
+  }
+  done.then(function () {
+    toast(JR.edit ? 'Entry updated.' : 'Shared with ' + jrShort(other(S.who)) + '.', '📓', 3200);
+    playSound('save');
+    ACTIONS['journal']();
+  }).catch(function (e) {
+    b.disabled = false; b.textContent = 'Try again';
+    toast('Could not save (' + ((e && (e.message || e.code)) || 'error') + ').', '⚠️', 5200);
+  });
+};
+var jrOpenId = null;
+function reopenEntry() { if (jrOpenId) ACTIONS['jr-open']({ dataset: { id: jrOpenId } }); }
+ACTIONS['jr-open'] = function (b) {
+  var r = jrById(b.dataset.id); if (!r) return;
+  jrOpenId = r.id;
+  var mo = jrMood(r.mood), w = jrWho(r), mine = w === S.who, love = S.jrLove[r.id] || {};
+  var missWho = w ? jrShort(other(w)) : 'them';
+  openSheet(head((w ? jrShort(w) + ' · ' : '') + fmtDate(r.day), (mo ? mo[1] + ' ' + mo[2] : '') + ' · missing ' + missWho + ': ' + JR_MISS[r.miss || 0]) +
+    (r.body ? '<p class="note" style="white-space:pre-wrap;font-size:14.5px;color:var(--ink)">' + esc(r.body) + '</p>' : '') +
+    (r.photos && r.photos.length ? '<div class="jr-photos">' + r.photos.map(function (p) {
+      return JR.paths[p] ? '<img src="' + esc(JR.paths[p]) + '" alt="" data-act="jr-photo" data-src="' + esc(JR.paths[p]) + '">' : ''; }).join('') + '</div>' : '') +
+    (w && love[other(w)] ? '<p class="jr-love">💗 ' + esc(jrShort(other(w))) + ' sent a heart</p>' : '') +
+    '<div class="sheet-actions" style="margin-top:14px">' +
+      (!mine && w ? '<button class="pxbtn primary" type="button" data-act="jr-heart" data-id="' + esc(r.id) + '">' + (love[S.who] ? '💗 Heart sent' : 'Send a heart 💗') + '</button>' : '') +
+      (mine ? '<button class="pxbtn" type="button" data-act="jr-edit" data-id="' + esc(r.id) + '">Edit</button><button class="pxbtn" type="button" data-act="jr-del" data-id="' + esc(r.id) + '">Delete</button>' : '') +
+      '<button class="pxbtn" type="button" data-act="journal">Back</button></div>');
+  sheet.dataset.view = 'jr-entry';
+};
+ACTIONS['jr-heart'] = function (b) {
+  var id = b.dataset.id, cur = S.jrLove[id] || {};
+  var next = { bruce: !!cur.bruce, elena: !!cur.elena }; next[S.who] = !cur[S.who];
+  S.jrLove[id] = next;
+  if (S.db) S.db.collection('jrlove').doc(id).set(next).catch(function () {});
+  if (next[S.who]) { sparkle(); playSound('heart'); }
+  reopenEntry();
+};
+ACTIONS['jr-photo'] = function (b) { openPhoto(b.dataset.src, ''); };
+ACTIONS['jr-del'] = function (b) {
+  var api = jrApi(); if (!api) return;
+  if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tap again to delete'; return; }
+  api.remove(b.dataset.id).then(function () { toast('Entry deleted.', '📓', 2600); jrOpenId = null; ACTIONS['journal'](); })
+    .catch(function (e) { toast('Could not delete (' + ((e && e.message) || 'error') + ').', '⚠️', 4000); });
+};
+
+/* ---- features/letters.js ---- */
+/* Letters: a list of every sealed letter, and letters that open on a date
+   (birthdays, anniversaries) announce themselves the day they unlock. */
+
+function letterDateReady(s) { return !!(s && s.unlockDate && s.unlockDate <= todayISO()); }
+
+var lettersChecked = false;
+function checkDateLetters() {
+  if (lettersChecked || !S.who) return;
+  var ready = S.surprises.filter(function (s) { return !s.opened && s.forWho === S.who && letterDateReady(s); });
+  if (!ready.length) return;
+  lettersChecked = true;
+  setTimeout(function () {
+    toast('A letter from ' + whoName(ready[0].by).replace('Princess ', '') + ' is ready to open', '💌', 6500);
+    playSound('chime');
+  }, 4500);
+}
+ROWHOOKS.surprises = function () { checkDateLetters(); };
+
+ACTIONS['letters'] = function () {
+  var forMe = S.surprises.filter(function (s) { return s.forWho === S.who; }),
+      fromMe = S.surprises.filter(function (s) { return s.by === S.who && s.forWho !== S.who; });
+  function row(s, mine) {
+    var state = s.opened ? 'Opened' : (letterDateReady(s) ? 'Ready to open' : (s.unlockDate ? 'Opens ' + fmtDate(s.unlockDate) + ' · ' + countdownText(s.unlockDate) : 'Opens at ' + nearestTown(s.lat, s.lng).name));
+    return '<button type="button" data-act="letter-open" data-id="' + esc(s.id) + '"><span class="ico">' + (s.opened ? '📬' : '💌') + '</span><span><span class="t">' +
+      esc(s.title) + '</span><br><span class="s">' + (mine ? 'For ' + esc(whoName(s.forWho)) + ' · ' : 'From ' + esc(whoName(s.by)) + ' · ') + esc(state) + '</span></span></button>';
+  }
+  openSheet(head('Letters', 'sealed for each other') +
+    sectionTitle('For you') + (forMe.length ? '<div class="list">' + forMe.map(function (s) { return row(s, false); }).join('') + '</div>' : '<p class="hint">No letters for you yet.</p>') +
+    sectionTitle('From you') + (fromMe.length ? '<div class="list">' + fromMe.map(function (s) { return row(s, true); }).join('') + '</div>' : '<p class="hint">Leave one with the ✉️ button: pick a spot on the map, and optionally a date.</p>') +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+ACTIONS['letter-open'] = function (b) {
+  var s = null; S.surprises.forEach(function (x) { if (x.id === b.dataset.id) s = x; });
+  if (!s) return;
+  if (!letterDateReady(s) || s.opened || s.forWho !== S.who) flyTo(s.lat, s.lng, Math.max(S.zoom, 11));
+  openItem({ kind: 'surprise', id: s.id });
+};
+
+/* ---- features/anniversary.js ---- */
+/* Our anniversary: how long you have been together, a countdown to the next
+   one, a little celebration on the day (and a smaller one each month). */
+
+S.us = {};
+try { S.us = JSON.parse(localStorage.getItem('ow.us') || '{}') || {}; } catch (e) {}
+ROWHOOKS.settings = function (rows) {
+  rows.forEach(function (r) { if (r.id === 'us') S.us = r; });
+  try { localStorage.setItem('ow.us', JSON.stringify(S.us)); } catch (e) {}
+  celebrateIfToday();
+};
+
+function dayDiff(a, b) { return Math.round((b - a) / 86400000); }
+function midnight(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function annInfo() {
+  if (!S.us.anniversary) return null;
+  var start = midnight(S.us.anniversary + 'T00:00:00'), today = midnight(new Date());
+  if (isNaN(start)) return null;
+  var days = dayDiff(start, today);
+  var next = new Date(start); next.setFullYear(today.getFullYear());
+  if (next < today) next.setFullYear(today.getFullYear() + 1);
+  var years = next.getFullYear() - start.getFullYear();
+  var months = (today.getFullYear() - start.getFullYear()) * 12 + today.getMonth() - start.getMonth();
+  return {
+    days: days, nextIn: dayDiff(today, next), years: years, next: next,
+    isAnniv: days > 0 && today.getMonth() === start.getMonth() && today.getDate() === start.getDate(),
+    isMonthiv: days > 0 && today.getDate() === start.getDate() && months > 0 && months % 12 !== 0, months: months
+  };
+}
+function annCardHtml() {
+  var a = annInfo();
+  if (!a) return '<button type="button" class="ann-card ann-empty" data-act="ann-edit"><b>When did we start?</b><span>Set our anniversary to count our days together</span></button>';
+  if (a.days < 0) return '<button type="button" class="ann-card" data-act="ann-edit"><b>' + (-a.days) + ' days to go</b><span>until our first day</span></button>';
+  return '<button type="button" class="ann-card" data-act="ann-edit"><b>Together ' + a.days.toLocaleString() + ' days 💗</b><span>' +
+    (a.isAnniv ? 'Happy anniversary! ' + (a.years - (a.nextIn === 0 ? 0 : 1)) + ' year' + ((a.years - (a.nextIn === 0 ? 0 : 1)) === 1 ? '' : 's') + ' today'
+      : (a.nextIn === 1 ? 'Our anniversary is tomorrow' : 'Our ' + ordinal(a.years) + ' anniversary in ' + a.nextIn + ' days')) + '</span></button>';
+}
+function ordinal(n) { var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+
+var annCelebrated = false;
+function celebrateIfToday() {
+  var a = annInfo();
+  if (annCelebrated || !a || !S.who) return;
+  if (!a.isAnniv && !a.isMonthiv) return;
+  annCelebrated = true;
+  setTimeout(function () {
+    fxConfetti();
+    playSound('heart');
+    toast(a.isAnniv ? 'Happy anniversary, you two 💗' : 'Happy ' + a.months + ' months together 💗', '🎉', 7000);
+  }, 3500);
+}
+
+ACTIONS['ann-edit'] = function () {
+  openSheet(head('Our anniversary', 'the day it all started') +
+    '<div class="field"><label for="a-date">Our first day</label><input id="a-date" type="date" value="' + esc(S.us.anniversary || '') + '"></div>' +
+    '<p class="hint">Shared between you both. The map counts your days together, counts down to the next anniversary, and celebrates on the day.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="ann-save">Save</button><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+ACTIONS['ann-save'] = function () {
+  var d = document.getElementById('a-date').value;
+  if (!d) { toast('Pick the date first.', '📅', 2600); return; }
+  S.us = Object.assign({}, S.us, { anniversary: d, by: S.who, at: Date.now() });
+  try { localStorage.setItem('ow.us', JSON.stringify(S.us)); } catch (e) {}
+  if (S.db) S.db.collection('settings').doc('us').set(S.us).catch(function () {});
+  sparkle(); openMore();
+};
+
+/* ---- features/heat.js ---- */
+/* Heat trail: a warm glow wherever we have actually been together — built only
+   from things we know are true (memories, trip stops, "we're together"
+   moments, cleared ground, and walks we chose to record), so it is accurate
+   without ever tracking anyone in the background. */
+
+S.moments = []; S.walks = [];
+try { S.moments = JSON.parse(localStorage.getItem('ow.moments') || '[]'); S.walks = JSON.parse(localStorage.getItem('ow.walks') || '[]'); } catch (e) {}
+ROWHOOKS.moments = function (rows) { S.moments = rows; try { localStorage.setItem('ow.moments', JSON.stringify(rows)); } catch (e) {} };
+ROWHOOKS.walks = function (rows) { S.walks = rows; try { localStorage.setItem('ow.walks', JSON.stringify(rows)); } catch (e) {} };
+AMB.heat = true;
+try { AMB.heat = localStorage.getItem('ow.heat') !== 'off'; } catch (e) {}
+
+/* both phones log the same moment under the same id, so it is only counted once */
+function logMoment(p) {
+  var rec = { lat: p.lat, lng: p.lng, date: todayISO(), at: Date.now() };
+  var id = 'm' + rec.date + '_' + p.lat.toFixed(3) + '_' + p.lng.toFixed(3);
+  rec.id = id;
+  if (!S.moments.some(function (m) { return m.id === id; })) S.moments.push(rec);
+  if (S.db) S.db.collection('moments').doc(id).set(rec).catch(function () {});
+}
+
+function heatPoints() {
+  var pts = [];
+  S.memories.forEach(function (m) { pts.push([m.lat, m.lng, 1]); });
+  S.moments.forEach(function (m) { pts.push([m.lat, m.lng, 2.2]); });
+  S.regions.forEach(function (r) { pts.push([r.lat, r.lng, .5]); });
+  /* a walk adds a glow every ~6 points: enough to warm the route, light enough for a phone to draw every frame */
+  S.walks.forEach(function (w) { (w.pts || []).forEach(function (p, i) { if (i % 6 === 0) pts.push([p[0], p[1], .5]); }); });
+  return pts.length > 600 ? pts.slice(pts.length - 600) : pts;
+}
+HOOKS.beforePins.push(function () {
+  if (S.mode !== 'map' || !AMB.heat) return;
+  var pts = heatPoints(); if (!pts.length) return;
+  var r = Math.max(26, Math.min(110, kmToPx(1.4)));
+  ctx.save();
+  pts.forEach(function (p) {
+    var q = proj(p[0], p[1]);
+    if (q.x < -r || q.y < -r || q.x > W + r || q.y > H + r) return;
+    var a = Math.min(.42, .16 * p[2]);
+    var g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, r);
+    g.addColorStop(0, 'rgba(255,170,120,' + a + ')');
+    g.addColorStop(.5, 'rgba(243,169,199,' + (a * .55) + ')');
+    g.addColorStop(1, 'rgba(243,169,199,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, 6.283); ctx.fill();
+  });
+  /* walks we recorded: a soft dotted path */
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  S.walks.concat(WALK.rec ? [{ pts: WALK.pts }] : []).forEach(function (w) {
+    var pp = w.pts || []; if (pp.length < 2) return;
+    ctx.beginPath();
+    pp.forEach(function (p, i) { var q = proj(p[0], p[1]); if (i) ctx.lineTo(q.x, q.y); else ctx.moveTo(q.x, q.y); });
+    ctx.strokeStyle = 'rgba(216,90,146,.25)'; ctx.lineWidth = 6; ctx.stroke();
+    ctx.setLineDash([2, 6]); ctx.strokeStyle = 'rgba(216,90,146,.85)'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.setLineDash([]);
+  });
+  ctx.restore();
+});
+
+/* ---------- record our walk (only while you hold it on, with the app open) ---------- */
+var WALK = { rec: false, pts: [], id: null, started: 0 };
+try { var wd = JSON.parse(localStorage.getItem('ow.walk.draft') || 'null'); if (wd && wd.pts) { WALK.pts = wd.pts; WALK.started = wd.started; } } catch (e) {}
+var walkBtn = document.createElement('button');
+walkBtn.className = 'pxbtn'; walkBtn.id = 'walkBtn'; walkBtn.type = 'button'; walkBtn.hidden = true;
+document.getElementById('stage').appendChild(walkBtn);
+walkBtn.addEventListener('click', function () { stopWalk(true); });
+function walkKm(pts) { var k = 0; for (var i = 1; i < pts.length; i++) k += haversine(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]); return k; }
+function paintWalk() {
+  walkBtn.hidden = !WALK.rec;
+  if (WALK.rec) walkBtn.innerHTML = '<span class="rec-dot"></span> Recording · ' + walkKm(WALK.pts).toFixed(2) + ' km — Stop';
+}
+function startWalk() {
+  if (!navigator.geolocation) { toast('This phone cannot share its location.', '📍', 3500); return; }
+  WALK.rec = true; WALK.started = WALK.started || Date.now();
+  WALK.id = navigator.geolocation.watchPosition(function (pos) {
+    var c = pos.coords, last = WALK.pts[WALK.pts.length - 1];
+    if (c.accuracy > 50) return;                                  /* too fuzzy to trust */
+    if (last && haversine(last[0], last[1], c.latitude, c.longitude) * 1000 < 15) return;   /* GPS jitter */
+    WALK.pts.push([+c.latitude.toFixed(6), +c.longitude.toFixed(6)]);
+    try { localStorage.setItem('ow.walk.draft', JSON.stringify({ pts: WALK.pts, started: WALK.started })); } catch (e) {}
+    paintWalk(); draw();
+  }, function (err) {
+    /* only a refusal ends the walk; a weak signal just waits for the next fix */
+    if (err && err.code === 1) { toast('Location is blocked for this site.', '📍', 4000); stopWalk(true); }
+    else if (!WALK.warned) { WALK.warned = true; toast('Weak GPS signal — still recording.', '📍', 3000); }
+  }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 60000 });
+  paintWalk(); toast('Recording your walk while the app is open.', '👣', 3600);
+}
+/* drop points that sit on a straight line (Douglas–Peucker, ~8 m) */
+function simplify(pts, tolM) {
+  if (pts.length < 3) return pts.slice();
+  function perp(p, a, b) {
+    var k = 111320, cos = Math.cos(a[0] * Math.PI / 180);
+    var ax = a[1] * k * cos, ay = a[0] * k, bx = b[1] * k * cos, by = b[0] * k, px = p[1] * k * cos, py = p[0] * k;
+    var dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
+    var t = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0;
+    return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+  }
+  var keep = new Array(pts.length); keep[0] = keep[pts.length - 1] = true;
+  (function rec(i, j) {
+    var md = 0, mi = -1;
+    for (var k = i + 1; k < j; k++) { var d = perp(pts[k], pts[i], pts[j]); if (d > md) { md = d; mi = k; } }
+    if (md > tolM && mi > 0) { keep[mi] = true; rec(i, mi); rec(mi, j); }
+  })(0, pts.length - 1);
+  return pts.filter(function (p, i) { return keep[i]; });
+}
+function stopWalk(save) {
+  if (WALK.id != null) navigator.geolocation.clearWatch(WALK.id);
+  WALK.id = null; WALK.rec = false;
+  var pts = simplify(WALK.pts, 8);
+  if (save && pts.length >= 2) {
+    var rec = { id: uid(), by: S.who, at: Date.now(), start: WALK.started, km: +walkKm(pts).toFixed(2), pts: pts };
+    S.walks.push(rec);
+    try { localStorage.setItem('ow.walks', JSON.stringify(S.walks)); } catch (e) {}
+    if (S.db) S.db.collection('walks').doc(rec.id).set(rec).catch(function () {});
+    toast('Walk saved · ' + rec.km + ' km', '👣', 3600); sparkle();
+  } else if (save) toast('Too short to save — walk a little further next time.', '👣', 3600);
+  WALK.pts = []; WALK.started = 0;
+  try { localStorage.removeItem('ow.walk.draft'); } catch (e) {}
+  paintWalk(); draw();
+}
+ACTIONS['walk'] = function () { closeSheet(); if (WALK.rec) stopWalk(true); else startWalk(); };
+if (WALK.pts.length) setTimeout(function () { toast('You have an unfinished walk — open ✨ to keep recording or save it.', '👣', 5200); }, 5000);
+
+/* ---- features/sound.js ---- */
+/* Sounds and music: soft chimes for little moments, and an optional music-box
+   tune. Both are made on the fly (no audio files) and both start OFF. */
+
+var SND = { on: false, music: false, ctx: null, out: null, timer: null, step: 0 };
+try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; } catch (e) {}
+
+function audio() {
+  if (SND.ctx) { if (SND.ctx.state === 'suspended') SND.ctx.resume(); return SND.ctx; }
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  SND.ctx = new AC();
+  SND.out = SND.ctx.createGain(); SND.out.gain.value = .5;
+  /* a little echo makes everything feel like a music box */
+  var dl = SND.ctx.createDelay(); dl.delayTime.value = .28;
+  var fb = SND.ctx.createGain(); fb.gain.value = .28;
+  SND.out.connect(SND.ctx.destination); SND.out.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(SND.ctx.destination);
+  return SND.ctx;
+}
+function tone(freq, when, dur, vol, type) {
+  var a = audio(); if (!a) return;
+  var o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'triangle'; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vol, when + .012);
+  g.gain.exponentialRampToValueAtTime(.0001, when + dur);
+  o.connect(g); g.connect(SND.out); o.start(when); o.stop(when + dur + .05);
+}
+var NOTE = function (n) { return 440 * Math.pow(2, (n - 69) / 12); };
+function playSound(kind) {
+  if (!SND.on) return;
+  var a = audio(); if (!a) return;
+  var t = a.currentTime + .01;
+  if (kind === 'chime') { tone(NOTE(84), t, .5, .09); tone(NOTE(91), t + .09, .7, .07); }
+  else if (kind === 'heart') { [76, 79, 83, 88].forEach(function (n, i) { tone(NOTE(n), t + i * .08, .6, .07); }); }
+  else if (kind === 'save') { tone(NOTE(79), t, .25, .08); tone(NOTE(86), t + .07, .4, .06); }
+  else { tone(NOTE(81), t, .12, .05, 'sine'); }
+}
+/* sparkle() and the discovery burst already mark the happy moments: give them a sound */
+var sparkleQuiet = sparkle;
+sparkle = function () { sparkleQuiet(); playSound('chime'); };
+
+/* ---------- music box ---------- */
+var TUNE = [[72, 76, 79, 84], [69, 72, 76, 81], [65, 69, 72, 77], [67, 71, 74, 79]];   /* C – Am – F – G */
+function musicTick() {
+  if (!SND.music || !SND.ctx) return;
+  var a = SND.ctx, chord = TUNE[Math.floor(SND.step / 8) % TUNE.length], i = SND.step % 8;
+  var seq = [0, 1, 2, 3, 2, 1, 2, 3];
+  var t = a.currentTime + .02;
+  tone(NOTE(chord[seq[i]]), t, 1.4, .035, 'sine');
+  if (i === 0) tone(NOTE(chord[0] - 24), t, 2.6, .03, 'sine');
+  SND.step++;
+}
+function startMusic() {
+  if (SND.timer || !audio()) return;
+  SND.timer = setInterval(musicTick, 420);
+}
+function stopMusic() { clearInterval(SND.timer); SND.timer = null; }
+function setMusic(on) {
+  SND.music = on;
+  try { localStorage.setItem('ow.music', on ? 'on' : 'off'); } catch (e) {}
+  if (on) startMusic(); else stopMusic();
+}
+function setSound(on) {
+  SND.on = on;
+  try { localStorage.setItem('ow.sound', on ? 'on' : 'off'); } catch (e) {}
+  if (on) { audio(); playSound('chime'); }
+}
+/* browsers only allow sound after a tap: start whatever was switched on, on the first one */
+document.addEventListener('pointerdown', function first() {
+  document.removeEventListener('pointerdown', first, true);
+  if (SND.on || SND.music) audio();
+  if (SND.music) startMusic();
+}, true);
+document.addEventListener('visibilitychange', function () {
+  if (!SND.ctx) return;
+  if (document.visibilityState === 'hidden') { SND.ctx.suspend(); } else if (SND.on || SND.music) SND.ctx.resume();
+});
+
+/* ---- features/bucket.js ---- */
+/* Our shared bucket list. Either of you adds things; each taps a heart if
+   they want it too; things you both want rise to the top; tick it off when done. */
+
+S.bucket = [];
+try { S.bucket = JSON.parse(localStorage.getItem('ow.bucket') || '[]') || []; } catch (e) {}
+ROWHOOKS.bucket = function (rows) { S.bucket = rows; saveBucketLocal(); };
+function saveBucketLocal() { try { localStorage.setItem('ow.bucket', JSON.stringify(S.bucket)); } catch (e) {} }
+function bucketById(id) { for (var i = 0; i < S.bucket.length; i++) if (S.bucket[i].id === id) return S.bucket[i]; return null; }
+function bucketWrite(it) {
+  saveBucketLocal();
+  if (S.db) S.db.collection('bucket').doc(it.id).set(it).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 4500); });
+}
+var BUCKET_ICONS = ['⭐', '✈️', '🍕', '🎢', '🏖️', '🏔️', '🎬', '🍷', '📸', '💐'];
+
+ACTIONS['bucket'] = function () {
+  var open = S.bucket.filter(function (b) { return !b.done; }), done = S.bucket.filter(function (b) { return b.done; });
+  function score(b) { return (b.votes && b.votes.bruce ? 1 : 0) + (b.votes && b.votes.elena ? 1 : 0); }
+  open.sort(function (a, b) { return score(b) - score(a) || (b.at || 0) - (a.at || 0); });
+  function row(b) {
+    var vb = !!(b.votes && b.votes.bruce), ve = !!(b.votes && b.votes.elena), both = vb && ve;
+    return '<div class="bk' + (both ? ' both' : '') + (b.done ? ' done' : '') + '">' +
+      '<button class="bk-tick" type="button" data-act="bk-done" data-id="' + esc(b.id) + '" aria-label="' + (b.done ? 'Mark not done' : 'Mark done') + '">' + (b.done ? '✔' : '') + '</button>' +
+      '<div class="bk-main"><b>' + esc(b.icon || '⭐') + ' ' + esc(b.title) + '</b>' +
+      '<span>' + (b.done ? 'Done ' + (b.doneAt ? fmtDate(new Date(b.doneAt).toISOString().slice(0, 10)) : '') : (both ? 'We both want this 💗' : 'Added by ' + esc(whoName(b.by)))) + '</span></div>' +
+      '<div class="bk-votes"><button type="button" class="bk-v' + (vb ? ' on' : '') + '" data-act="bk-vote" data-id="' + esc(b.id) + '" data-who="bruce" title="Bruce wants this">B</button>' +
+      '<button type="button" class="bk-v' + (ve ? ' on' : '') + '" data-act="bk-vote" data-id="' + esc(b.id) + '" data-who="elena" title="Elena wants this">E</button></div>' +
+      '<button class="bk-x" type="button" data-act="bk-del" data-id="' + esc(b.id) + '" aria-label="Remove">✕</button></div>';
+  }
+  openSheet(head('Our bucket list', 'things we want to do together') +
+    '<div class="bk-add"><input id="bk-title" type="text" maxlength="80" placeholder="Add something we should do…"><button class="pxbtn primary" type="button" data-act="bk-add">Add</button></div>' +
+    '<div class="chips" id="bk-icons">' + BUCKET_ICONS.map(function (ic, i) { return '<button type="button" class="chipb' + (i === 0 ? ' on' : '') + '" data-act="bk-icon" data-ic="' + ic + '">' + ic + '</button>'; }).join('') + '</div>' +
+    (open.length ? '<div class="bk-list">' + open.map(row).join('') + '</div>' : '<p class="hint" style="margin-top:12px">Nothing on the list yet — add the first thing. Tap B or E to say who wants it; things you both want rise to the top.</p>') +
+    (done.length ? sectionTitle('Done together 🎉') + '<div class="bk-list">' + done.map(row).join('') + '</div>' : '') +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+  sheet.dataset.bkIcon = BUCKET_ICONS[0];
+};
+ACTIONS['bk-icon'] = function (b) { sheet.dataset.bkIcon = b.dataset.ic; [].forEach.call(sheet.querySelectorAll('#bk-icons .chipb'), function (x) { x.classList.toggle('on', x === b); }); };
+ACTIONS['bk-add'] = function () {
+  var t = (document.getElementById('bk-title').value || '').trim();
+  if (!t) { toast('Type what you want to do first.', '✏️', 2600); return; }
+  var it = { id: uid(), title: t, icon: sheet.dataset.bkIcon || '⭐', by: S.who, at: Date.now(), done: false, votes: {} };
+  it.votes[S.who] = true;
+  S.bucket = [it].concat(S.bucket); bucketWrite(it);
+  ACTIONS['bucket'](); sparkle();
+};
+ACTIONS['bk-vote'] = function (b) {
+  var it = bucketById(b.dataset.id); if (!it) return;
+  if (b.dataset.who !== S.who) { toast('You can only tap your own letter — ' + whoName(b.dataset.who).replace('Princess ', '') + ' taps theirs.', '💗', 3200); return; }
+  it.votes = it.votes || {}; it.votes[S.who] = !it.votes[S.who];
+  bucketWrite(it); ACTIONS['bucket']();
+};
+ACTIONS['bk-done'] = function (b) {
+  var it = bucketById(b.dataset.id); if (!it) return;
+  it.done = !it.done; it.doneAt = it.done ? Date.now() : null;
+  bucketWrite(it); ACTIONS['bucket']();
+  if (it.done) { sparkle(); toast('Done together: ' + it.title, '🎉', 4200); }
+};
+ACTIONS['bk-del'] = function (b) {
+  var id = b.dataset.id;
+  S.bucket = S.bucket.filter(function (x) { return x.id !== id; }); saveBucketLocal();
+  if (S.db) S.db.collection('bucket').doc(id).delete().catch(function () {});
+  ACTIONS['bucket']();
+};
+
+/* ---- features/albums.js ---- */
+/* Photo albums: memories with photos, grouped by place, shown as a stack of
+   polaroids you flip through. */
+
+function albumGroups() {
+  var by = {};
+  S.memories.forEach(function (m) {
+    if (!photoCandidates(m).length) return;
+    var k = nearestTown(m.lat, m.lng).name;
+    (by[k] = by[k] || []).push(m);
+  });
+  return Object.keys(by).map(function (k) {
+    by[k].sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.at || 0) - (a.at || 0); });
+    return { place: k, items: by[k] };
+  }).sort(function (a, b) { return b.items.length - a.items.length || a.place.localeCompare(b.place); });
+}
+ACTIONS['albums'] = function () {
+  var groups = albumGroups();
+  openSheet(head('Photo albums', 'by place') +
+    (groups.length ? '<div class="list">' + groups.map(function (g, i) {
+      var c = photoCandidates(g.items[0])[0];
+      return '<button type="button" data-act="album-open" data-i="' + i + '"><span class="ico"><img class="alb-cover" alt="" src="' + esc(c) + '"></span><span><span class="t">' + esc(g.place) +
+        '</span><br><span class="s">' + g.items.length + (g.items.length === 1 ? ' photo' : ' photos') + '</span></span></button>';
+    }).join('') + '</div>' : '<p class="hint">No photos yet. Add a memory with a photo and it will appear here, stacked by place.</p>') +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+
+var ALB = { items: [], i: 0, el: null, startX: null };
+ACTIONS['album-open'] = function (b) {
+  var g = albumGroups()[parseInt(b.dataset.i, 10)]; if (!g) return;
+  ALB.items = g.items; ALB.i = 0; ALB.place = g.place;
+  closeSheet(); showAlbum();
+};
+function ensureAlbumEl() {
+  if (ALB.el) return ALB.el;
+  var el = ALB.el = document.createElement('div');
+  el.id = 'albumView'; el.className = 'albumview';
+  el.innerHTML = '<button class="closex alb-close" type="button" aria-label="Close">✕</button><div class="alb-title"></div><div class="alb-stack"></div>' +
+    '<div class="alb-nav"><button class="pxbtn" type="button" data-d="-1" aria-label="Previous">‹</button><span class="alb-count"></span><button class="pxbtn" type="button" data-d="1" aria-label="Next">›</button></div>';
+  document.body.appendChild(el);
+  el.querySelector('.alb-close').addEventListener('click', function () { el.classList.remove('on'); });
+  [].forEach.call(el.querySelectorAll('.alb-nav button'), function (b) { b.addEventListener('click', function () { albumStep(parseInt(b.dataset.d, 10)); }); });
+  var stack = el.querySelector('.alb-stack');
+  stack.addEventListener('pointerdown', function (e) { ALB.startX = e.clientX; });
+  stack.addEventListener('pointerup', function (e) {
+    if (ALB.startX == null) return;
+    var dx = e.clientX - ALB.startX; ALB.startX = null;
+    if (Math.abs(dx) > 40) albumStep(dx < 0 ? 1 : -1); else albumStep(1);
+  });
+  el.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') albumStep(1); else if (e.key === 'ArrowLeft') albumStep(-1); else if (e.key === 'Escape') el.classList.remove('on'); });
+  return el;
+}
+function albumStep(d) { var n = ALB.items.length; ALB.i = (ALB.i + d + n) % n; showAlbum(d); }
+function showAlbum(dir) {
+  var el = ensureAlbumEl(), n = ALB.items.length;
+  el.querySelector('.alb-title').textContent = ALB.place;
+  el.querySelector('.alb-count').textContent = (ALB.i + 1) + ' / ' + n;
+  var stack = el.querySelector('.alb-stack'); stack.innerHTML = '';
+  for (var k = Math.min(3, n - 1); k >= 0; k--) {
+    var m = ALB.items[(ALB.i + k) % n], c = photoCandidates(m)[0];
+    var card = document.createElement('div');
+    card.className = 'pol-card' + (k === 0 ? ' top' : '');
+    var rot = ((polHash(m.id) % 9) - 4) * (k === 0 ? 0.5 : 1.4);
+    card.style.transform = 'translate(' + (k ? (k % 2 ? 10 : -10) * k : 0) + 'px,' + (k * 7) + 'px) rotate(' + rot + 'deg)';
+    card.innerHTML = '<img alt="" src="' + esc(c) + '"><div class="pc-cap"><b>' + esc(m.title) + '</b><span>' + esc(fmtDate(m.date)) + ' · ' + esc(whoName(m.by)) + '</span></div>';
+    if (k === 0 && dir) card.classList.add(dir > 0 ? 'in-r' : 'in-l');
+    stack.appendChild(card);
+  }
+  el.classList.add('on'); el.tabIndex = -1; el.focus();
+}
+
+/* ---- features/polaroid.js ---- */
+/* Memories with a photo show on the map as little pixel polaroids. */
+
+var POL = {};
+function polHash(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+
+/* The photo is shrunk to a tiny grid, then scaled up unsmoothed: real pixel art. */
+function polEntry(url) {
+  var e = POL[url];
+  if (e) return e;
+  e = POL[url] = { ok: false, cv: null };
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function () {
+    var n = 20, c = document.createElement('canvas'); c.width = n; c.height = n;
+    var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    var sq = Math.min(img.naturalWidth, img.naturalHeight);
+    g.drawImage(img, (img.naturalWidth - sq) / 2, (img.naturalHeight - sq) / 2, sq, sq, 0, 0, n, n);
+    e.cv = c; e.ok = true;
+  };
+  img.onerror = function () { e.bad = true; };
+  img.src = url;
+  return e;
+}
+
+function polaroidPin(m, p, z) {
+  if (z < 9.2) return null;
+  var urls = photoCandidates(m);
+  if (!urls.length) return null;
+  var e = polEntry(urls[0]);
+  if (!e.ok) return null;
+  var s = z > 11 ? 1.3 : 1, w = Math.round(34 * s), ph = Math.round(26 * s), h = ph + Math.round(14 * s), lift = Math.round(9 * s);
+  var rot = ((polHash(m.id) % 13) - 6) * Math.PI / 180;
+  ctx.save();
+  ctx.translate(p.x, p.y - lift - h / 2);
+  ctx.rotate(rot);
+  ctx.fillStyle = 'rgba(61,40,56,.28)'; ctx.fillRect(-w / 2 + 3, -h / 2 + 4, w, h);
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.strokeStyle = C.deep; ctx.lineWidth = 2; ctx.strokeRect(-w / 2 + 1, -h / 2 + 1, w - 2, h - 2);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(e.cv, 0, 0, 20, 20, -ph / 2, -h / 2 + Math.round(4 * s), ph, ph);
+  ctx.fillStyle = C.pink;
+  var hx = 0, hy = h / 2 - Math.round(6 * s), u = Math.max(2, Math.round(2 * s));
+  ctx.fillRect(hx - u, hy - u, u, u); ctx.fillRect(hx + 0, hy - u, u, u);
+  ctx.fillRect(hx - u, hy, u * 2, u);
+  ctx.restore();
+  ctx.fillStyle = C.deep;
+  ctx.beginPath(); ctx.moveTo(p.x - 4, p.y - lift); ctx.lineTo(p.x + 4, p.y - lift); ctx.lineTo(p.x, p.y); ctx.closePath(); ctx.fill();
+  ctx.imageSmoothingEnabled = true;
+  return { x: p.x - w / 2, y: p.y - lift - h, w: w, h: h + lift };
+}
+
+/* ---- features/more.js ---- */
+/* The "More of us" sheet: trips, plans, a look back at this day, a poster of the
+   map, and the atmosphere settings. */
+
+function moreRow(act, ic, title, sub, data) {
+  return '<button type="button" data-act="' + act + '"' + (data || '') + '><span class="ico">' + ic + '</span>' +
+    '<span><span class="t">' + esc(title) + '</span><br><span class="s">' + esc(sub) + '</span></span></button>';
+}
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+function byDateThenTime(a, b) { return (a.date || '').localeCompare(b.date || '') || (a.at || 0) - (b.at || 0); }
+function sectionTitle(t) { return '<h3 style="font-family:var(--fdisp);font-size:15px;color:var(--deep);margin:18px 0 6px">' + esc(t) + '</h3>'; }
+
+/* ---------- this day, years ago ---------- */
+function thisDayList() {
+  var t = new Date(), mmdd = pad2(t.getMonth() + 1) + '-' + pad2(t.getDate()), y = t.getFullYear(), out = [];
+  S.memories.forEach(function (m) {
+    if (m.date && m.date.slice(5) === mmdd && parseInt(m.date.slice(0, 4), 10) < y) {
+      out.push({ m: m, years: y - parseInt(m.date.slice(0, 4), 10) });
+    }
+  });
+  return out.sort(function (a, b) { return a.years - b.years; });
+}
+function yearsAgo(n) { return n === 1 ? 'One year ago today' : n + ' years ago today'; }
+function thisDayToast() {
+  var list = thisDayList();
+  if (!list.length) return;
+  try { if (localStorage.getItem('ow.thisday') === todayISO()) return; localStorage.setItem('ow.thisday', todayISO()); } catch (e) {}
+  setTimeout(function () { toast(yearsAgo(list[0].years) + ': ' + list[0].m.title, '💗', 7000); }, 2500);
+}
+
+/* ---------- the sheet ---------- */
+function openMore() {
+  var td = thisDayList(), html = head('More of us', 'little extras') + annCardHtml();
+  if (td.length) {
+    html += sectionTitle('Looking back') + '<div class="list">' + td.map(function (it) {
+      return '<button type="button" data-act="goto" data-lat="' + it.m.lat + '" data-lng="' + it.m.lng + '" data-z="13">' +
+        '<span class="ico">💗</span><span><span class="t">' + esc(it.m.title) + '</span><br><span class="s">' + esc(yearsAgo(it.years)) + '</span></span></button>';
+    }).join('') + '</div>';
+  }
+  var online = PR.partner ? 'online now' : 'offline';
+  html += sectionTitle('Together') + '<div class="list">' +
+    moreRow('share-loc', '\ud83d\udccd', PR.mine.sharing ? 'Live location is ON' : 'Share my live location', PR.mine.sharing ? 'Tap to stop · ' + whoName(other(S.who)).replace('Princess ', '') + ' is ' + online : 'Appear on the map when we are both here') +
+    moreRow('letters', '\ud83d\udc8c', 'Letters', (function () { var n = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length; return n ? n + ' sealed for you' : 'Sealed for a place, or a day'; })()) +
+    moreRow('note-edit', '\ud83d\udc8c', 'My daily love note', S.notes[S.who] && S.notes[S.who].text ? 'Showing: ' + S.notes[S.who].text.slice(0, 40) + (S.notes[S.who].text.length > 40 ? '…' : '') : 'Waits for them every time they open the map') +
+    moreRow('bucket', '\ud83c\udf20', 'Our bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' things to do together' : 'Things we want to do together') +
+    moreRow('albums', '\ud83d\uddbc\ufe0f', 'Photo albums', 'Polaroid stacks, by place') +
+    moreRow('trips-list', '\ud83e\uddf5', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') + ' threaded across the map' : 'Thread memories into a journey') +
+    moreRow('plans-list', '\u2b50', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
+    moreRow('walk', '\ud83d\udc63', WALK.rec ? 'Stop recording our walk' : 'Record our walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : (S.walks.length ? S.walks.length + ' walks on the heat trail' : 'Adds the route to our heat trail')) +
+    moreRow('poster', '\ud83d\uddbc\ufe0f', 'Save our map as a poster', 'Frame it, or send it to her') +
+    '</div>' + sectionTitle('Just us') + '<div class="list">' +
+    moreRow('journal', '\ud83d\udcd3', 'Our journal', 'How today felt, how much you miss them, photos \u00b7 you both read it') +
+    moreRow('avatars', '\ud83d\udc57', 'Our avatars', 'Change your outfit colours') +
+    '</div>' + sectionTitle('This device') + '<div class="list">' +
+    moreRow('install', '\ud83d\udcf1', 'Add to your home screen', 'Opens full-screen like a real app') +
+    moreRow('atmos', '\ud83c\udf19', 'Atmosphere and sound', (AMB.tod === 'live' ? 'Follows the real clock' : AMB.tod === 'day' ? 'Always daytime' : 'Always night') + (AMB.weather ? ' \u00b7 weather on' : ' \u00b7 weather off')) +
+    moreRow('sign-out', '\ud83d\udeaa', 'Sign out', 'Locks this device again') +
+    '</div>';
+  openSheet(html);
+}
+document.getElementById('btnMore').addEventListener('click', openMore);
+ACTIONS['more'] = openMore;
+ACTIONS['atmos'] = openAtmos;
+ACTIONS['poster'] = savePoster;
+ACTIONS['install'] = function () {
+  openSheet(head('Add to your home screen', 'so it opens like an app') +
+    '<p class="note"><b>iPhone (Safari):</b> tap the Share button, then <b>Add to Home Screen</b>.<br><br>' +
+    '<b>Android (Chrome):</b> tap the ⋮ menu, then <b>Install app</b> or <b>Add to Home screen</b>.</p>' +
+    '<p class="hint">You will get the little pixel castle on your home screen, and it opens full-screen with no browser bars.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+
+/* ---------- atmosphere ---------- */
+function openAtmos() {
+  function opt(act, v, label, on) { return '<button class="pxbtn" type="button" aria-pressed="' + (on ? 'true' : 'false') + '" data-act="' + act + '" data-v="' + v + '">' + label + '</button>'; }
+  openSheet(head('Atmosphere', 'light, weather and sound') +
+    '<p class="note">The map can follow the real clock — dusk, night and dawn — and the seasons: snow in winter, petals in spring, fireflies on summer nights, leaves in autumn.</p>' +
+    sectionTitle('Time of day') + '<div class="sheet-actions">' +
+      opt('tod', 'live', 'Live clock', AMB.tod === 'live') + opt('tod', 'day', 'Always day', AMB.tod === 'day') + opt('tod', 'night', 'Always night', AMB.tod === 'night') + '</div>' +
+    sectionTitle('Weather') + '<div class="sheet-actions">' +
+      opt('weather', 'on', 'On', AMB.weather) + opt('weather', 'off', 'Off', !AMB.weather) + '</div>' +
+    sectionTitle('Heat trail') + '<div class="sheet-actions">' +
+      opt('heat', 'on', 'On', AMB.heat) + opt('heat', 'off', 'Off', !AMB.heat) + '</div>' +
+    '<p class="hint">A warm glow where you have really been together: memories, together moments, cleared ground and recorded walks.</p>' +
+    sectionTitle('Sounds') + '<div class="sheet-actions">' +
+      opt('snd', 'on', 'On', SND.on) + opt('snd', 'off', 'Off', !SND.on) + '</div>' +
+    sectionTitle('Music box') + '<div class="sheet-actions">' +
+      opt('music', 'on', 'Play', SND.music) + opt('music', 'off', 'Off', !SND.music) + '</div>' +
+    '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
+}
+ACTIONS['tod'] = function (b) { AMB.tod = b.dataset.v; try { localStorage.setItem('ow.tod', AMB.tod); } catch (e) {} openAtmos(); draw(); };
+ACTIONS['weather'] = function (b) { AMB.weather = b.dataset.v === 'on'; try { localStorage.setItem('ow.weather', AMB.weather ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
+ACTIONS['heat'] = function (b) { AMB.heat = b.dataset.v === 'on'; try { localStorage.setItem('ow.heat', AMB.heat ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
+ACTIONS['snd'] = function (b) { setSound(b.dataset.v === 'on'); openAtmos(); };
+ACTIONS['music'] = function (b) { setMusic(b.dataset.v === 'on'); openAtmos(); };
+ACTIONS['sign-out'] = function () { if (window.OWCloud && OWCloud.configured) OWCloud.signOut(); else location.reload(); };
+
+/* ---------- poster ---------- */
+function savePoster() {
+  closeSheet();
+  setTimeout(function () {
+    draw();
+    var mw = cv.width, mh = cv.height, pad = Math.round(mw * 0.06), cap = Math.round(mw * 0.34);
+    var out = document.createElement('canvas');
+    out.width = mw + pad * 2; out.height = mh + pad * 2 + cap;
+    var g = out.getContext('2d');
+    g.fillStyle = '#FFF8FB'; g.fillRect(0, 0, out.width, out.height);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(cv, pad, pad);
+    var lw = Math.max(4, Math.round(mw * 0.012));
+    g.strokeStyle = C.deep; g.lineWidth = lw; g.strokeRect(pad - lw / 2, pad - lw / 2, mw + lw, mh + lw);
+    g.strokeStyle = C.princess; g.lineWidth = lw; g.strokeRect(lw, lw, out.width - lw * 2, out.height - lw * 2);
+    var cx = out.width / 2, base = pad + mh + pad;
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillStyle = C.deep; g.font = Math.round(mw * 0.12) + 'px "Pixelify Sans", monospace';
+    g.fillText('Our World', cx, base + cap * 0.42);
+    g.fillStyle = C.pink; g.font = Math.round(mw * 0.05) + 'px "Pixelify Sans", monospace';
+    g.fillText('Bruce & Princess Elena', cx, base + cap * 0.62);
+    g.fillStyle = 'rgba(61,40,56,.55)'; g.font = Math.round(mw * 0.034) + 'px "Quicksand", sans-serif';
+    g.fillText(['January','February','March','April','May','June','July','August','September','October','November','December'][new Date().getMonth()] + ' ' + new Date().getFullYear(), cx, base + cap * 0.78);
+    out.toBlob(function (blob) {
+      if (!blob) { toast('Could not make the poster — try again.', '⚠️', 4000); return; }
+      var file = null;
+      try { file = new File([blob], 'our-world.png', { type: 'image/png' }); } catch (e) {}
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Our World' }).catch(function () {});
+      } else {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'our-world.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        toast('Poster saved', '🖼️', 3000);
+      }
+    }, 'image/png');
+  }, 250);
+  toast('Framing your poster…', '🖼️', 1800);
+}
+
+/* ---------- trips ---------- */
+function tripStops(t) {
+  var out = [];
+  (t.ids || []).forEach(function (id) {
+    for (var i = 0; i < S.memories.length; i++) if (S.memories[i].id === id) out.push(S.memories[i]);
+  });
+  return out.sort(byDateThenTime);
+}
+function tripById(id) { for (var i = 0; i < S.trips.length; i++) if (S.trips[i].id === id) return S.trips[i]; return null; }
+function fitStops(stops) {
+  if (!stops.length) return;
+  var la0 = 90, la1 = -90, ln0 = 180, ln1 = -180;
+  stops.forEach(function (s) { la0 = Math.min(la0, s.lat); la1 = Math.max(la1, s.lat); ln0 = Math.min(ln0, s.lng); ln1 = Math.max(ln1, s.lng); });
+  var z = 12.6;
+  for (; z > 4.8; z -= 0.3) {
+    var dx = Math.abs(lngToWX(ln1, z) - lngToWX(ln0, z)), dy = Math.abs(latToWY(la0, z) - latToWY(la1, z));
+    if (dx < W * 0.72 && dy < H * 0.42) break;
+  }
+  flyTo((la0 + la1) / 2, (ln0 + ln1) / 2, z);
+}
+ACTIONS['trips-list'] = function () {
+  var rows = S.trips.map(function (t) {
+    var st = tripStops(t);
+    return moreRow('trip-open', '🧵', t.name, st.length + ' stops' + (st.length ? ' · ' + fmtDate(st[0].date) : ''), ' data-id="' + esc(t.id) + '"');
+  }).join('');
+  openSheet(head('Our trips', 'a gold thread through the memories') +
+    (rows ? '<div class="list">' + rows + '</div>' : '<p class="hint">No trips yet. A trip links memories, in order, with a gold thread across the map.</p>') +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn primary" type="button" data-act="trip-new">New trip</button>' +
+    '<button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+ACTIONS['trip-new'] = function () {
+  var mems = S.memories.slice().sort(byDateThenTime);
+  if (mems.length < 2) {
+    openSheet(head('New trip', 'needs two memories') +
+      '<p class="hint">A trip connects memories, so add at least two first — then thread them together here.</p>' +
+      '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="trips-list">Back</button></div>');
+    return;
+  }
+  openSheet(head('New trip', 'pick the stops, in any order') +
+    '<div class="field"><label for="t-name">Name</label><input id="t-name" type="text" maxlength="60" placeholder="our September weekend"></div>' +
+    '<div class="field"><label>Stops (we order them by date)</label><div class="chks">' +
+    mems.map(function (m) {
+      return '<label class="chk"><input type="checkbox" value="' + esc(m.id) + '"><span><b>' + esc(m.title) + '</b><br><i>' + esc(fmtDate(m.date)) + '</i></span></label>';
+    }).join('') + '</div></div>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="trip-save">Thread it together</button>' +
+    '<button class="pxbtn" type="button" data-act="trips-list">Cancel</button></div>');
+};
+ACTIONS['trip-save'] = function () {
+  var name = (document.getElementById('t-name').value || '').trim();
+  var ids = [].map.call(sheet.querySelectorAll('.chks input:checked'), function (c) { return c.value; });
+  if (!name) { toast('Give the trip a name first.', '✏️', 3000); return; }
+  if (ids.length < 2) { toast('Pick at least two stops.', '📍', 3000); return; }
+  var rec = { id: uid(), name: name, ids: ids, by: S.who, at: Date.now() };
+  S.trips = [rec].concat(S.trips); LS.write('trips', S.trips);
+  if (S.db) S.db.collection('trips').doc(rec.id).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 5000); });
+  closeSheet(); fitStops(tripStops(rec)); sparkle();
+  toast('Trip threaded: ' + name, '🧵', 4000);
+};
+ACTIONS['trip-open'] = function (b) {
+  var t = tripById(b.dataset.id); if (!t) return;
+  var st = tripStops(t);
+  openSheet(head(t.name, st.length + ' stops') +
+    '<div class="list">' + st.map(function (m, i) {
+      return '<button type="button" data-act="goto" data-lat="' + m.lat + '" data-lng="' + m.lng + '" data-z="13"><span class="ico">' + (i + 1) + '</span><span><span class="t">' + esc(m.title) + '</span><br><span class="s">' + esc(fmtDate(m.date)) + '</span></span></button>';
+    }).join('') + '</div>' +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn primary" type="button" data-act="trip-show" data-id="' + esc(t.id) + '">Show on the map</button>' +
+    '<button class="pxbtn" type="button" data-act="trip-del" data-id="' + esc(t.id) + '">Delete trip</button>' +
+    '<button class="pxbtn" type="button" data-act="trips-list">Back</button></div>');
+};
+ACTIONS['trip-show'] = function (b) { var t = tripById(b.dataset.id); if (t) { closeSheet(); fitStops(tripStops(t)); } };
+ACTIONS['trip-del'] = function (b) {
+  var id = b.dataset.id;
+  S.trips = S.trips.filter(function (t) { return t.id !== id; }); LS.write('trips', S.trips);
+  if (S.db) S.db.collection('trips').doc(id).delete().catch(function () { toast('Removed here — could not reach the shared world.', '⚠️', 4000); });
+  toast('Trip removed (the memories are untouched).', '🧵', 3200);
+  ACTIONS['trips-list']();
+};
+
+/* the gold thread, drawn under the pins */
+HOOKS.beforePins.push(function () {
+  if (S.mode !== 'map' || !S.trips.length) return;
+  S.trips.forEach(function (t, ti) {
+    var st = tripStops(t);
+    if (st.length < 2) return;
+    var pts = st.map(function (m) { return proj(m.lat, m.lng); });
+    ctx.save();
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    function path() {
+      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+      for (var i = 1; i < pts.length; i++) {
+        var a = pts[i - 1], b = pts[i], dx = b.x - a.x, dy = b.y - a.y;
+        ctx.quadraticCurveTo((a.x + b.x) / 2 - dy * 0.16, (a.y + b.y) / 2 + dx * 0.16, b.x, b.y);
+      }
+    }
+    path(); ctx.strokeStyle = 'rgba(245,216,142,.5)'; ctx.lineWidth = 8; ctx.stroke();
+    path(); ctx.strokeStyle = C.gold; ctx.lineWidth = 3; ctx.setLineDash([7, 5]); ctx.lineDashOffset = -cloudPhase * 0.35; ctx.stroke();
+    ctx.restore();
+    if (S.zoom > 8) {
+      ctx.font = '11px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      pts.forEach(function (p, i) {
+        ctx.fillStyle = C.gold; ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, 6.283); ctx.fill();
+        ctx.strokeStyle = C.deep; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = C.deep; ctx.fillText(String(i + 1), p.x, p.y + 1);
+      });
+      tryLabel(pts[0].x, pts[0].y - 16, t.name, { size: 11, border: C.gold });
+    }
+  });
+});
+
+/* ---------- plans: places we want to go ---------- */
+function planById(id) { for (var i = 0; i < S.plans.length; i++) if (S.plans[i].id === id) return S.plans[i]; return null; }
+function daysUntil(iso) {
+  if (!iso) return null;
+  var d = new Date(iso + 'T00:00:00'), t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((d - t) / 86400000);
+}
+function countdownText(iso) {
+  var n = daysUntil(iso);
+  if (n === null) return '';
+  if (n === 0) return 'today!';
+  if (n === 1) return 'tomorrow';
+  if (n > 1) return 'in ' + n + ' days';
+  return 'a while ago';
+}
+ACTIONS['plans-list'] = function () {
+  var rows = S.plans.slice().sort(function (a, b) { return (a.date || '9999').localeCompare(b.date || '9999'); }).map(function (p) {
+    return moreRow('plan-open', '⭐', p.title, p.date ? fmtDate(p.date) + ' · ' + countdownText(p.date) : 'someday', ' data-id="' + esc(p.id) + '"');
+  }).join('');
+  openSheet(head('Places we want to go', 'the next adventures') +
+    (rows ? '<div class="list">' + rows + '</div>' : '<p class="hint">Nothing planned yet. Drop a star where you want to go next — it waits on the map, and counts down if you give it a date.</p>') +
+    '<div class="sheet-actions" style="margin-top:14px"><button class="pxbtn primary" type="button" data-act="plan-new">Add a plan</button>' +
+    '<button class="pxbtn" type="button" data-act="more">Back</button></div>');
+};
+ACTIONS['plan-new'] = function () { startPlacing('plan'); };
+function planForm(ll) {
+  var nt = nearestTown(ll.lat, ll.lng);
+  openSheet(head('New plan', nt.name) +
+    '<div class="field"><label for="p-title">Where / what</label><input id="p-title" type="text" maxlength="80" placeholder="e.g. Chicago weekend"></div>' +
+    '<div class="field"><label for="p-date">Date (optional)</label><input id="p-date" type="date"></div>' +
+    '<div class="field"><label for="p-note">Note</label><textarea id="p-note" maxlength="600" placeholder="Why we want to go."></textarea></div>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="plan-save" data-lat="' + ll.lat + '" data-lng="' + ll.lng + '">Save plan</button>' +
+    '<button class="pxbtn" type="button" data-act="close">Cancel</button></div>');
+  setTimeout(function () { var e = document.getElementById('p-title'); if (e) e.focus(); }, 120);
+}
+ACTIONS['plan-save'] = function (b) {
+  var title = (document.getElementById('p-title').value || '').trim();
+  if (!title) { toast('Name the plan first.', '✏️', 3000); return; }
+  var rec = { id: uid(), title: title, date: document.getElementById('p-date').value || '', note: (document.getElementById('p-note').value || '').trim(),
+    lat: parseFloat(b.dataset.lat), lng: parseFloat(b.dataset.lng), by: S.who, at: Date.now() };
+  S.plans = [rec].concat(S.plans); LS.write('plans', S.plans);
+  if (S.db) S.db.collection('plans').doc(rec.id).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 5000); });
+  closeSheet(); draw();
+  toast('On the list: ' + title, '⭐', 3600); sparkle();
+};
+function openPlan(id) {
+  var p = planById(id); if (!p) return;
+  openSheet(head(p.title, nearestTown(p.lat, p.lng).name) +
+    (p.date ? '<p><span class="pill locked">' + esc(fmtDate(p.date) + ' · ' + countdownText(p.date)) + '</span></p>' : '<p><span class="pill locked">Someday</span></p>') +
+    (p.note ? '<p class="note">' + esc(p.note) + '</p>' : '') +
+    '<p class="hint">Planned by ' + esc(whoName(p.by)) + '. When you get there, turn it into a memory.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="plan-done" data-id="' + esc(p.id) + '">We went! Make it a memory</button>' +
+    '<button class="pxbtn" type="button" data-act="plan-del" data-id="' + esc(p.id) + '">Remove</button>' +
+    '<button class="pxbtn" type="button" data-act="close">Close</button></div>');
+}
+ACTIONS['plan-open'] = function (b) { openPlan(b.dataset.id); };
+function removePlan(id) {
+  S.plans = S.plans.filter(function (p) { return p.id !== id; }); LS.write('plans', S.plans);
+  if (S.db) S.db.collection('plans').doc(id).delete().catch(function () {});
+}
+ACTIONS['plan-del'] = function (b) { removePlan(b.dataset.id); closeSheet(); draw(); toast('Plan removed.', '⭐', 2600); };
+ACTIONS['plan-done'] = function (b) {
+  var p = planById(b.dataset.id); if (!p) return;
+  removePlan(p.id);
+  memoryForm({ lat: p.lat, lng: p.lng }, null, p.title);
+};
+HOOKS.beforePins.push(function () {
+  if (S.mode !== 'map' || !S.plans.length) return;
+  S.plans.forEach(function (pl) {
+    var p = proj(pl.lat, pl.lng);
+    if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 40) return;
+    ctx.save();
+    ctx.strokeStyle = C.gold; ctx.lineWidth = 3; ctx.setLineDash([6, 5]); ctx.lineDashOffset = cloudPhase * 0.3;
+    ctx.beginPath(); ctx.arc(p.x, p.y - 12, 17, 0, 6.283); ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = .9 + Math.sin(cloudPhase / 9) * .1;
+    ctx.fillStyle = C.softgold; ctx.beginPath(); ctx.arc(p.x, p.y - 12, 12, 0, 6.283); ctx.fill();
+    ctx.fillStyle = C.deep; ctx.font = '16px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('★', p.x, p.y - 11);
+    ctx.globalAlpha = 1;
+    addHit({ x: p.x - 20, y: p.y - 34, w: 40, h: 40 }, { kind: 'plan', id: pl.id });
+    tryLabel(p.x, p.y - 32, pl.title + (pl.date ? ' · ' + countdownText(pl.date) : ''), { size: 11, border: C.gold });
+  });
+});
+
 
 function boot() {
   hydrateLocal();
@@ -3327,12 +5319,14 @@ function boot() {
   connect();
   var saved = null;
   try { saved = localStorage.getItem('ow.who'); } catch (e) {}
+  if (!saved && window.OWCloud) saved = OWCloud.who();
   if (saved === 'bruce' || saved === 'elena') setWho(saved);
   else resize();
 }
 
 /* Nothing personal loads until someone has signed in. */
 function startBehindGate() {
+  paintIntroSprites();
   var gate = document.getElementById('gate'), form = document.getElementById('gateForm');
   var err = document.getElementById('gErr'), btn = document.getElementById('gBtn');
   var booted = false;

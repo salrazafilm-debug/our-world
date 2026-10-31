@@ -29,7 +29,11 @@ signed links.
    *Auto Confirm* ticked).
 3. **Authentication → Sign In / Providers**: turn **Allow new users to sign up
    OFF**. This is what keeps everyone else out.
-4. The project URL and publishable key go in `src/config.js`. The publishable
+4. **SQL Editor** → paste `supabase/phase4.sql` → Run. Adds the shared
+   journal (both read, only the author edits), journal photos, and the private
+   realtime channel used for online status and live location.
+5. **Realtime → Settings**: turn **Allow public access** OFF.
+6. The project URL and publishable key go in `src/config.js`. The publishable
    key is meant to be public. **Never** put the `service_role` key anywhere.
 
 After editing anything in `src/`, run `npm run build` to regenerate the root
@@ -214,6 +218,42 @@ and JPEG-encoded at 0.82 before upload.
 Static hosting only (Vercel serves the repo root; `vercel.json` skips the
 build step because `index.html` is committed). `vendor/supabase.js` is the
 pinned supabase-js 2.45.4 browser bundle, served next to the page.
+
+## Features added in the remaster
+
+Each lives in its own file under `src/features/` and plugs into the app through
+`HOOKS` (draw loop) and `ACTIONS` (sheet buttons). `//#include` lines in
+`src/index.html` pull them in; `tools/include.js` expands them for dev, build
+and check.
+
+| File | What it does |
+|---|---|
+| `beacon.js` | location pins on the globe and zoomed-out map; tap to fly there |
+| `ambient.js` | light that follows the real clock, seasonal weather, sparkle bursts, anniversary confetti |
+| `avatars.js` | the two of you (from `avatars/*.png`), recolourable outfits (mask PNGs: R=top, G=bottom, B=shoes), drawn at the home icons' scale |
+| `presence.js` | online / offline and last seen, optional live location over a private channel, "We're together" mode |
+| `notes.js` | a daily love note that greets the other person every time they open the map |
+| `journal.js` | our journal: entries both of you read (only the author can edit), photos, send-a-heart |
+| `letters.js` | letters list; letters can open on a date as well as at a place |
+| `anniversary.js` | days together, countdown to the next anniversary, celebration on the day |
+| `heat.js` | heat trail from memories, together moments, cleared ground and recorded walks; "record our walk" |
+| `sound.js` | soft chimes and an optional music box, both off by default |
+| `bucket.js` | shared bucket list with each person's own vote |
+| `albums.js` | polaroid-stack photo albums by place |
+| `polaroid.js` | photo memories shown as pixel polaroids on the map |
+| `more.js` | the ✨ sheet: trips, plans, poster, look-back, settings |
+
+Also: `manifest.webmanifest`, `sw.js` and the icons make it installable as a
+home-screen app (network-first service worker, so updates arrive at once).
+
+Trips, plans, notes, bucket list, avatars, letters, moments and walks are all
+collections in the same `docs` table. Only the journal has its own table,
+because its rule is different (everyone reads, only the author writes).
+
+Writes that fail because the phone is offline are queued on the device and
+sent when it reconnects (`src/cloud.js`, outbox).
+
+---
 
 ## Completed features
 

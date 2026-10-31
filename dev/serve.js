@@ -13,7 +13,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 function page() {
   const shell = fs.readFileSync(path.join(ROOT, 'tools', 'site-shell.html'), 'utf8');
-  const frag  = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const frag  = require('../tools/include').expand(fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8'));
   return shell.replace('<!--#include src/index.html -->', frag);
 }
 

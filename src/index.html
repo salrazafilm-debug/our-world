@@ -23,6 +23,8 @@ body{
   -webkit-font-smoothing:antialiased; overscroll-behavior:none;
 }
 button{font:inherit;color:inherit;cursor:pointer}
+html,body,button{touch-action:manipulation}
+input,textarea,select{font-size:16px}
 :focus-visible{outline:3px solid var(--pink); outline-offset:2px}
 
 /* ---------- shell ---------- */
@@ -132,7 +134,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .field{display:flex; flex-direction:column; gap:5px; margin-bottom:11px}
 .field label{font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-45)}
 .field input,.field textarea,.field select{
-  font:inherit; font-weight:500; color:var(--ink); background:#FFF9FC;
+  font:inherit; font-size:16px; font-weight:500; color:var(--ink); background:#FFF9FC;
   border:2.5px solid var(--panel-edge); padding:9px 11px; width:100%;
 }
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--pink); outline:none}
@@ -181,6 +183,20 @@ button{font:inherit;color:inherit;cursor:pointer}
 .whobtn .n{font-family:var(--fdisp); font-size:17px; color:var(--deep)}
 .whobtn .r{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45)}
 
+/* ---------- polish ---------- */
+#stage::after{content:''; position:absolute; inset:0; z-index:3; pointer-events:none; box-shadow:inset 0 0 90px rgba(159,61,109,.17)}
+.pxbtn:not([disabled]):hover{transform:translateY(-1px)}
+.toast{box-shadow:0 5px 0 rgba(159,61,109,.35), var(--shadow)}
+#top{box-shadow:0 3px 0 rgba(159,61,109,.10)}
+#gate .pair{display:flex; justify-content:center; align-items:flex-end; gap:14px; margin-bottom:10px}
+#gate .pair canvas{image-rendering:pixelated; animation:bob 2.6s ease-in-out infinite}
+#gate .pair canvas+canvas{animation-delay:-1.3s}
+@keyframes bob{50%{transform:translateY(-5px)}}
+#gate .float{position:absolute; inset:0; overflow:hidden; pointer-events:none}
+#gate .float span{position:absolute; bottom:-30px; font-size:18px; opacity:0; animation:drift 9s linear infinite}
+@keyframes drift{0%{transform:translateY(0) scale(.7); opacity:0}12%{opacity:.8}100%{transform:translateY(-105vh) scale(1.15); opacity:0}}
+@media (prefers-reduced-motion:reduce){#gate .float,#gate .pair canvas{animation:none}}
+
 /* ---------- sign-in gate ---------- */
 body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{visibility:hidden}
 #gate{
@@ -199,6 +215,92 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 #gate input:focus{border-color:var(--pink)}
 #gate .pxbtn{width:100%; margin-top:4px; padding:12px}
 #gate .gerr{min-height:1.4em; margin:12px auto 0; color:#C2415F; font-weight:700; font-size:13px}
+
+
+/* ---------- checkbox list (trips) ---------- */
+.chks{max-height:260px; overflow:auto; border:3px solid var(--panel-edge); background:#fff}
+.chk{display:flex; gap:10px; align-items:flex-start; padding:9px 11px; border-bottom:2px solid #F6E4ED; cursor:pointer; font-size:13.5px; line-height:1.4; letter-spacing:0; text-transform:none; color:var(--ink); font-weight:500}
+.chk:last-child{border-bottom:none}
+.chk input{margin-top:3px; width:18px; height:18px; accent-color:var(--pink); flex:none}
+.chk i{font-style:normal; font-size:12px; color:var(--ink-45)}
+.pxbtn[aria-pressed="true"]{background:var(--princess); color:#4A1E38}
+
+
+/* ---------- presence, avatars, notes, journal, bucket list, albums ---------- */
+#partnerchip{position:absolute; right:10px; top:10px; z-index:4; max-width:190px; white-space:nowrap}
+#partnerchip span:last-child{overflow:hidden; text-overflow:ellipsis}
+#partnerchip .dot{background:#B9AEB8}
+#partnerchip.live .dot{background:#57B894}
+#togetherBtn{position:absolute; left:10px; bottom:122px; z-index:5; font-size:13px; padding:9px 12px}
+@media (min-width:721px){ #togetherBtn{bottom:90px} }
+.av-stage{display:flex; justify-content:center; gap:14px; background:linear-gradient(180deg,#FFF4F9,#FBE3EE); border:3px solid var(--panel-edge); padding:12px 8px 8px; margin-bottom:12px}
+.av-stage>div{display:flex; flex-direction:column; align-items:center; gap:4px}
+.av-stage canvas{width:110px; height:194px; image-rendering:pixelated}
+.av-stage span{font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-45)}
+.av-row{margin-bottom:10px}
+.av-row b{display:block; font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-45); margin-bottom:5px}
+.swatches{display:flex; flex-wrap:wrap; gap:6px}
+.sw{width:30px; height:30px; border:3px solid var(--panel-edge); background:#fff; padding:0; font-size:14px; line-height:1; color:var(--deep)}
+.sw.on{border-color:var(--deep); box-shadow:0 3px 0 var(--deep); transform:translateY(-2px)}
+.chips{display:flex; flex-wrap:wrap; gap:7px}
+.chipb{background:#fff; border:2.5px solid var(--panel-edge); padding:7px 10px; font-size:13px; font-weight:600; color:var(--ink)}
+.chipb.on{background:var(--princess); border-color:var(--deep); color:#4A1E38}
+.jr-photos{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin-top:10px}
+.jr-photos img{width:100%; aspect-ratio:1; object-fit:cover; border:3px solid #fff; box-shadow:0 2px 0 rgba(159,61,109,.35); cursor:zoom-in}
+.bk-add{display:flex; gap:8px; margin-bottom:8px}
+.bk-add input{flex:1; min-width:0; font:inherit; font-size:16px; padding:9px 11px; border:2.5px solid var(--panel-edge); background:#FFF9FC}
+.bk-add input:focus{outline:none; border-color:var(--pink)}
+.bk-list{display:flex; flex-direction:column; gap:7px; margin-top:12px}
+.bk{display:flex; align-items:center; gap:9px; background:#fff; border:3px solid var(--panel-edge); padding:8px 9px}
+.bk.both{border-color:var(--gold); background:#FFFBF0}
+.bk.done .bk-main b{text-decoration:line-through; color:var(--ink-45)}
+.bk-tick{width:26px; height:26px; flex:none; border:3px solid var(--deep); background:#fff; padding:0; color:var(--deep); font-size:15px; line-height:1}
+.bk.done .bk-tick{background:var(--princess)}
+.bk-main{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; font-size:14px}
+.bk-main span{font-size:11.5px; color:var(--ink-45)}
+.bk-votes{display:flex; gap:4px}
+.bk-v{width:26px; height:26px; padding:0; border:2px solid var(--panel-edge); background:#fff; font-family:var(--fdisp); font-size:12px; color:var(--ink-45)}
+.bk-v.on{background:var(--pink); border-color:var(--deep); color:#fff}
+.bk-x{border:none; background:none; color:var(--ink-45); font-size:13px; padding:4px}
+.notecard{position:fixed; inset:0; z-index:30; display:none; place-items:center; padding:22px; background:rgba(61,40,56,.5)}
+.notecard.on{display:grid}
+.nc-card{width:min(380px,100%); background:var(--panel); border:4px solid var(--princess); box-shadow:0 18px 60px rgba(0,0,0,.4); padding:22px 20px 18px; text-align:center; animation:pop .3s cubic-bezier(.2,1.4,.5,1)}
+.nc-env{font-size:40px; line-height:1}
+.nc-from{font-family:var(--fdisp); font-size:19px; color:var(--deep); margin:8px 0 10px}
+.nc-text{font-size:16.5px; line-height:1.6; color:var(--ink); margin:0 0 8px; white-space:pre-wrap}
+.nc-when{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45); margin-bottom:14px}
+.list .ico .alb-cover{width:44px; height:44px; object-fit:cover; display:block; border:2px solid #fff; box-shadow:0 2px 0 rgba(159,61,109,.35)}
+.list .ico:has(.alb-cover){width:48px; height:48px}
+.albumview{position:fixed; inset:0; z-index:28; display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:linear-gradient(160deg,#3D2838,#1F1D39); padding:20px; outline:none}
+.albumview.on{display:flex}
+.alb-close{position:absolute; right:14px; top:14px}
+.alb-title{font-family:var(--fdisp); font-size:20px; color:#FFE9F3}
+.alb-stack{position:relative; width:min(78vw,320px); height:min(98vw,400px); touch-action:pan-y; cursor:pointer}
+.pol-card{position:absolute; inset:0 0 auto 0; margin:auto; width:100%; background:#fff; padding:12px 12px 14px; box-shadow:0 14px 34px rgba(0,0,0,.45); transition:transform .3s}
+.pol-card img{display:block; width:100%; aspect-ratio:1; object-fit:cover; background:#EADFE5}
+.pc-cap{display:flex; flex-direction:column; gap:2px; text-align:center; padding-top:10px; color:var(--ink)}
+.pc-cap b{font-family:var(--fdisp); font-size:16px; color:var(--deep)}
+.pc-cap span{font-size:12px; color:var(--ink-45)}
+.pol-card.in-r{animation:flipR .32s ease-out}
+.pol-card.in-l{animation:flipL .32s ease-out}
+@keyframes flipR{from{opacity:.2; transform:translateX(120px) rotate(14deg)}}
+@keyframes flipL{from{opacity:.2; transform:translateX(-120px) rotate(-14deg)}}
+.alb-nav{display:flex; align-items:center; gap:18px; color:#FFE9F3; font-weight:700}
+.alb-nav .pxbtn{width:46px; height:46px; font-size:24px; padding:0}
+
+
+/* ---------- anniversary, walks, journal hearts ---------- */
+.ann-card{display:flex; flex-direction:column; gap:3px; width:100%; text-align:left; padding:13px 14px; margin:2px 0 4px;
+  background:linear-gradient(135deg,#FFE3EF,#FFF4D9); border:3px solid var(--princess); box-shadow:0 4px 0 rgba(159,61,109,.18)}
+.ann-card b{font-family:var(--fdisp); font-size:19px; color:var(--deep); font-weight:600}
+.ann-card span{font-size:12.5px; color:var(--ink-70)}
+.ann-card.ann-empty{background:#FFF9FC; border-style:dashed}
+#walkBtn{position:absolute; left:50%; transform:translateX(-50%); top:58px; z-index:6; font-size:12.5px; padding:8px 12px; display:flex; align-items:center; gap:7px}
+#walkBtn[hidden]{display:none}
+.rec-dot{width:9px; height:9px; background:#E0445E; display:inline-block; animation:blink 1.2s steps(2,end) infinite}
+@media (max-width:720px){ #walkBtn{top:56px; left:auto; right:10px; transform:none} }
+.jr-love{margin:12px 0 0; font-weight:700; color:var(--pink)}
+.gate-av{image-rendering:pixelated}
 
 /* ---------- placing mode ---------- */
 #placing{
@@ -227,7 +329,12 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
   #zoomer{bottom:auto; top:54px; left:10px; flex-direction:row}
   #zoomer .pxbtn{width:36px;height:36px}
   #actions{left:10px; right:10px; bottom:10px; align-items:stretch}
-  #actions .row{justify-content:flex-end}
+  /* the icon buttons become a rail down the right edge, freeing the middle of the map */
+  #actions .row{flex-direction:column; flex-wrap:nowrap; align-items:flex-end; align-self:flex-end}
+  /* the container spans the screen but must not block the map under it: only the buttons take taps */
+  #actions, #actions .row{pointer-events:none}
+  #actions .pxbtn{pointer-events:auto}
+  #toasts{top:100px}
   #credits{display:none}
   #brand h1{font-size:20px}
   #where{display:none}
@@ -356,7 +463,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 .hop-name:hover{background:#FFF1F7}
 .hop-name .ic{font-size:13px}
-@media (max-width:720px){ #hop{bottom:110px} .hop-name{font-size:12.5px; padding:0 10px !important} }
+@media (max-width:720px){ #hop{bottom:68px; left:10px; transform:none; max-width:calc(100vw - 76px)} .hop-name{font-size:12.5px; padding:0 10px !important} }
 
 /* ---------- full photo ---------- */
 #lightbox{
@@ -446,6 +553,9 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
         <button class="pxbtn icon" id="btnMemory" title="Add a memory" aria-label="Add a memory">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7-4.6-7-9.2A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.8C19 15.4 12 20 12 20z"/></svg>
         </button>
+        <button class="pxbtn icon" id="btnMore" title="More of us" aria-label="More of us">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.2L21 9l-5 4.2L17.6 20 12 16.4 6.4 20 8 13.2 3 9l6.8-.8z"/></svg>
+        </button>
         <button class="pxbtn icon" id="btnSurprise" title="Leave a surprise" aria-label="Leave a surprise">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="13"/><path d="M3 7l9 6 9-6"/></svg>
         </button>
@@ -459,6 +569,8 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
       <button type="button" id="placeCancel">Cancel</button>
     </div>
 
+    <button class="chip" id="partnerchip" type="button" hidden><span class="dot"></span><span id="partnernam"></span></button>
+    <button class="pxbtn primary" id="togetherBtn" type="button" hidden></button>
     <div id="toasts" aria-live="polite"></div>
     <p id="credits">Map: US Census &amp; Natural Earth (public domain). Routes are simplified corridors.</p>
     <section id="cal" aria-label="Our calendar">
@@ -508,7 +620,9 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 </div>
 
 <div id="gate" hidden>
-  <form class="card" id="gateForm">
+  <div class="float" aria-hidden="true"><span style="left:8%;animation-delay:0s">💗</span><span style="left:24%;animation-delay:2.4s">✨</span><span style="left:42%;animation-delay:5s">💗</span><span style="left:63%;animation-delay:1.2s">✨</span><span style="left:80%;animation-delay:3.8s">💗</span><span style="left:92%;animation-delay:6.5s">✨</span></div>
+  <form class="card" id="gateForm" style="position:relative">
+    <div class="pair"><canvas width="72" height="72" data-sprite="cottage-gold"></canvas><canvas width="78" height="82" data-sprite="castle"></canvas></div>
     <h1>Our World</h1>
     <p>This world is only for the two of you. Sign in to open it.</p>
     <label>Email<input id="gEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></label>
@@ -788,6 +902,18 @@ var GEO = { states: [], rivers: [], world: [] };
   GEO.world  = decodeRings(g.world, 10);
 })();
 
+/* ============================== hooks ============================== */
+/* Features in src/features/ plug into the draw loop and the sheet actions here. */
+var HOOKS = { afterFog: [], beforePins: [], afterOverlays: [] };
+function runHooks(name) {
+  var list = HOOKS[name];
+  for (var i = 0; i < list.length; i++) {
+    try { list[i](); } catch (e) { if (window.console) console.error('hook ' + name + ':', e); }
+  }
+}
+var ACTIONS = {};
+var ROWHOOKS = {};          /* features subscribe to extra collections here */
+
 /* ============================== state ============================== */
 var S = {
   who: null,
@@ -797,7 +923,7 @@ var S = {
   zoom: 11.2,
   globe: { lon: -77, lat: 38, scale: 1 },   // scale 1 = earth view, <0.5 = space
   regions: [],                // discovered, from db
-  memories: [], surprises: [], deleted: {},
+  memories: [], surprises: [], deleted: {}, trips: [], plans: [],
   me: null,                   // last known gps fix
   placing: null,              // {kind:'memory'|'surprise'}
   selected: null,
@@ -969,6 +1095,26 @@ function drawBase() {
   /* land — county polygons overlap into one silhouette; core states read brighter */
   var i, k, j, st, ring, p;
 
+  /* the rest of the planet: coarse world land sits under the detailed states so
+     the map never runs out of ground when you zoom out or pan away */
+  var wr, wskip, wj, wprev;
+  for (k = 0; k < GEO.world.length; k++) {
+    wr = GEO.world[k]; wskip = false; wprev = wr[0];
+    for (wj = 0; wj < wr.length; wj += 2) {
+      if (Math.abs(wr[wj] - wprev) > 180 || Math.abs(wr[wj + 1]) > 84) { wskip = true; break; }
+      wprev = wr[wj];
+    }
+    if (wskip) continue;
+    g.beginPath();
+    for (wj = 0; wj < wr.length; wj += 2) {
+      p = P(wr[wj], wr[wj + 1]);
+      if (wj === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
+    }
+    g.closePath();
+    g.strokeStyle = 'rgba(255,255,255,.62)'; g.lineWidth = 2.2; g.lineJoin = 'round'; g.stroke();
+    g.fillStyle = C.landmuted; g.fill();
+  }
+
   /* foam where water meets land */
   g.strokeStyle = 'rgba(255,255,255,.62)';
   g.lineWidth = 2.2; g.lineJoin = 'round';
@@ -1106,7 +1252,10 @@ function drawFog() {
   g.globalCompositeOperation = 'source-over';
   g.clearRect(0, 0, bw, bh);
 
-  g.fillStyle = '#D5CFDE'; g.fillRect(0, 0, bw, bh);
+  /* The milky veil over unexplored ground fades away as you zoom out, so the
+     far views stay crisp and colourful; only the drifting clouds remain. */
+  var haze = Math.max(0, Math.min(1, (S.zoom - 6.6) / 2.6));
+  if (haze > 0.005) { g.fillStyle = 'rgba(213,207,222,' + haze.toFixed(3) + ')'; g.fillRect(0, 0, bw, bh); }
 
   /* Clouds live over the ground, not over the screen: each one belongs to a
      patch of the world, so panning moves the map underneath them and every
@@ -1191,7 +1340,7 @@ function drawGlobe() {
      step anywhere between. */
   var skyMix = Math.max(0, Math.min(1, (1.30 - sc) / 0.88));
   skyMix = skyMix * skyMix * (3 - 2 * skyMix);              /* smoothstep */
-  var NEAR = [255, 242, 248], FAR = [31, 29, 57];
+  var NEAR = [190, 222, 240], FAR = [31, 29, 57];
   function mixc(k) {
     return 'rgb(' + Math.round(NEAR[0] + (FAR[0] - NEAR[0]) * k) + ',' +
                     Math.round(NEAR[1] + (FAR[1] - NEAR[1]) * k) + ',' +
@@ -1233,37 +1382,28 @@ function drawGlobe() {
   og.addColorStop(0, C.waterlite); og.addColorStop(0.75, C.water); og.addColorStop(1, '#3F8F9E');
   g.fillStyle = og; g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.fill();
 
-  /* land — draw each visible run of a ring */
+  /* land — points behind the planet are pushed out to its edge, so a coastline
+     curves round the horizon instead of being sliced by a straight line */
   g.save(); g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.clip();
   g.fillStyle = C.landmuted;
   for (var k = 0; k < GEO.world.length; k++) {
-    var ring = GEO.world[k], run = [];
+    var ring = GEO.world[k], seenFront = false, pts = [];
     for (var j = 0; j < ring.length; j += 2) {
-      var q = pt(ring[j], ring[j+1]);
-      if (q) run.push(q);
-      else if (run.length > 2) { fillRun(run); run = []; }
-      else run = [];
+      var dl = rad(ring[j]) - l0, ph = rad(ring[j + 1]);
+      var cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
+      var gx = Rp * Math.cos(ph) * Math.sin(dl);
+      var gy = Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl));
+      if (cosc >= 0) seenFront = true;
+      else { var gm = Math.hypot(gx, gy) || 1; gx = gx / gm * Rp; gy = gy / gm * Rp; }
+      pts.push(cx + gx, cy - gy);
     }
-    if (run.length > 2) fillRun(run);
-  }
-  function fillRun(run) {
-    g.beginPath(); g.moveTo(run[0][0], run[0][1]);
-    for (var m = 1; m < run.length; m++) g.lineTo(run[m][0], run[m][1]);
+    if (!seenFront) continue;
+    g.beginPath(); g.moveTo(pts[0], pts[1]);
+    for (var m = 2; m < pts.length; m += 2) g.lineTo(pts[m], pts[m + 1]);
     g.closePath(); g.fill();
   }
 
   /* the part of the world that is ours */
-  var rs = allRegions();
-  for (var i2 = 0; i2 < rs.length; i2++) {
-    var hp = pt(rs[i2].lng, rs[i2].lat);
-    if (!hp) continue;
-    var gr2 = g.createRadialGradient(hp[0], hp[1], 0, hp[0], hp[1], Math.max(4, Rp * 0.10));
-    gr2.addColorStop(0, 'rgba(243,169,199,.95)');
-    gr2.addColorStop(0.5, 'rgba(231,183,101,.55)');
-    gr2.addColorStop(1, 'rgba(231,183,101,0)');
-    g.fillStyle = gr2; g.beginPath(); g.arc(hp[0], hp[1], Math.max(4, Rp * 0.10), 0, 7); g.fill();
-  }
-
   /* cloud band */
   for (var c = 0; c < 26; c++) {
     var ang = c * 2.399963;
@@ -1292,6 +1432,9 @@ function drawGlobe() {
   g.fillStyle = atm; g.beginPath(); g.arc(cx, cy, Rp * 1.20, 0, 7); g.fill();
   g.strokeStyle = 'rgba(243,169,199,' + (0.55 + skyMix * 0.3) + ')'; g.lineWidth = 1;
   g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.stroke();
+
+  /* our place in the world — drawn last so no shading or atmosphere ever dulls it */
+  drawGlobeBeacons(g, pt, cx, cy, Rp, l0, sinp0, cosp0);
   baseDirty = false;
 }
 
@@ -1561,6 +1704,7 @@ function drawMapOverlays() {
   }
 
   /* homes */
+  HOMEBOXES = {};
   ['bruce', 'elena'].forEach(function (k) {
     var h = HOMES[k]; var q = proj(h.lat, h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
@@ -1584,15 +1728,25 @@ function drawMapOverlays() {
       }
     }
     addHit({ x: box.x - 6, y: box.y - 10, w: box.w + 12, h: box.h + 12 }, { kind: 'home', who: k });
+    HOMEBOXES[k] = { x: box.x, y: box.y, w: box.w, h: box.h, sc: sc, baseY: q.y };
   });
 
-  /* memories */
+  /* memories — pins sharing a spot fan out in a ring so none hides another */
+  runHooks('beforePins');
+  var pinCount = {}, pinSeen = {};
+  for (i = 0; i < S.memories.length; i++) {
+    var pk0 = S.memories[i].lat.toFixed(4) + ',' + S.memories[i].lng.toFixed(4);
+    pinCount[pk0] = (pinCount[pk0] || 0) + 1;
+  }
   for (i = 0; i < S.memories.length; i++) {
     var m = S.memories[i];
     if (!isRevealed(m.lat, m.lng, 1.06)) continue;
     p = proj(m.lat, m.lng);
+    var pk = m.lat.toFixed(4) + ',' + m.lng.toFixed(4), pn = pinCount[pk], pi = pinSeen[pk] || 0;
+    pinSeen[pk] = pi + 1;
+    if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; var pr = z > 9.2 ? 30 : 15; p = { x: p.x + Math.cos(pa) * pr, y: p.y + Math.sin(pa) * pr }; }
     if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
-    var b = drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
+    var b = polaroidPin(m, p, z) || drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
     addHit({ x: b.x - 7, y: b.y - 7, w: b.w + 14, h: b.h + 14 }, { kind: 'memory', id: m.id });
   }
 
@@ -1669,7 +1823,9 @@ function draw() {
   ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
+  runHooks('afterFog');
   drawMapOverlays();
+  runHooks('afterOverlays');
 }
 
 var lastTick = 0;
@@ -1703,7 +1859,7 @@ cv.addEventListener('pointermove', function (e) {
     var z = S.zoom;
     var nx = lngToWX(S.center.lng, z) - dx, ny = latToWY(S.center.lat, z) - dy;
     S.center.lng = wxToLng(nx, z);
-    S.center.lat = Math.max(24, Math.min(46, wyToLat(ny, z)));
+    S.center.lat = Math.max(5, Math.min(62, wyToLat(ny, z)));
     baseDirty = true;
   }
   draw();
@@ -1714,6 +1870,7 @@ function endDrag(e) {
   var wasTap = !drag.moved && Date.now() - drag.t < 500;
   drag = null;
   if (wasTap && S.mode === 'map') handleTap(evPos(e));
+  else if (wasTap && S.mode === 'globe') handleGlobeTap(evPos(e));
 }
 cv.addEventListener('pointerup', endDrag);
 cv.addEventListener('pointercancel', endDrag);
@@ -1744,19 +1901,20 @@ cv.addEventListener('pointercancel', clearPt);
 
 function zoomBy(d, at) {
   if (S.mode === 'globe') {
-    S.globe.scale = Math.max(0.20, Math.min(1.55, S.globe.scale * (1 + d * 0.55)));
+    if (performance.now() - lastModeSwitch < 350) return;      /* a switch has just happened: let it settle */
+    S.globe.scale = Math.max(0.62, Math.min(1.55, S.globe.scale * (1 + d * 0.55)));
     if (S.globe.scale > 1.50) { enterMap(S.globe.lat, S.globe.lon, 5.2); return; }
-    setViewButtons(S.globe.scale < 0.62 ? 'space' : 'earth');
+    setViewButtons(S.globe.scale < 0.7 ? 'space' : 'earth');
     draw(); return;
   }
   var before = at ? unproj(at.x, at.y) : null;
   var nz = Math.max(4.6, Math.min(14.5, S.zoom + d * 3));
-  if (nz <= 4.62 && d < 0) { enterGlobe(); return; }
+  if (nz <= 4.62 && d < 0) { if (performance.now() - lastModeSwitch < 350) return; enterGlobe(); return; }
   S.zoom = nz;
   if (before && at) {
     var after = unproj(at.x, at.y);
     S.center.lng += before.lng - after.lng;
-    S.center.lat = Math.max(24, Math.min(46, S.center.lat + before.lat - after.lat));
+    S.center.lat = Math.max(5, Math.min(62, S.center.lat + before.lat - after.lat));
   }
   baseDirty = true;
   setViewButtons(S.zoom >= 9.6 ? 'local' : 'dmv');
@@ -1785,14 +1943,17 @@ function flyTo(lat, lng, z) {
   baseDirty = true; setViewButtons(z >= 9.6 ? 'local' : 'dmv'); draw();
 }
 function enterMap(lat, lng, z) {
-  S.mode = 'map'; S.center.lat = Math.max(24, Math.min(46, lat)); S.center.lng = lng;
+  lastModeSwitch = performance.now();
+  S.mode = 'map'; S.center.lat = Math.max(5, Math.min(62, lat)); S.center.lng = lng;
   S.zoom = z; baseDirty = true; setViewButtons(z >= 9.6 ? 'local' : 'dmv'); draw();
 }
+var lastModeSwitch = 0;
 function enterGlobe(scale) {
   S.mode = 'globe';
   S.globe.lon = S.center.lng; S.globe.lat = S.center.lat;
-  S.globe.scale = scale || 1.42;          /* arrive big, matching the map you left */
-  setViewButtons(S.globe.scale < 0.62 ? 'space' : 'earth');
+  S.globe.scale = scale || 1.2;           /* arrive a little under the exit threshold */
+  lastModeSwitch = performance.now();
+  setViewButtons(S.globe.scale < 0.7 ? 'space' : 'earth');
   draw();
 }
 [].forEach.call(document.querySelectorAll('#views .pxbtn'), function (b) {
@@ -1801,7 +1962,7 @@ function enterGlobe(scale) {
     if (v === 'local') { var h = HOMES[S.who] || HOMES.bruce; flyTo(h.lat, h.lng, 11.2); }
     else if (v === 'dmv') flyTo(38.55, -77.1, 6.9);
     else if (v === 'earth') enterGlobe(1.05);
-    else enterGlobe(0.34);
+    else enterGlobe(0.62);
   });
 });
 document.getElementById('zin').addEventListener('click', function () { zoomBy(0.34, { x: W/2, y: H/2 }); });
@@ -1809,7 +1970,7 @@ document.getElementById('zout').addEventListener('click', function () { zoomBy(-
 
 function updateWhere() {
   var el = document.getElementById('where');
-  if (S.mode === 'globe') { el.textContent = S.globe.scale < 0.62 ? 'Outer space' : 'Earth'; return; }
+  if (S.mode === 'globe') { el.textContent = S.globe.scale < 0.7 ? 'Outer space' : 'Earth'; return; }
   var reg = regionAt(S.center.lat, S.center.lng);
   if (reg) { el.textContent = reg.name; return; }
   var nt = nearestTown(S.center.lat, S.center.lng);
@@ -1842,6 +2003,7 @@ sheet.addEventListener('click', function (e) {
   var b = e.target.closest('[data-act]'); if (!b) return;
   var act = b.dataset.act;
   if (act === 'close') closeSheet();
+  else if (ACTIONS[act]) ACTIONS[act](b);
   else if (act === 'save-memory') saveMemory(b);
   else if (act === 'save-surprise') saveSurprise(b);
   else if (act === 'open-surprise') openSurprise(b.dataset.id);
@@ -1870,8 +2032,14 @@ sheet.addEventListener('click', function (e) {
     closeSheet();
     discover(S.center.lat, S.center.lng);
   }
-  else if (act === 'goto') { flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), parseFloat(b.dataset.z) || 12.2); closeSheet(); }
-  else if (act === 'switch-who') { localStorage.removeItem('ow.who'); location.reload(); }
+  else if (act === 'goto') {
+    var gl = parseFloat(b.dataset.lat), gg = parseFloat(b.dataset.lng), prow = placesList();
+    for (var gi = 0; gi < prow.length; gi++) if (prow[gi].lat === gl && prow[gi].lng === gg) { hopIdx = gi; renderHop(); break; }
+    flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), parseFloat(b.dataset.z) || 12.2); closeSheet(); }
+  else if (act === 'switch-who') {
+    localStorage.removeItem('ow.who');
+    if (window.OWCloud && OWCloud.configured) OWCloud.setWho(null).then(function () { location.reload(); }); else location.reload();
+  }
   else if (act === 'sign-out') { if (window.OWCloud) OWCloud.signOut(); else location.reload(); }
 });
 
@@ -1972,7 +2140,13 @@ function applyRows(name, rows) {
   } else if (name === 'surprises') {
     S.surprises = mergeById(rows, S.surprises);
     LS.write('surprises', S.surprises);
+  } else if (name === 'trips') {
+    S.trips = rows; LS.write('trips', rows);
+  } else if (name === 'plans') {
+    S.plans = rows; LS.write('plans', rows); renderHop();
   }
+  if (ROWHOOKS[name]) ROWHOOKS[name](rows);
+  if (name === 'memories') thisDayToast();
   DBS.counts[name] = rows.length;
   draw();
 }
@@ -2005,7 +2179,9 @@ function watch(name) {
 }
 
 function loadAll() {
-  ['deleted', 'discoveries', 'memories', 'surprises'].forEach(watch);
+  var names = ['deleted', 'discoveries', 'memories', 'surprises', 'trips', 'plans'];
+  Object.keys(ROWHOOKS).forEach(function (n) { if (names.indexOf(n) < 0) names.push(n); });
+  names.forEach(watch);
 }
 
 var warnedOffline = false;
@@ -2029,6 +2205,7 @@ function discover(lat, lng, quiet) {
     rec.id = uid(); S.regions.push(rec);
   }
   baseDirty = true; renderHop(); draw();
+  fxDiscover(lat, lng);
   toast('New area discovered: ' + name, '🌟', 4200);
   sparkle();
   return true;
@@ -2218,7 +2395,7 @@ var crossEl = document.getElementById('crosshair');
 function startPlacing(kind, starterId) {
   S.placing = { kind: kind, starterId: starterId || null };
   document.getElementById('placingText').textContent =
-    kind === 'memory' ? 'Tap where this happened' : 'Tap where you want to hide it';
+    kind === 'memory' ? 'Tap where this happened' : (kind === 'plan' ? 'Tap where you want to go' : 'Tap where you want to hide it');
   placingEl.classList.add('on'); crossEl.classList.add('on');
   closeSheet();
 }
@@ -2231,6 +2408,7 @@ function placeAt(ll) {
   var p = S.placing; if (!p) return;
   stopPlacing();
   if (p.kind === 'memory') memoryForm(ll, p.starterId);
+  else if (p.kind === 'plan') planForm(ll);
   else surpriseForm(ll);
 }
 document.getElementById('btnMemory').addEventListener('click', function () { startPlacing('memory'); });
@@ -2337,12 +2515,14 @@ function surpriseForm(ll) {
   var them = other(S.who);
   openSheet(
     head('Leave a surprise', nt.name) +
-    '<p class="note">Sealed until ' + esc(whoName(them)) + ' is standing near this spot with the map open.</p>' +
+    '<p class="note">Sealed until ' + esc(whoName(them)) + ' is standing near this spot with the map open \u2014 or, if you pick a date, it opens that day wherever they are.</p>' +
     '<div class="field"><label for="s-title">What they see on the envelope</label>' +
       '<input id="s-title" type="text" maxlength="70" placeholder="Open me when you get here"></div>' +
     '<div class="field"><label for="s-note">The letter</label><textarea id="s-note" maxlength="1200" placeholder="Say it here."></textarea></div>' +
     '<div class="rowfields">' +
       '<div class="field"><label for="s-km">Unlocks within</label><select id="s-km"><option value="1">1 km</option><option value="3" selected>3 km</option><option value="8">8 km</option></select></div>' +
+      '<div class="field"><label for="s-date">Or opens on (optional)</label><input id="s-date" type="date" min="' + todayISO() + '"></div>' +
+    '</div><div class="rowfields">' +
       '<div class="field"><label for="s-for">For</label><select id="s-for"><option value="' + them + '" selected>' + esc(whoName(them)) + '</option><option value="' + S.who + '">' + esc(whoName(S.who)) + '</option></select></div>' +
     '</div>' +
     '<div class="sheet-actions">' +
@@ -2360,11 +2540,12 @@ function saveSurprise(btn) {
     title: title || 'A letter', note: note, by: S.who,
     forWho: document.getElementById('s-for').value,
     unlockKm: parseFloat(document.getElementById('s-km').value) || UNLOCK_KM,
+    unlockDate: document.getElementById('s-date').value || '',
     lat: parseFloat(btn.dataset.lat), lng: parseFloat(btn.dataset.lng),
     opened: false, at: Date.now()
   };
   btn.disabled = true; btn.textContent = 'Sealing…';
-  function after() { closeSheet(); draw(); toast('Sealed. It waits there until they arrive.', '💌', 4200); }
+  function after() { closeSheet(); draw(); toast(rec.unlockDate ? 'Sealed until ' + fmtDate(rec.unlockDate) + '.' : 'Sealed. It waits there until they arrive.', '💌', 4200); }
   if (S.db) S.db.collection('surprises').doc(uid()).set(rec).then(after, function () {
     btn.disabled = false; btn.textContent = 'Seal it'; toast('Could not seal that — try again.', '⚠️');
   });
@@ -2397,6 +2578,9 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
+  if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
+  if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
+  if (item.kind === 'plan') { openPlan(item.id); return; }
   if (item.kind === 'home') {
     var h = HOMES[item.who];
     openSheet(
@@ -2471,7 +2655,7 @@ function openItem(item) {
     if (!s) return;
     var mine = s.by === S.who, forMe = s.forWho === S.who;
     var d2 = S.me ? haversine(S.me.lat, S.me.lng, s.lat, s.lng) : null;
-    var near = d2 != null && d2 <= (s.unlockKm || UNLOCK_KM);
+    var near = (d2 != null && d2 <= (s.unlockKm || UNLOCK_KM)) || letterDateReady(s);
     if (s.opened || (mine && !forMe)) {
       openSheet(
         head(s.title, (s.opened ? 'Opened' : 'Sealed — yours') + ' · from ' + whoName(s.by)) +
@@ -2483,8 +2667,8 @@ function openItem(item) {
       openSheet(
         head(s.title, 'From ' + whoName(s.by)) +
         '<p><span class="pill locked">Sealed</span></p>' +
-        '<p class="note">' + (near ? 'You are here. Open it.' :
-          'It opens within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot.' + (d2 != null ? ' You are about ' + Math.round(d2) + ' km away.' : ' Use <b>Find me</b> to check.')) + '</p>' +
+        '<p class="note">' + (near ? (letterDateReady(s) ? 'Today is the day. Open it.' : 'You are here. Open it.') :
+          (s.unlockDate ? 'It opens on ' + fmtDate(s.unlockDate) + ' (' + countdownText(s.unlockDate) + '), wherever you are \u2014 or sooner, within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot. ' : '') + 'It opens within ' + (s.unlockKm || UNLOCK_KM) + ' km of this spot.' + (d2 != null ? ' You are about ' + Math.round(d2) + ' km away.' : ' Use <b>Find me</b> to check.')) + '</p>' +
         '<div class="sheet-actions">' +
           (near ? '<button class="pxbtn primary" type="button" data-act="open-surprise" data-id="' + esc(s.id) + '">Open it</button>' : '') +
           '<button class="pxbtn" type="button" data-act="close">Close</button></div>'
@@ -2860,6 +3044,8 @@ function paintIntroSprites() {
 function setWho(k) {
   S.who = k;
   try { localStorage.setItem('ow.who', k); } catch (e) {}
+  if (window.OWCloud && OWCloud.configured && OWCloud.who() !== k) OWCloud.setWho(k);
+  hopIdx = Math.max(0, placesList().map(function (r) { return r.t; }).indexOf(k === 'elena' ? 'Arnold & Annapolis' : 'Chesapeake Beach'));
   document.getElementById('menam').textContent = whoName(k);
   var h = HOMES[k];
   S.center.lat = h.lat; S.center.lng = h.lng; S.zoom = 11.2;
@@ -2868,6 +3054,7 @@ function setWho(k) {
   setViewButtons('local');
   renderHop();
   resize();
+  startPresence();
   if (k === 'elena') showQuote();
   else setTimeout(function () { toast('Welcome back to Our World, Bruce.', '\ud83d\uddfa\ufe0f', 3600); }, 500);
 }
@@ -2952,8 +3139,25 @@ function hydrateLocal() {
   S.memories.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
   S.regions = LS.read('discoveries');
   S.surprises = LS.read('surprises');
+  S.trips = LS.read('trips');
+  S.plans = LS.read('plans');
   baseDirty = true;
 }
+
+//#include features/beacon.js
+//#include features/ambient.js
+//#include features/avatars.js
+//#include features/presence.js
+//#include features/notes.js
+//#include features/journal.js
+//#include features/letters.js
+//#include features/anniversary.js
+//#include features/heat.js
+//#include features/sound.js
+//#include features/bucket.js
+//#include features/albums.js
+//#include features/polaroid.js
+//#include features/more.js
 
 function boot() {
   hydrateLocal();
@@ -2962,12 +3166,14 @@ function boot() {
   connect();
   var saved = null;
   try { saved = localStorage.getItem('ow.who'); } catch (e) {}
+  if (!saved && window.OWCloud) saved = OWCloud.who();
   if (saved === 'bruce' || saved === 'elena') setWho(saved);
   else resize();
 }
 
 /* Nothing personal loads until someone has signed in. */
 function startBehindGate() {
+  paintIntroSprites();
   var gate = document.getElementById('gate'), form = document.getElementById('gateForm');
   var err = document.getElementById('gErr'), btn = document.getElementById('gBtn');
   var booted = false;

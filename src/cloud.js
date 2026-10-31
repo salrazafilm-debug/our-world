@@ -20,6 +20,12 @@ var BUCKET = 'photos';
 var SIGN_SECONDS = 4 * 60 * 60;
 var photoUrls = {};
 var userId = null;
+var userWho = null;
+var presenceCh = null;
+function readWho(sess) {
+  var w = sess && sess.user && sess.user.user_metadata && sess.user.user_metadata.who;
+  userWho = (w === 'bruce' || w === 'elena') ? w : null;
+}
 
 function ck(r) {
   if (r && r.error) {
@@ -35,15 +41,55 @@ function snapOf(rows) {
   return { docs: (rows || []).map(function (r) { return { id: r.id, data: function () { return r.data || {}; } }; }) };
 }
 
+/* ---------- offline outbox ----------
+   A write that fails because the phone is offline is kept on the device and
+   sent again once it is back online, so nothing typed on a train is lost.
+   Real refusals (permissions, bad data) are not queued: they surface as errors. */
+var OUTBOX_KEY = 'ow.outbox';
+function outboxRead() { try { return JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]') || []; } catch (e) { return []; } }
+function outboxWrite(q) { try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(q)); } catch (e) {} }
+function isOffline(e) {
+  return (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+    /failed to fetch|load failed|network|fetch/i.test(String((e && e.message) || ''));
+}
+function rawOp(op) {
+  var t = sb.from('docs');
+  if (op.op === 'set') return t.upsert({ collection: op.c, id: op.id, data: op.data, updated_at: new Date().toISOString() }).then(ck);
+  if (op.op === 'update') return sb.rpc('doc_merge', { c: op.c, i: op.id, patch: op.data }).then(ck);
+  return t.delete().eq('collection', op.c).eq('id', op.id).then(ck);
+}
+function queued(op) {
+  return rawOp(op).catch(function (e) {
+    if (!isOffline(e)) throw e;
+    var q = outboxRead(); q.push(op); outboxWrite(q);
+    return { queued: true };
+  });
+}
+var flushing = false;
+function flushOutbox() {
+  if (!sb || flushing || !userId) return;
+  var q = outboxRead(); if (!q.length) return;
+  flushing = true;
+  var left = [], chain = Promise.resolve();
+  q.forEach(function (op) {
+    chain = chain.then(function () { return rawOp(op); }).catch(function (e) { if (isOffline(e)) left.push(op); else console.warn('dropped queued write:', e); });
+  });
+  chain.then(function () { outboxWrite(left); flushing = false; });
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', flushOutbox);
+  setInterval(flushOutbox, 30000);
+}
+
 function docRef(c, id) {
   return {
     get: function () {
       return sb.from('docs').select('id,data').eq('collection', c).eq('id', id).maybeSingle().then(ck)
         .then(function (r) { return { exists: !!r.data, id: id, data: function () { return r.data ? r.data.data : undefined; } }; });
     },
-    set: function (d) { return sb.from('docs').upsert({ collection: c, id: id, data: d, updated_at: new Date().toISOString() }).then(ck); },
-    update: function (p) { return sb.rpc('doc_merge', { c: c, i: id, patch: p }).then(ck); },
-    delete: function () { return sb.from('docs').delete().eq('collection', c).eq('id', id).then(ck); }
+    set: function (d) { return queued({ op: 'set', c: c, id: id, data: d }); },
+    update: function (p) { return queued({ op: 'update', c: c, id: id, data: p }); },
+    delete: function () { return queued({ op: 'delete', c: c, id: id }); }
   };
 }
 
@@ -104,7 +150,45 @@ function signPhotos(rows) {
   }).catch(function () {});
 }
 
+/* ---------- private journal (only its author can read it; enforced in the database) ---------- */
+var journal = {
+  list: function () {
+    return sb.from('journal').select('*').order('day', { ascending: false }).order('created_at', { ascending: false }).limit(500)
+      .then(ck).then(function (r) { return r.data || []; });
+  },
+  add: function (e) { e.who = e.who || userWho; return sb.from('journal').insert(e).select().single().then(ck).then(function (r) { return r.data; }); },
+  update: function (id, patch) { return sb.from('journal').update(patch).eq('id', id).then(ck); },
+  remove: function (id) { return sb.from('journal').delete().eq('id', id).then(ck); },
+  uploadPhoto: function (blob) {
+    var path = (userId || 'x') + '/' + uid() + '.jpg';
+    return sb.storage.from('diary').upload(path, blob, { contentType: 'image/jpeg', upsert: false }).then(ck).then(function () { return path; });
+  },
+  signPhotos: function (paths) {
+    if (!paths || !paths.length) return Promise.resolve({});
+    return sb.storage.from('diary').createSignedUrls(paths, SIGN_SECONDS).then(function (r) {
+      var out = {};
+      (r.data || []).forEach(function (it) { if (it && it.signedUrl && it.path) out[it.path] = it.signedUrl; });
+      return out;
+    }).catch(function () { return {}; });
+  }
+};
+
+/* ---------- live presence over a private realtime channel ---------- */
+function presenceJoin(who, meta, onSync) {
+  if (!sb || presenceCh) return;
+  presenceCh = sb.channel('ow-presence', { config: { private: true, presence: { key: who } } });
+  presenceCh.on('presence', { event: 'sync' }, function () { onSync(presenceCh.presenceState()); });
+  presenceCh.subscribe(function (status) {
+    if (status === 'SUBSCRIBED') presenceCh.track(meta);
+    else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') onSync(null, status);
+  });
+}
+function presenceTrack(meta) { if (presenceCh) presenceCh.track(meta); }
+
 window.OWCloud = {
+  journal: journal,
+  presenceJoin: presenceJoin,
+  presenceTrack: presenceTrack,
   configured: !!sb,
   photoUrl: function (path) { return photoUrls[path] || ''; },
   signPhotos: signPhotos,
@@ -113,6 +197,8 @@ window.OWCloud = {
     return sb.auth.getSession().then(function (r) {
       var s = r && r.data && r.data.session;
       userId = s ? s.user.id : null;
+      readWho(s);
+      if (s) setTimeout(flushOutbox, 1500);
       return s || null;
     }).catch(function () { return null; });
   },
@@ -120,8 +206,15 @@ window.OWCloud = {
     return sb.auth.signInWithPassword({ email: email, password: password }).then(function (r) {
       if (r.error) throw r.error;
       userId = r.data.user.id;
+      readWho(r.data.session);
       return r.data.session;
     });
+  },
+  /* who this account is (bruce / elena) lives on the account, so every device knows */
+  who: function () { return userWho; },
+  setWho: function (k) {
+    userWho = k;
+    return sb ? sb.auth.updateUser({ data: { who: k } }).catch(function () {}) : Promise.resolve();
   },
   signOut: function () { return sb ? sb.auth.signOut() : Promise.resolve(); },
   onSignedOut: function (fn) {
