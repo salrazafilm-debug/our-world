@@ -186,3 +186,40 @@ function drawSkyClouds(z) {
     ctx.restore();
   });
 }
+
+/* Bunnies: rare, scattered, sitting quietly in open meadows we have explored.
+   Fixed to the world like the trees, so they never move about. */
+SP.bunny = [
+  '.ww.ww..',
+  '.wp.wp..',
+  '.ww.ww..',
+  '.wwwww..',
+  'wwkwwwo.',
+  'wwwwwww.',
+  '.wwwwwwW',
+  '.wwwwww.',
+  '..ss.ss.'
+];
+PAL.bunny = { w: '#FFF8F6', p: '#F3A9C7', k: '#3D2838', o: '#F7C6D6', W: '#FFFFFF', s: '#E6D6D2' };
+HOOKS.beforePins.push(function () {
+  if (S.mode !== 'map' || !TER.on || !TER.px || S.zoom < 9.2) return;
+  var z = S.zoom, cell = 0.03;
+  var tl = unproj(0, 0), br = unproj(W, H);
+  var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
+  var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell), gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
+  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 1500) return;
+  var sc = z > 11 ? 3 : 2;
+  for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+    if (terHash(gx, gy, 41) > 0.09) continue;                     /* rare */
+    var lat = (gy + 0.5 + (terHash(gx, gy, 42) - 0.5) * 0.8) * cell, lng = (gx + 0.5 + (terHash(gx, gy, 43) - 0.5) * 0.8) * cell;
+    if (!isRevealed(lat, lng, 0.9) || grove(lat, lng) > 0.35) continue;   /* meadows, not deep woods */
+    var p = proj(lat, lng);
+    if (p.x < 10 || p.y < 10 || p.x > W - 10 || p.y > H - 10 || terrainAt(p.x, p.y) !== 'land') continue;
+    if (!labelFree({ x: p.x - 10, y: p.y - 22, w: 20, h: 24 })) continue;
+    var flip = terHash(gx, gy, 44) < 0.5;
+    ctx.save();
+    if (flip) { ctx.translate(Math.round(p.x) * 2, 0); ctx.scale(-1, 1); }
+    drawSprite(ctx, SP.bunny, PAL.bunny, p.x, p.y, sc, null);
+    ctx.restore();
+  }
+});
