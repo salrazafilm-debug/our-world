@@ -59,11 +59,20 @@ HOOKS.terrain.push(function () {
   var items = [], i;
   var avoid = [HOMEBOXES.bruce, HOMEBOXES.elena].concat(Object.keys(HBBOX).map(function (k) { return HBBOX[k]; }));
 
+  /* every place that matters gets an open clearing around it */
+  var pois = [];
+  ['bruce', 'elena'].forEach(function (k) { pois.push(proj(HOMES[k].lat, HOMES[k].lng)); });
+  HOMEBASE.forEach(function (h) { pois.push(proj(h.lat, h.lng)); });
+  LANDMARKS.forEach(function (l) { pois.push(proj(l[2], l[3])); });
+  S.memories.forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
+  (S.plans || []).forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
+  var clear = Math.max(34, homeArtH(z) * 0.95);
+
   /* trees and bushes on land: groves and clearings, mixed heights */
   var cell = 0.009 * Math.pow(2, Math.max(0, Math.floor((11.6 - z) / 1.0)));
   var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
   /* lighter close in so homes and pins breathe; lusher far out so the home base reads as countryside */
-  var thin = z > 9.5 ? 0.62 : (z < 8.6 ? 1.45 : 1), floor = z < 8.6 ? 0.1 : 0;
+  var thin = z > 9.5 ? 0.36 : (z < 8.6 ? 0.95 : 0.6), floor = z < 8.6 ? 0.04 : 0;
   if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) < 2600) {
     for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
       var cy = (gy + 0.5) * cell, cx = (gx + 0.5) * cell;
@@ -75,14 +84,16 @@ HOOKS.terrain.push(function () {
       var near = false;
       for (i = 0; i < avoid.length; i++) { var hb = avoid[i]; if (hb && p.x > hb.x - 18 && p.x < hb.x + hb.w + 18 && p.y > hb.y - 6 && p.y < hb.y + hb.h + 34) near = true; }
       if (near || !labelFree({ x: p.x - 12, y: p.y - 26, w: 24, h: 28 })) continue;
+      for (i = 0; i < pois.length; i++) { var dx = p.x - pois[i].x, dy = (p.y - pois[i].y) * 1.3; if (dx * dx + dy * dy < clear * clear) { near = true; break; } }
+      if (near) continue;
       /* deep in a grove: more pines and oaks; at its edges: blossoms and bushes */
       var g = grove(lat, lng), t = terHash(gx, gy, 4), type;
       if (g > 0.45) type = t < 0.18 ? 0 : (t < 0.7 ? 1 : (t < 0.95 ? 2 : 3));
       else type = t < 0.42 ? 0 : (t < 0.6 ? 1 : (t < 0.78 ? 2 : 3));
-      var vary = 0.72 + Math.pow(terHash(gx, gy, 5), 1.6) * 0.78;           /* most average, a few tall ones */
+      var vary = 0.8 + Math.pow(terHash(gx, gy, 5), 1.6) * 0.5;            /* most average, a few taller */
       var kind = type === 3 ? 0.6 : (type === 1 ? 1.12 : 1);
       var depth = 0.86 + 0.14 * Math.max(0, Math.min(1, p.y / H));          /* a little smaller toward the top */
-      var base = Math.max(10, Math.min(32, 10 + (z - 6.3) * 4)) * kind * vary * depth;
+      var base = Math.max(9, Math.min(24, 9 + (z - 6.3) * 3)) * kind * vary * depth;   /* always well under a home's height */
       items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, ghost: !isRevealed(lat, lng, 0.94), f: focusAt(p.y), k: terHash(gx, gy, 9) });
     }
   }

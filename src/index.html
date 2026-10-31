@@ -700,7 +700,7 @@ var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u26
 var LM_ART = { mountain: 'mountain', skyline: 'city', lighthouse: 'lighthouse' };
 function lmDraw(type, x, y, sc) {
   var a = LM_ART[type];
-  if (a) { var h = SP[type].length * sc * 1.15, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
+  if (a) { var h = SP[type].length * sc * 1.5, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
   return drawSprite(ctx, SP[type], PAL[type], x, y, sc, '#FFFFFF');
 }
 var LANDMARKS = [

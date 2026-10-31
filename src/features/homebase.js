@@ -9,7 +9,7 @@ var HOMEBASE = [
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(30, Math.min(62, 30 + (z - 6.9) * 7.4)); }
+function homeArtH(z) { return Math.max(38, Math.min(78, 38 + (z - 6.9) * 9)); }   /* homes always stand well above the trees */
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Calvert County' };
