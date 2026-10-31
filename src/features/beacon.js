@@ -69,6 +69,7 @@ HOOKS.afterOverlays.push(function () {
   var fade = Math.max(0, Math.min(1, (8.6 - S.zoom) / 1.4));
   ctx.imageSmoothingEnabled = false;
   beaconSpots().forEach(function (sp) {
+    if (sp.home) return;                 /* home has its own heart badges now */
     var p = proj(sp.lat, sp.lng);
     if (p.x < -30 || p.y < -40 || p.x > W + 30 || p.y > H + 30) return;
     ctx.globalAlpha = fade;

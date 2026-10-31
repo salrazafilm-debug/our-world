@@ -341,6 +341,43 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 .jr-love{margin:12px 0 0; font-weight:700; color:var(--pink)}
 .gate-av{image-rendering:pixelated}
 
+
+/* ---------- new look: cream panels, rose borders, soft shadows ---------- */
+:root{ --deep:#B04576; --pink:#D4457A; --panel-edge:#F0C6D7; --rose:#C95585 }
+.pxbtn{border-color:var(--rose); box-shadow:0 4px 0 #E6AEC6; background:#FFF6F8}
+.pxbtn:active{box-shadow:0 1px 0 #E6AEC6}
+.pxbtn[aria-pressed="true"]{background:#D4457A; color:#fff; border-color:#B03665; box-shadow:0 4px 0 #8E2B52}
+.pxbtn.primary{background:#D4457A; color:#fff; border-color:#B03665; box-shadow:0 4px 0 #8E2B52}
+.pxbtn.primary:active{box-shadow:0 1px 0 #8E2B52}
+#brand h1 .crown{width:34px; height:auto; vertical-align:-5px; margin-right:7px; image-rendering:pixelated}
+.px-ico{width:24px; height:24px; image-rendering:pixelated; display:block}
+#actions .icon svg{width:22px; height:22px}
+.chip{border-color:#F0C6D7; background:#FFFAFB}
+#top{background:linear-gradient(180deg,#FFF3F7 0%,#FCE4EE 100%)}
+#sheet{background:#FFF8FA; border-top-color:var(--rose)}
+.grp{border:3px solid #F0C6D7; background:#fff; margin-bottom:9px}
+.grp-h{display:flex; align-items:center; gap:10px; width:100%; padding:11px 12px; background:#FFF3F7; border:none; font-family:var(--fdisp); font-size:16px; color:var(--deep); text-align:left}
+.grp-h .caret{margin-left:auto; transition:transform .15s; font-size:13px}
+.grp.open .grp-h .caret{transform:rotate(180deg)}
+.grp-h .cnt{font-family:var(--fbody); font-size:11.5px; color:var(--ink-45); font-weight:700}
+.grp-b{display:none; padding:8px}
+.grp.open .grp-b{display:block}
+.grp-b .list{margin:0}
+.addgrid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.addgrid button{display:flex; flex-direction:column; align-items:center; gap:6px; padding:16px 8px; background:#fff; border:3px solid #F0C6D7; font-weight:700; color:var(--deep)}
+.addgrid button:active{background:#FFF3F7}
+.addgrid .big{font-size:28px; line-height:1}
+.addgrid small{font-weight:500; font-size:11.5px; color:var(--ink-45)}
+
+
+/* ---------- home-base look: blossom corners, pink cloud edges ---------- */
+#top{position:relative; overflow:hidden}
+#top::before,#top::after{content:''; position:absolute; top:-18px; width:96px; height:56px; background:url(art/blossom.png) no-repeat center/contain; image-rendering:pixelated; opacity:.75; pointer-events:none}
+#top::before{left:-56px; top:-26px; transform:rotate(-8deg)}
+#top::after{right:-52px; top:-26px; transform:scaleX(-1) rotate(-8deg)}
+#top>*{position:relative; z-index:1}
+#stage::after{box-shadow:inset 0 0 110px rgba(236,170,205,.38)}
+
 /* ---------- placing mode ---------- */
 #placing{
   position:absolute; left:50%; top:56px; transform:translateX(-50%); z-index:7;
@@ -536,7 +573,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 <div id="app">
   <header id="top">
     <div id="brand">
-      <h1>Our <span class="w">World</span></h1>
+      <h1><img class="crown" src="art/crown.png" alt="" width="34" height="26">Our <span class="w">World</span></h1>
       <span id="where">Loading the map&hellip;</span>
     </div>
     <div id="topright">
@@ -574,32 +611,21 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 
     <div id="actions">
       <div class="row">
-        <button class="pxbtn icon" id="btnPlaces" title="Our places" aria-label="Our places">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <button class="pxbtn icon" id="btnPlaces" title="Menu" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <button class="pxbtn icon" id="btnHere" title="Clear where the map is centred" aria-label="Clear where the map is centred">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s-6-5.3-6-10a6 6 0 1 1 12 0c0 4.7-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/></svg>
-        </button>
-        <button class="pxbtn icon" id="btnCalendar" title="Our calendar" aria-label="Our calendar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-        </button>
-        <button class="pxbtn icon" id="btnTogether" title="Show us together" aria-label="Show us together">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l5-5 5 5"/><path d="M5 11v8h6v-5h2"/><path d="M13 13l4-4 4 4"/><path d="M15 13v6h4v-6"/></svg>
+        <button class="pxbtn icon" id="btnMemory" title="Add something" aria-label="Add something">
+          <img class="px-ico" src="art/heart.png" alt="">
         </button>
         <button class="pxbtn icon" id="btnLocate" title="Find me" aria-label="Find me">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-        </button>
-        <button class="pxbtn icon" id="btnMemory" title="Add a memory" aria-label="Add a memory">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7-4.6-7-9.2A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.8C19 15.4 12 20 12 20z"/></svg>
-        </button>
-        <button class="pxbtn icon" id="btnMore" title="More of us" aria-label="More of us">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.2L21 9l-5 4.2L17.6 20 12 16.4 6.4 20 8 13.2 3 9l6.8-.8z"/></svg>
-        </button>
-        <button class="pxbtn icon" id="btnSurprise" title="Leave a surprise" aria-label="Leave a surprise">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="13"/><path d="M3 7l9 6 9-6"/></svg>
+          <img class="px-ico" src="art/pin.png" alt="">
         </button>
       </div>
-      <button class="pxbtn primary" id="btnDiscover">Discover this area</button>
+      <div hidden>
+        <button id="btnHere" type="button"></button><button id="btnCalendar" type="button"></button><button id="btnTogether" type="button"></button>
+        <button id="btnSurprise" type="button"></button><button id="btnMore" type="button"></button>
+      </div>
+      <button class="pxbtn primary" id="btnDiscover">Discover this area ✦</button>
     </div>
 
     <div id="placing">
@@ -1119,7 +1145,7 @@ var C = {
   gold:'#E7B765', softgold:'#F5D88E', land:'#91B979', landdeep:'#5E8D63',
   water:'#63B9C7', waterlite:'#A5E1E5', fog:'#C5C1CF', cloud:'#E2DDE7',
   ink:'#3D2838', space:'#1F1D39',
-  landmuted:'#CBC9BE', landmutededge:'#B3B0A4'
+  landmuted:'#BFCBA6', landmutededge:'#A9B592'
 };
 var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
@@ -1144,6 +1170,13 @@ var PARKS = [
 
 /* Places worth a proper icon. Drawn only once the area around them is cleared. */
 var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u2615', mountain: '\u26f0\ufe0f', sun: '\u2728', liberty: '\ud83d\uddfd', skyline: '\ud83c\udfd9\ufe0f', lighthouse: '\u26f5' };
+/* a few landmarks use the new art; the rest keep their pixel sprites */
+var LM_ART = { mountain: 'mountain', skyline: 'city', lighthouse: 'lighthouse' };
+function lmDraw(type, x, y, sc) {
+  var a = LM_ART[type];
+  if (a) { var h = SP[type].length * sc * 1.15, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
+  return drawSprite(ctx, SP[type], PAL[type], x, y, sc, '#FFFFFF');
+}
 var LANDMARKS = [
   ['bushkill','Bushkill Falls Park',41.1165,-75.0121,'fallsTall',
    'Eight waterfalls strung down a gorge in the Poconos. The main drop falls about a hundred feet, and the boardwalks take you right under it.'],
@@ -1378,7 +1411,7 @@ var GEO = { states: [], rivers: [], world: [] };
 
 /* ============================== hooks ============================== */
 /* Features in src/features/ plug into the draw loop and the sheet actions here. */
-var HOOKS = { afterFog: [], beforePins: [], afterOverlays: [] };
+var HOOKS = { afterBase: [], afterFog: [], terrain: [], beforePins: [], afterOverlays: [] };
 function runHooks(name) {
   var list = HOOKS[name];
   for (var i = 0; i < list.length; i++) {
@@ -1432,7 +1465,7 @@ function allRegions() {
     { id:'home-elena', name:'Arnold & Annapolis', lat:HOMES.elena.lat, lng:HOMES.elena.lng, r:HOMES.elena.r, home:1 },
     { id:'known-pg', name:"Prince George's County", lat:38.83, lng:-76.85, r:26, home:1 },
     { id:'known-dc', name:'Washington, DC', lat:38.905, lng:-77.02, r:18, home:1 }
-  ];
+  ].concat(homeBaseRegions());
   /* a seeded place steps aside once the same spot arrives from the shared world */
   for (var i = 0; i < SEED_REGIONS.length; i++) {
     var dup = false;
@@ -1755,7 +1788,7 @@ function drawFog() {
     h = Math.imul(h, 1274126177) >>> 0;
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   }
-  var cols = ['rgba(200,194,214,.90)', 'rgba(238,228,240,.95)', 'rgba(255,253,255,.98)'];
+  var cols = ['rgba(222,196,222,.90)', 'rgba(244,222,236,.95)', 'rgba(255,246,251,.98)'];
 
   var gy0 = Math.floor(latLo / CELL), gy1 = Math.ceil(latHi / CELL);
   var gx0 = Math.floor(lngLo / CELL), gx1 = Math.ceil(lngHi / CELL);
@@ -1918,10 +1951,11 @@ function labelBox(x, y, text, opts) {
   ctx.font = (opts.size || 12) + 'px "Pixelify Sans", monospace';
   var w = ctx.measureText(text).width, padx = 5, pady = 3;
   var bx = Math.round(x - w / 2 - padx), by = Math.round(y - (opts.size || 12) - pady * 2);
-  ctx.fillStyle = opts.bg || 'rgba(255,251,253,.88)';
+  ctx.fillStyle = opts.bg || 'rgba(248,236,224,.94)';
   ctx.fillRect(bx, by, Math.round(w + padx * 2), Math.round((opts.size || 12) + pady * 2));
+  if (!opts.border) opts.border = '#C9B29C';
   if (opts.border) { ctx.strokeStyle = opts.border; ctx.lineWidth = 2; ctx.strokeRect(bx + 1, by + 1, Math.round(w + padx * 2) - 2, Math.round((opts.size || 12) + pady * 2) - 2); }
-  ctx.fillStyle = opts.fg || C.deep;
+  ctx.fillStyle = opts.fg || '#5B3F4A';
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillText(text, Math.round(x), by + (opts.size || 12) + pady - 2);
   return { x: bx, y: by, w: w + padx * 2, h: (opts.size || 12) + pady * 2 };
@@ -1999,24 +2033,24 @@ function drawMapOverlays() {
     var hh = HOMES[hk], hq = proj(hh.lat, hh.lng);
     var hsc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var hg = hk === 'elena' ? SP.castle : SP.cottage;
-    var hw = hg[0].length * hsc, hh2 = hg.length * hsc;
+    var hw = homeArtH(z) * 1.15, hh2 = homeArtH(z) + 18;
     labelBoxes.push({ x: hq.x - hw / 2 - 5, y: hq.y - hh2 - 5, w: hw + 10, h: hh2 + 12 });
   });
 
   /* state names — how you find your way around when zoomed out */
   if (z < 8.8) {
     var SL = window.OW_STATES_LBL, fade = Math.max(0.28, Math.min(0.72, (8.8 - z) / 2.2));
-    ctx.font = '700 ' + (z < 6.4 ? 13 : 15) + 'px "Pixelify Sans", monospace';
+    ctx.font = '600 ' + (z < 6.4 ? 13 : 16) + 'px "Pixelify Sans", monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (i = 0; i < SL.length; i++) {
       p = proj(SL[i][1], SL[i][2]);
       if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 20) continue;
       ctx.save();
-      ctx.letterSpacing = '2px';
-      ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
-      ctx.strokeStyle = 'rgba(255,248,251,' + (fade + 0.2) + ')';
+      ctx.letterSpacing = '6px';
+      ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
+      ctx.strokeStyle = 'rgba(110,100,120,' + (fade * 0.35) + ')';
       ctx.strokeText(SL[i][0], p.x, p.y);
-      ctx.fillStyle = 'rgba(94,141,99,' + fade + ')';
+      ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.95, fade + 0.3) + ')';
       ctx.fillText(SL[i][0], p.x, p.y);
       ctx.restore();
     }
@@ -2027,6 +2061,7 @@ function drawMapOverlays() {
   var A = window.OW_AREAS;
   for (i = 0; i < A.length; i++) {
     if (!isRevealed(A[i][1], A[i][2], 1.25)) continue;
+    if (z < 9.8 && HB_PILLS[A[i][0]]) continue;          /* the home base draws its own name pills */
     p = proj(A[i][1], A[i][2]);
     if (p.x < -90 || p.y < -30 || p.x > W + 90 || p.y > H + 30) continue;
     tryLabel(p.x, p.y, A[i][0], { size: 13, fg: C.deep, bg: 'rgba(255,251,253,.82)' });
@@ -2107,6 +2142,8 @@ function drawMapOverlays() {
     labelBoxes.push({ x: pbox.x - 4, y: pbox.y - 4, w: pbox.w + 8, h: pbox.h + 8 });
   })();
 
+  runHooks('terrain');
+
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
     var lm = LANDMARKS[i];
@@ -2116,6 +2153,7 @@ function drawMapOverlays() {
     if (!planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
+    if (z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
     var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * (lm[6] || 1)));
     var gh2 = SP[lm[4]].length * lsc;
     if (planned) {
@@ -2137,7 +2175,7 @@ function drawMapOverlays() {
       ctx.beginPath(); ctx.arc(p.x, p.y - gh2 * 0.5, gh2 * 1.15, 0, 7); ctx.fill();
       ctx.save();
       ctx.globalAlpha = 0.72;
-      var pb = drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y - 4 + hov, lsc, '#FFFFFF');
+      var pb = lmDraw(lm[4], p.x, p.y - 4 + hov, lsc);
       ctx.restore();
       if (z > 5.4) tryLabel(p.x, pb.y - 2, lm[1] + ' \u00b7 soon', { size: 12, fg: C.deep, border: C.gold, force: 1 });
       labelBoxes.push({ x: pb.x - 4, y: pb.y - 4, w: pb.w + 8, h: pb.h + 8 });
@@ -2171,7 +2209,7 @@ function drawMapOverlays() {
       ctx.fillStyle = 'rgba(165,225,229,' + (0.16 + shim * 0.16) + ')';
       ctx.beginPath(); ctx.arc(p.x, p.y - 8 * lsc, 11 * lsc, 0, 7); ctx.fill();
     }
-    var lb = drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, lm[7] ? null : '#FFFFFF');
+    var lb = lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc);
     if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 12, fg: C.deep, border: C.gold, force: 1 });
     labelBoxes.push({ x: lb.x - 4, y: lb.y - 4, w: lb.w + 8, h: lb.h + 8 });
     addHit({ x: lb.x - 8, y: lb.y - 20, w: lb.w + 16, h: lb.h + 26 }, { kind: 'landmark', id: lm[0] });
@@ -2183,10 +2221,12 @@ function drawMapOverlays() {
     var h = HOMES[k]; var q = proj(h.lat, h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
-    var bob = reduceMotion ? 0 : Math.round(Math.sin(cloudPhase / 22 + (k === 'elena' ? 1.6 : 0)) * 1.2);
-    var box = k === 'elena'
-      ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
-      : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF');
+    var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
+    var hz = homeArtH(z);
+    var box = (k === 'elena' ? drawArt(ctx, 'castle-pink', q.x, q.y, hz, DPR) : drawArt(ctx, 'cottage', q.x, q.y, hz * 0.84, DPR)) ||
+      (k === 'elena'
+        ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
+        : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));
     if (!reduceMotion && z > 9.4) {
       /* chimney smoke for his cottage, a wisp of magic over her towers */
       var smx = k === 'bruce' ? box.x + box.w * 0.26 : box.x + box.w * 0.5;
@@ -2290,10 +2330,11 @@ function draw() {
     return;
   }
 
-  if (baseDirty) drawBase();
+  if (baseDirty) { drawBase(); runHooks('afterBase'); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
   drawFog();
-  ctx.globalAlpha = S.zoom > 9.4 ? 0.95 : (S.zoom > 7 ? 0.88 : 0.78);
+  /* far out, the clouds thin so the land reads clearly, like the reference art */
+  ctx.globalAlpha = S.zoom > 9.4 ? 0.95 : (S.zoom > 8.2 ? 0.8 : (S.zoom > 7.4 ? 0.6 : 0.45));
   ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
@@ -2434,7 +2475,7 @@ function enterGlobe(scale) {
   b.addEventListener('click', function () {
     var v = b.dataset.view;
     if (v === 'local') { var h = HOMES[S.who] || HOMES.bruce; flyTo(h.lat, h.lng, 11.2); }
-    else if (v === 'dmv') flyTo(38.55, -77.1, 6.9);
+    else if (v === 'dmv') flyTo(38.93, -76.95, 7.8);     /* the home base, framed like the reference art */
     else if (v === 'earth') enterGlobe(1.05);
     else enterGlobe(0.62);
   });
@@ -2885,7 +2926,7 @@ function placeAt(ll) {
   else if (p.kind === 'plan') planForm(ll);
   else surpriseForm(ll);
 }
-document.getElementById('btnMemory').addEventListener('click', function () { startPlacing('memory'); });
+document.getElementById('btnMemory').addEventListener('click', function () { openAddMenu(); });
 document.getElementById('btnSurprise').addEventListener('click', function () { startPlacing('surprise'); });
 
 /* ============================== forms ============================== */
@@ -3384,7 +3425,7 @@ function openPlaces() {
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'
   );
 }
-document.getElementById('btnPlaces').addEventListener('click', openPlaces);
+document.getElementById('btnPlaces').addEventListener('click', function () { openMenu(); });
 document.getElementById('btnHere').addEventListener('click', function () {
   discover(S.center.lat, S.center.lng);
 });
@@ -3618,6 +3659,234 @@ function hydrateLocal() {
   baseDirty = true;
 }
 
+/* ---- features/art.js ---- */
+/* The art pack: sprites cut from the new texture sheet (art/*.png). Each is
+   shrunk once to the exact pixel height it is drawn at, so it stays sharp at
+   every zoom, and keeps its proportions. */
+
+var ART = {}, ARTSIZED = {};
+function artLoad(name) {
+  if (ART[name]) return ART[name];
+  var e = ART[name] = { ok: false }, im = new Image();
+  im.onload = function () { e.img = im; e.ok = true; };
+  im.onerror = function () { e.bad = true; };
+  im.src = 'art/' + name + '.png';
+  return e;
+}
+['castle-pink', 'castle-blue', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
+  .forEach(artLoad);
+['castle-blue', 'city-ghost', 'blossom'].forEach(artLoad);
+
+function artSized(name, h, res) {
+  var e = artLoad(name);
+  if (!e.ok) return null;
+  var px = Math.max(8, Math.round(h * (res || 1))), key = name + '@' + px;
+  if (ARTSIZED[key]) return ARTSIZED[key];
+  var pw = Math.max(4, Math.round(e.img.width * px / e.img.height));
+  var c = document.createElement('canvas'); c.width = pw; c.height = px;
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(e.img, 0, 0, pw, px);
+  var id = g.getImageData(0, 0, pw, px);
+  for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 100 ? 255 : 0;
+  g.putImageData(id, 0, 0);
+  return (ARTSIZED[key] = c);
+}
+/* stands on (x, y), h tall (css px); returns its box, or null while the art loads */
+function drawArt(g, name, x, y, h, res) {
+  var c = artSized(name, h, res);
+  if (!c) return null;
+  var w = c.width / (res || 1), hh = c.height / (res || 1);
+  g.save(); g.imageSmoothingEnabled = false;
+  g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh), w, hh);
+  g.restore();
+  return { x: x - w / 2, y: y - hh, w: w, h: hh };
+}
+
+/* ---- features/homebase.js ---- */
+/* The home base, drawn like the reference art: big homes with heart badges,
+   Montgomery County's blue castle and Northern Virginia's mountains, name pills
+   under them, glowing gold paths joining our places, and grey "ghost" cities
+   out in the parts we have not explored yet. */
+
+var HOMEBASE = [
+  { id: 'hb-montgomery', name: 'Montgomery County', lat: 39.20, lng: -77.17, r: 20, art: 'castle-blue', heart: '#6FA3E8', scale: 1 },
+  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'mountain', scale: 1.05 }
+];
+function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
+
+/* one size rule for every home sprite: big at the home-base view, bigger close in */
+function homeArtH(z) { return Math.max(30, Math.min(62, 30 + (z - 6.9) * 7.4)); }
+
+var HBBOX = {};
+var HB_LABEL = { bruce: 'Calvert County' };
+var HB_PILLS = { 'Montgomery County': 1, 'Northern Virginia': 1, 'Calvert County': 1 };
+var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], ['Philadelphia', 39.95, -75.17], ['Wilmington', 39.74, -75.55],
+  ['Frederick', 39.41, -77.41], ['Fredericksburg', 38.30, -77.46], ['Harrisburg', 40.27, -76.88], ['Norfolk', 36.85, -76.29], ['Hagerstown', 39.64, -77.72]];
+
+/* the gold paths between our places (drawn first, under the trees) */
+HOOKS.terrain.unshift(function () {
+  if (S.mode !== 'map' || S.zoom > 10.6) return;
+  var P = {
+    m: proj(HOMEBASE[0].lat, HOMEBASE[0].lng), n: proj(HOMEBASE[1].lat, HOMEBASE[1].lng),
+    e: proj(HOMES.elena.lat, HOMES.elena.lng), b: proj(HOMES.bruce.lat, HOMES.bruce.lng)
+  };
+  var links = [['m', 'e'], ['e', 'b'], ['b', 'n'], ['n', 'm']];
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  function path(a, b, bow) {
+    var dx = b.x - a.x, dy = b.y - a.y;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo((a.x + b.x) / 2 - dy * bow, (a.y + b.y) / 2 + dx * bow, b.x, b.y);
+  }
+  links.forEach(function (l, i) {
+    var bow = i % 2 ? 0.14 : -0.12;
+    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(245,216,142,.38)'; ctx.lineWidth = 8; ctx.stroke();
+    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(231,183,101,.9)'; ctx.lineWidth = 2.2; ctx.stroke();
+  });
+  ctx.restore();
+});
+
+/* ghost cities and the two home-base landmarks (after the trees, so they sit on top) */
+HOOKS.terrain.push(function () {
+  if (S.mode !== 'map') return;
+  var z = S.zoom;
+  if (z > 5.6 && z < 9.6) {
+    GHOST_CITIES.forEach(function (c) {
+      if (isRevealed(c[1], c[2], 1.1)) return;
+      var p = proj(c[1], c[2]);
+      if (p.x < -60 || p.y < -10 || p.x > W + 60 || p.y > H + 60) return;
+      ctx.save(); ctx.globalAlpha = 0.5;
+      drawArt(ctx, 'city-ghost', p.x, p.y, Math.min(46, 24 + (z - 6) * 6), DPR);
+      ctx.restore();
+    });
+  }
+  HBBOX = {};
+  HOMEBASE.forEach(function (h) {
+    var p = proj(h.lat, h.lng);
+    if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 80) return;
+    var b = drawArt(ctx, h.art, p.x, p.y, homeArtH(z) * h.scale, DPR);
+    if (b) { HBBOX[h.id] = b; addHit(b, { kind: 'beacon', lat: h.lat, lng: h.lng }); }
+  });
+});
+
+/* heart badges and name pills (after the homes are drawn) */
+function drawHeartBadge(x, y, color) {
+  ctx.save();
+  ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#D9A3B8'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y, 11, 0, 6.283); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 4, y + 9); ctx.lineTo(x + 4, y + 9); ctx.lineTo(x, y + 15); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  drawSprite(ctx, SP.heart, { h: color, o: '#6E2549' }, x, y + 7, 2, null);
+}
+function pill(x, y, text) { tryLabel(x, y, text, { size: 12, force: 1, bg: 'rgba(255,247,242,.96)', border: '#D9A3B8', fg: '#5B3046' }); }
+HOOKS.beforePins.push(function () {
+  if (S.mode !== 'map' || S.zoom > 9.8) return;
+  ['elena', 'bruce'].forEach(function (k) {
+    var b = HOMEBOXES[k]; if (!b) return;
+    drawHeartBadge(b.x + b.w / 2, b.y - 16, C.pink);
+    if (HB_LABEL[k]) pill(b.x + b.w / 2, b.y + b.h + 24, HB_LABEL[k]);
+  });
+  HOMEBASE.forEach(function (h) {
+    var b = HBBOX[h.id]; if (!b) return;
+    if (h.heart) drawHeartBadge(b.x + b.w / 2, b.y - 16, h.heart);
+    pill(b.x + b.w / 2, b.y + b.h + 24, h.name);
+  });
+});
+
+/* ---- features/terrain.js ---- */
+/* Living terrain: cherry trees, pines, oaks and blossom bushes grow over the
+   ground we have cleared, and little sailboats sit on the water. Positions come
+   from a fixed grid on the world (not the screen), so nothing moves when you
+   pan or zoom — more simply appear as you zoom in. */
+
+var TER = { px: null, w: 0, h: 0, on: true };
+try { TER.on = localStorage.getItem('ow.terrain') !== 'off'; } catch (e) {}
+
+/* look at the map underneath to know what is land and what is water */
+HOOKS.afterBase.push(function () {
+  try { TER.w = baseCv.width; TER.h = baseCv.height; TER.px = baseCtx.getImageData(0, 0, TER.w, TER.h).data; }
+  catch (e) { TER.px = null; }
+});
+function terrainAt(x, y) {
+  if (!TER.px) return null;
+  var k = W / TER.w, ix = Math.floor(x / k), iy = Math.floor(y / k);
+  if (ix < 0 || iy < 0 || ix >= TER.w || iy >= TER.h) return null;
+  var i = (iy * TER.w + ix) * 4, r = TER.px[i], g = TER.px[i + 1], b = TER.px[i + 2];
+  if (TER.px[i + 3] < 200) return null;
+  if (b < g - 8) return 'land';
+  if (b > g + 8 && b > 150) return 'water';
+  return null;
+}
+function terHash(a, b, s) {
+  var h = (a * 374761393 + b * 668265263 + s * 2246822519) >>> 0;
+  h = (h ^ (h >>> 13)) >>> 0; h = Math.imul(h, 1274126177) >>> 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+var TER_TYPES = ['tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink'];
+
+HOOKS.terrain.push(function () {
+  if (S.mode !== 'map' || !TER.on || !TER.px) return;
+  var z = S.zoom;
+  if (z < 6.3) return;
+  var tl = unproj(0, 0), br = unproj(W, H);
+  var latHi = Math.max(tl.lat, br.lat), latLo = Math.min(tl.lat, br.lat), lngLo = Math.min(tl.lng, br.lng), lngHi = Math.max(tl.lng, br.lng);
+  var items = [], i;
+  var homeBoxes = [HOMEBOXES.bruce, HOMEBOXES.elena];
+
+  /* trees and bushes on every bit of land: full colour where we have been, faded where we have not */
+  var avoid = [HOMEBOXES.bruce, HOMEBOXES.elena].concat(Object.keys(HBBOX).map(function (k) { return HBBOX[k]; }));
+  if (z >= 6.3) {
+    var dens = z > 9.5 ? 0.2 : 0.34;           /* lighter close in so the castle and pins breathe */
+    var cell = 0.009 * Math.pow(2, Math.max(0, Math.floor((11.6 - z) / 1.0)));
+    var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
+    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) < 2600) {
+      for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+        if (terHash(gx, gy, 1) > dens) continue;
+        var lat = (gy + 0.5 + (terHash(gx, gy, 2) - 0.5) * 0.85) * cell, lng = (gx + 0.5 + (terHash(gx, gy, 3) - 0.5) * 0.85) * cell;
+        var p = proj(lat, lng);
+        if (p.x < -30 || p.y < -10 || p.x > W + 30 || p.y > H + 60) continue;
+        if (terrainAt(p.x, p.y) !== 'land') continue;
+        var near = false;
+        for (i = 0; i < avoid.length; i++) { var hb = avoid[i]; if (hb && p.x > hb.x - 18 && p.x < hb.x + hb.w + 18 && p.y > hb.y - 6 && p.y < hb.y + hb.h + 34) near = true; }
+        if (near) continue;
+        if (!labelFree({ x: p.x - 12, y: p.y - 26, w: 24, h: 28 })) continue;      /* never grow over a name */
+        var t = terHash(gx, gy, 4), type = t < 0.22 ? 0 : (t < 0.68 ? 1 : (t < 0.92 ? 2 : 3));
+        var base = Math.max(10, Math.min(30, 10 + (z - 6.3) * 4)) * (type === 3 ? 0.62 : (type === 1 ? 1.05 : 1)) * (0.88 + terHash(gx, gy, 5) * 0.24);
+        items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, ghost: !isRevealed(lat, lng, 0.94) });
+      }
+    }
+  }
+  /* sailboats on open water, one every so often */
+  var bc = 0.07;
+  var by0 = Math.floor(latLo / bc), by1 = Math.ceil(latHi / bc), bx0 = Math.floor(lngLo / bc), bx1 = Math.ceil(lngHi / bc);
+  if ((by1 - by0 + 1) * (bx1 - bx0 + 1) < 900) {
+    for (var gy2 = by0; gy2 <= by1; gy2++) for (var gx2 = bx0; gx2 <= bx1; gx2++) {
+      if (terHash(gx2, gy2, 11) > 0.16) continue;
+      var blat = (gy2 + 0.5 + (terHash(gx2, gy2, 12) - 0.5) * 0.8) * bc, blng = (gx2 + 0.5 + (terHash(gx2, gy2, 13) - 0.5) * 0.8) * bc;
+      var bp = proj(blat, blng);
+      if (bp.x < -30 || bp.y < -10 || bp.x > W + 30 || bp.y > H + 50) continue;
+      if (terrainAt(bp.x, bp.y) !== 'water') continue;
+      items.push({ x: bp.x, y: bp.y, n: 'boat', h: Math.min(36, 13 + (z - 6.3) * 4) });
+    }
+  }
+  items.sort(function (a, b) { return a.y - b.y; });
+  for (i = 0; i < items.length && i < 320; i++) {
+    if (items[i].ghost) { ctx.save(); ctx.globalAlpha = 0.5; }
+    drawArt(ctx, items[i].n, items[i].x, items[i].y, items[i].h, DPR);
+    if (items[i].ghost) ctx.restore();
+  }
+});
+
+/* a fine grain over land and water, like the texture pack */
+var TER_GRAIN = null;
+function terGrain() {
+  if (TER_GRAIN) return TER_GRAIN;
+  var c = document.createElement('canvas'); c.width = 8; c.height = 8; var g = c.getContext('2d');
+  g.fillStyle = 'rgba(255,255,255,.07)'; g.fillRect(1, 1, 1, 1); g.fillRect(5, 4, 1, 1); g.fillRect(3, 6, 1, 1);
+  g.fillStyle = 'rgba(40,70,50,.05)'; g.fillRect(6, 1, 1, 1); g.fillRect(2, 3, 1, 1); g.fillRect(7, 7, 1, 1);
+  TER_GRAIN = baseCtx.createPattern(c, 'repeat');
+  return TER_GRAIN;
+}
+HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fillRect(0, 0, baseCv.width, baseCv.height); });
+
 /* ---- features/beacon.js ---- */
 /* Location markers: a pin on "home" (and on far-off places we have been) that
    stays visible on the globe and on the zoomed-out map, so our place in the
@@ -3690,6 +3959,7 @@ HOOKS.afterOverlays.push(function () {
   var fade = Math.max(0, Math.min(1, (8.6 - S.zoom) / 1.4));
   ctx.imageSmoothingEnabled = false;
   beaconSpots().forEach(function (sp) {
+    if (sp.home) return;                 /* home has its own heart badges now */
     var p = proj(sp.lat, sp.lng);
     if (p.x < -30 || p.y < -40 || p.x > W + 30 || p.y > H + 30) return;
     ctx.globalAlpha = fade;
@@ -3857,6 +4127,8 @@ var AV_COLORS = [
 /* average brightness of each original garment, so shading survives a recolour */
 var AV_REF = { bruce: { top: .12, bottom: .101, shoes: .183 }, elena: { top: .102, bottom: .535, shoes: .092 } };
 var AVIMG = {}, AVCACHE = {};
+var AV_ON = true;
+try { AV_ON = localStorage.getItem('ow.avon') !== 'off'; } catch (e) {}
 var HOMEBOXES = {};         /* where each home sprite was drawn this frame (set by the map renderer) */
 S.avatars = {};
 try { S.avatars = JSON.parse(localStorage.getItem('ow.avatars') || '{}') || {}; } catch (e) {}
@@ -3970,12 +4242,12 @@ function drawTogetherPair(g, x, y, h, res) {
   var a = drawAvatar(g, 'bruce', x - wb * .42, y, h, null, { res: res, lift: avBob(0) }),
       b = drawAvatar(g, 'elena', x + we * .42, y, h, null, { res: res, lift: avBob(1.3) });
   if (!a || !b) return null;
-  var bob = reduceMotion ? 0 : Math.sin(cloudPhase / 7) * 1.5;
+  var bob = 0;
   drawSprite(g, SP.heart, PAL.heartP, x, Math.round(y - h - 3 + bob), Math.max(1, Math.min(4, Math.round(h / 40))), '#FFFFFF');
   return { x: a.x, y: a.y - 8, w: b.x + b.w - a.x, h: h + 8 };
 }
 /* a slow breath while standing still */
-function avBob(phase) { return reduceMotion ? 0 : Math.round(Math.sin(cloudPhase / 16 + phase) * 0.6); }
+function avBob() { return 0; }          /* avatars stand perfectly still */
 
 /* the sign-in screen shows the two of you once the art has loaded */
 (function gateAvatars(tries) {
@@ -4031,6 +4303,12 @@ ACTIONS['av-save'] = function () {
   if (S.db) S.db.collection('avatars').doc(S.who).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 4000); });
   toast('Looking good!', '👗', 2600); sparkle();
   draw();
+};
+
+ACTIONS['av-toggle'] = function () {
+  AV_ON = !AV_ON;
+  try { localStorage.setItem('ow.avon', AV_ON ? 'on' : 'off'); } catch (e) {}
+  openMenu(); draw();
 };
 
 /* ---- features/presence.js ---- */
@@ -4199,18 +4477,18 @@ togetherBtn.addEventListener('click', function () {
    house. When someone is online but not sharing a location, they wait beside
    their own home. */
 function homeScaleNow() { var z = S.zoom; return z > 10.6 ? 4 : (z > 9 ? 3 : 2); }
-function avatarHeight() { return S.zoom < 7.2 ? 0 : Math.round(13 * homeScaleNow()); }
+function avatarHeight() { return S.zoom < 7.2 ? 0 : Math.round(homeArtH(S.zoom) * 0.8); }
 
-var AVPOS = {};   /* who -> smoothed screen position and facing */
-function glide(key, tx, ty) {
-  var p = AVPOS[key];
-  if (!p || Math.hypot(tx - p.x, ty - p.y) > 400) p = AVPOS[key] = { x: tx, y: ty, flip: false, moving: 0 };
-  var dx = tx - p.x, dy = ty - p.y;
-  if (Math.abs(dx) > 0.6 || Math.abs(dy) > 0.6) {
-    p.x += dx * 0.18; p.y += dy * 0.18;
-    if (Math.abs(dx) > 1.5) p.flip = dx < 0;
-    p.moving = 8;
-  } else { p.x = tx; p.y = ty; if (p.moving > 0) p.moving--; }
+/* A live avatar eases to its new place on the WORLD (not the screen), and only
+   when it has really moved: panning, zooming and GPS noise never make it move. */
+var AVW = {};
+function worldGlide(key, lat, lng) {
+  var p = AVW[key];
+  if (!p) p = AVW[key] = { lat: lat, lng: lng };
+  var dm = haversine(p.lat, p.lng, lat, lng) * 1000;
+  if (dm < 6) return p;                                   /* GPS noise: stay put */
+  if (dm > 600) { p.lat = lat; p.lng = lng; return p; }   /* a jump: don't slide across the map */
+  p.lat += (lat - p.lat) * 0.12; p.lng += (lng - p.lng) * 0.12;
   return p;
 }
 /* nudge a figure of width w off any home sprite it would overlap */
@@ -4224,38 +4502,36 @@ function besideHomes(x, y, w) {
   });
   return x;
 }
-function drawFigure(who, key, x, y, h) {
-  var w = avWidth(who, h);
-  var g = glide(key, besideHomes(x, y, w), y);
-  var hop = g.moving > 0 && !reduceMotion ? -Math.abs(Math.round(Math.sin(cloudPhase / 2.2) * 2)) : avBob(who === 'elena' ? 1.3 : 0);
-  return drawAvatar(ctx, who, g.x, g.y, h, null, { res: DPR, lift: hop, flip: g.flip });
+function drawFigure(who, x, y, h) {
+  return drawAvatar(ctx, who, besideHomes(x, y, avWidth(who, h)), y, h, null, { res: DPR });
 }
 HOOKS.afterOverlays.push(function () {
-  if (S.mode !== 'map' || !S.who) return;
+  if (S.mode !== 'map' || !S.who || !AV_ON) return;
   var h = avatarHeight(); if (!h) return;
   var m = PR.mine, p = PR.partner, box, pt, labels = S.zoom > 9;
-  function tag(x, y, text) { if (labels) tryLabel(x, y, text, { size: 10, border: C.princess }); }
+  function tag(x, y, text) { if (labels) tryLabel(x, y, text, { size: 10 }); }
 
   if (PR.hands && m.lat != null && p && p.lat != null) {
-    var mid = midpoint(); pt = proj(mid.lat, mid.lng);
+    var mid = midpoint(), g = worldGlide('pair', mid.lat, mid.lng);
+    pt = proj(g.lat, g.lng);
     var pw = avWidth('bruce', h) + avWidth('elena', h);
-    var gp = glide('pair', besideHomes(pt.x, pt.y, pw), pt.y);
-    box = drawTogetherPair(ctx, gp.x, gp.y, h, DPR);
-    if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(gp.x, box.y - 2, 'Together'); }
+    box = drawTogetherPair(ctx, besideHomes(pt.x, pt.y, pw), pt.y, h, DPR);
+    if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(box.x + box.w / 2, box.y - 2, 'Together'); }
     return;
   }
   var them = other(S.who);
   [[them, p, p && p.sharing && p.lat != null], [S.who, m, m.sharing && m.lat != null]].forEach(function (it) {
     var who = it[0], st = it[1], live = it[2], online = who === S.who ? true : !!st;
     if (live) {
-      pt = proj(st.lat, st.lng);
-      box = drawFigure(who, who + '-live', pt.x, pt.y, h);
+      var gw = worldGlide(who, st.lat, st.lng);
+      pt = proj(gw.lat, gw.lng);
+      box = drawFigure(who, pt.x, pt.y, h);
       if (box) { addHit(box, { kind: 'avatar', who: who }); tag(box.x + box.w / 2, box.y - 2, who === S.who ? 'You' : jrShortName(who) + ' \u00b7 live'); }
     } else if (online && HOMEBOXES[who] && S.zoom > 8.6) {
-      /* waiting at home: stand just beside the house, on the same ground line */
+      /* waiting at home: standing beside the house, on its ground line, never moving */
       var hb = HOMEBOXES[who], w = avWidth(who, h);
       var x = who === 'elena' ? hb.x - w / 2 - 1 : hb.x + hb.w + w / 2 + 1;
-      box = drawFigure(who, who + '-home', x, hb.baseY, h);
+      box = drawAvatar(ctx, who, x, hb.baseY, h, null, { res: DPR });
       if (box) addHit(box, { kind: 'avatar', who: who });
     }
   });
@@ -5010,38 +5286,88 @@ function thisDayToast() {
   setTimeout(function () { toast(yearsAgo(list[0].years) + ': ' + list[0].m.title, '💗', 7000); }, 2500);
 }
 
-/* ---------- the sheet ---------- */
-function openMore() {
-  var td = thisDayList(), html = head('More of us', 'little extras') + annCardHtml();
+/* ---------- the menu: one button, tidy drop-down groups ---------- */
+var MENU = { open: { add: true } };
+try { MENU.open = JSON.parse(localStorage.getItem('ow.menu') || 'null') || MENU.open; } catch (e) {}
+function menuSave() { try { localStorage.setItem('ow.menu', JSON.stringify(MENU.open)); } catch (e) {} }
+function grp(id, icon, title, count, body) {
+  return '<div class="grp' + (MENU.open[id] ? ' open' : '') + '" data-g="' + id + '"><button type="button" class="grp-h" data-act="grp" data-g="' + id + '">' +
+    '<span>' + icon + '</span><span>' + esc(title) + '</span>' + (count ? '<span class="cnt">' + esc(count) + '</span>' : '') + '<span class="caret">▾</span></button>' +
+    '<div class="grp-b"><div class="list">' + body + '</div></div></div>';
+}
+ACTIONS['grp'] = function (b) {
+  var id = b.dataset.g, el = sheet.querySelector('.grp[data-g="' + id + '"]');
+  MENU.open[id] = !MENU.open[id]; menuSave();
+  if (el) el.classList.toggle('open', !!MENU.open[id]);
+};
+
+function openMenu() {
+  var td = thisDayList(), html = head('Menu', 'everything in one place') + annCardHtml();
   if (td.length) {
-    html += sectionTitle('Looking back') + '<div class="list">' + td.map(function (it) {
+    html += '<div class="list" style="margin-bottom:10px">' + td.map(function (it) {
       return '<button type="button" data-act="goto" data-lat="' + it.m.lat + '" data-lng="' + it.m.lng + '" data-z="13">' +
         '<span class="ico">💗</span><span><span class="t">' + esc(it.m.title) + '</span><br><span class="s">' + esc(yearsAgo(it.years)) + '</span></span></button>';
     }).join('') + '</div>';
   }
-  var online = PR.partner ? 'online now' : 'offline';
-  html += sectionTitle('Together') + '<div class="list">' +
-    moreRow('share-loc', '\ud83d\udccd', PR.mine.sharing ? 'Live location is ON' : 'Share my live location', PR.mine.sharing ? 'Tap to stop · ' + whoName(other(S.who)).replace('Princess ', '') + ' is ' + online : 'Appear on the map when we are both here') +
-    moreRow('letters', '\ud83d\udc8c', 'Letters', (function () { var n = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length; return n ? n + ' sealed for you' : 'Sealed for a place, or a day'; })()) +
-    moreRow('note-edit', '\ud83d\udc8c', 'My daily love note', S.notes[S.who] && S.notes[S.who].text ? 'Showing: ' + S.notes[S.who].text.slice(0, 40) + (S.notes[S.who].text.length > 40 ? '…' : '') : 'Waits for them every time they open the map') +
-    moreRow('bucket', '\ud83c\udf20', 'Our bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' things to do together' : 'Things we want to do together') +
-    moreRow('albums', '\ud83d\uddbc\ufe0f', 'Photo albums', 'Polaroid stacks, by place') +
-    moreRow('trips-list', '\ud83e\uddf5', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') + ' threaded across the map' : 'Thread memories into a journey') +
-    moreRow('plans-list', '\u2b50', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
-    moreRow('walk', '\ud83d\udc63', WALK.rec ? 'Stop recording our walk' : 'Record our walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : (S.walks.length ? S.walks.length + ' walks on the heat trail' : 'Adds the route to our heat trail')) +
-    moreRow('poster', '\ud83d\uddbc\ufe0f', 'Save our map as a poster', 'Frame it, or send it to her') +
-    '</div>' + sectionTitle('Just us') + '<div class="list">' +
-    moreRow('journal', '\ud83d\udcd3', 'Our journal', 'How today felt, how much you miss them, photos \u00b7 you both read it') +
-    moreRow('avatars', '\ud83d\udc57', 'Our avatars', 'Change your outfit colours') +
-    '</div>' + sectionTitle('This device') + '<div class="list">' +
-    moreRow('install', '\ud83d\udcf1', 'Add to your home screen', 'Opens full-screen like a real app') +
-    moreRow('atmos', '\ud83c\udf19', 'Atmosphere and sound', (AMB.tod === 'live' ? 'Follows the real clock' : AMB.tod === 'day' ? 'Always daytime' : 'Always night') + (AMB.weather ? ' \u00b7 weather on' : ' \u00b7 weather off')) +
-    moreRow('sign-out', '\ud83d\udeaa', 'Sign out', 'Locks this device again') +
-    '</div>';
+  var them = whoName(other(S.who)).replace('Princess ', ''), online = PR.partner ? 'online now' : 'offline';
+  var unopened = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length;
+  html +=
+    grp('add', '➕', 'Add', '', 
+      moreRow('add-memory', '💗', 'A memory', 'Pin where something happened') +
+      moreRow('add-letter', '💌', 'A sealed letter', 'Opens at a place, or on a day') +
+      moreRow('plan-new', '⭐', 'A place we want to go', 'Waits on the map, counts down') +
+      moreRow('walk', '👣', WALK.rec ? 'Stop recording our walk' : 'Record a walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : 'Adds the route to our heat trail')) +
+    grp('explore', '🗺️', 'Explore', '',
+      moreRow('places', '🏡', 'Our places', 'Everywhere the clouds have lifted') +
+      moreRow('calendar', '📅', 'Calendar', 'Memories by day') +
+      moreRow('albums', '🖼️', 'Photo albums', 'Polaroid stacks, by place') +
+      moreRow('trips-list', '🧵', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') : 'Thread memories into a journey') +
+      moreRow('together-map', '🏘️', 'Show us together', 'Both homes on one map') +
+      moreRow('discover-here', '✨', 'Clear the ground here', 'Lift the clouds where the map is centred') +
+      moreRow('poster', '🖼️', 'Save the map as a poster', 'Frame it, or send it to them')) +
+    grp('us', '💞', 'Us', unopened ? unopened + ' letter' + (unopened > 1 ? 's' : '') : '',
+      moreRow('note-edit', '💌', 'My daily love note', S.notes[S.who] && S.notes[S.who].text ? S.notes[S.who].text.slice(0, 40) + (S.notes[S.who].text.length > 40 ? '…' : '') : 'Waits for ' + them + ' every time they open the map') +
+      moreRow('journal', '📓', 'Our journal', 'How today felt · you both read it') +
+      moreRow('letters', '💌', 'Letters', unopened ? unopened + ' sealed for you' : 'Sealed for each other') +
+      moreRow('bucket', '🌠', 'Bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' to do together' : 'Things we want to do together') +
+      moreRow('plans-list', '⭐', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
+      moreRow('ann-edit', '📅', 'Our anniversary', S.us && S.us.anniversary ? fmtDate(S.us.anniversary) : 'Set the day it started')) +
+    grp('me', '🧍', 'Avatars & location', '',
+      moreRow('av-toggle', '🧍', AV_ON ? 'Avatars on the map: ON' : 'Avatars on the map: OFF', AV_ON ? 'Tap to hide them' : 'Tap to show them') +
+      moreRow('avatars', '👗', 'Change outfit', 'Top, ' + (S.who === 'elena' ? 'skirt' : 'trousers') + ' and shoes') +
+      moreRow('share-loc', '📍', PR.mine.sharing ? 'Live location: ON' : 'Share my live location', PR.mine.sharing ? 'Tap to stop · ' + them + ' is ' + online : 'Appear on the map when we are both here')) +
+    grp('set', '⚙️', 'Settings', '',
+      moreRow('atmos', '🌙', 'Atmosphere & sound', (AMB.tod === 'live' ? 'Real clock' : AMB.tod === 'day' ? 'Always day' : 'Always night') + (AMB.weather ? ' · weather on' : ' · weather off')) +
+      moreRow('trees-toggle', '🌳', TER.on ? 'Trees & boats: ON' : 'Trees & boats: OFF', TER.on ? 'Tap to hide' : 'Tap to show') +
+      moreRow('install', '📱', 'Add to your home screen', 'Opens full-screen like an app') +
+      moreRow('sign-out', '🚪', 'Sign out', 'Locks this device'));
   openSheet(html);
 }
-document.getElementById('btnMore').addEventListener('click', openMore);
-ACTIONS['more'] = openMore;
+var openMore = openMenu;
+document.getElementById('btnMore').addEventListener('click', openMenu);
+ACTIONS['more'] = openMenu;
+ACTIONS['menu'] = openMenu;
+
+/* the pink heart button: what do you want to add? */
+function openAddMenu() {
+  openSheet(head('Add something', 'tap to choose') +
+    '<div class="addgrid">' +
+    '<button type="button" data-act="add-memory"><span class="big">💗</span>Memory<small>where it happened</small></button>' +
+    '<button type="button" data-act="add-letter"><span class="big">💌</span>Letter<small>sealed for them</small></button>' +
+    '<button type="button" data-act="plan-new"><span class="big">⭐</span>Plan<small>a place to go</small></button>' +
+    '<button type="button" data-act="walk"><span class="big">👣</span>Walk<small>record a route</small></button>' +
+    '</div>');
+}
+ACTIONS['add-memory'] = function () { startPlacing('memory'); };
+ACTIONS['add-letter'] = function () { startPlacing('surprise'); };
+ACTIONS['places'] = function () { openPlaces(); };
+ACTIONS['calendar'] = function () { closeSheet(); openCal(); };
+ACTIONS['together-map'] = function () { closeSheet(); document.getElementById('btnTogether').click(); };
+ACTIONS['discover-here'] = function () { closeSheet(); document.getElementById('btnHere').click(); };
+ACTIONS['trees-toggle'] = function () {
+  TER.on = !TER.on; try { localStorage.setItem('ow.terrain', TER.on ? 'on' : 'off'); } catch (e) {}
+  openMenu(); draw();
+};
 ACTIONS['atmos'] = openAtmos;
 ACTIONS['poster'] = savePoster;
 ACTIONS['install'] = function () {

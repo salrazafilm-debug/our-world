@@ -228,6 +228,9 @@ and check.
 
 | File | What it does |
 |---|---|
+| `art.js` | the texture pack: sprites cut from the art sheet (`art/*.png`), shrunk once to the exact size drawn |
+| `homebase.js` | the home base: big homes with heart badges, Montgomery County castle, Northern Virginia mountains, name pills, gold paths, ghost cities |
+| `terrain.js` | trees, blossom bushes and sailboats on a fixed world grid (faded where unexplored), and a fine grain over the map |
 | `beacon.js` | location pins on the globe and zoomed-out map; tap to fly there |
 | `ambient.js` | light that follows the real clock, seasonal weather, sparkle bursts, anniversary confetti |
 | `avatars.js` | the two of you (from `avatars/*.png`), recolourable outfits (mask PNGs: R=top, G=bottom, B=shoes), drawn at the home icons' scale |
