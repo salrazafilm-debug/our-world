@@ -15,6 +15,8 @@ var AV_COLORS = [
 /* average brightness of each original garment, so shading survives a recolour */
 var AV_REF = { bruce: { top: .12, bottom: .101, shoes: .183 }, elena: { top: .102, bottom: .535, shoes: .092 } };
 var AVIMG = {}, AVCACHE = {};
+var AV_ON = true;
+try { AV_ON = localStorage.getItem('ow.avon') !== 'off'; } catch (e) {}
 var HOMEBOXES = {};         /* where each home sprite was drawn this frame (set by the map renderer) */
 S.avatars = {};
 try { S.avatars = JSON.parse(localStorage.getItem('ow.avatars') || '{}') || {}; } catch (e) {}
@@ -128,12 +130,12 @@ function drawTogetherPair(g, x, y, h, res) {
   var a = drawAvatar(g, 'bruce', x - wb * .42, y, h, null, { res: res, lift: avBob(0) }),
       b = drawAvatar(g, 'elena', x + we * .42, y, h, null, { res: res, lift: avBob(1.3) });
   if (!a || !b) return null;
-  var bob = reduceMotion ? 0 : Math.sin(cloudPhase / 7) * 1.5;
+  var bob = 0;
   drawSprite(g, SP.heart, PAL.heartP, x, Math.round(y - h - 3 + bob), Math.max(1, Math.min(4, Math.round(h / 40))), '#FFFFFF');
   return { x: a.x, y: a.y - 8, w: b.x + b.w - a.x, h: h + 8 };
 }
 /* a slow breath while standing still */
-function avBob(phase) { return reduceMotion ? 0 : Math.round(Math.sin(cloudPhase / 16 + phase) * 0.6); }
+function avBob() { return 0; }          /* avatars stand perfectly still */
 
 /* the sign-in screen shows the two of you once the art has loaded */
 (function gateAvatars(tries) {
@@ -189,4 +191,10 @@ ACTIONS['av-save'] = function () {
   if (S.db) S.db.collection('avatars').doc(S.who).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 4000); });
   toast('Looking good!', '👗', 2600); sparkle();
   draw();
+};
+
+ACTIONS['av-toggle'] = function () {
+  AV_ON = !AV_ON;
+  try { localStorage.setItem('ow.avon', AV_ON ? 'on' : 'off'); } catch (e) {}
+  openMenu(); draw();
 };

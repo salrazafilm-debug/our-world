@@ -163,18 +163,18 @@ togetherBtn.addEventListener('click', function () {
    house. When someone is online but not sharing a location, they wait beside
    their own home. */
 function homeScaleNow() { var z = S.zoom; return z > 10.6 ? 4 : (z > 9 ? 3 : 2); }
-function avatarHeight() { return S.zoom < 7.2 ? 0 : Math.round(13 * homeScaleNow()); }
+function avatarHeight() { return S.zoom < 7.2 ? 0 : Math.round(homeArtH(S.zoom) * 0.8); }
 
-var AVPOS = {};   /* who -> smoothed screen position and facing */
-function glide(key, tx, ty) {
-  var p = AVPOS[key];
-  if (!p || Math.hypot(tx - p.x, ty - p.y) > 400) p = AVPOS[key] = { x: tx, y: ty, flip: false, moving: 0 };
-  var dx = tx - p.x, dy = ty - p.y;
-  if (Math.abs(dx) > 0.6 || Math.abs(dy) > 0.6) {
-    p.x += dx * 0.18; p.y += dy * 0.18;
-    if (Math.abs(dx) > 1.5) p.flip = dx < 0;
-    p.moving = 8;
-  } else { p.x = tx; p.y = ty; if (p.moving > 0) p.moving--; }
+/* A live avatar eases to its new place on the WORLD (not the screen), and only
+   when it has really moved: panning, zooming and GPS noise never make it move. */
+var AVW = {};
+function worldGlide(key, lat, lng) {
+  var p = AVW[key];
+  if (!p) p = AVW[key] = { lat: lat, lng: lng };
+  var dm = haversine(p.lat, p.lng, lat, lng) * 1000;
+  if (dm < 6) return p;                                   /* GPS noise: stay put */
+  if (dm > 600) { p.lat = lat; p.lng = lng; return p; }   /* a jump: don't slide across the map */
+  p.lat += (lat - p.lat) * 0.12; p.lng += (lng - p.lng) * 0.12;
   return p;
 }
 /* nudge a figure of width w off any home sprite it would overlap */
@@ -188,38 +188,36 @@ function besideHomes(x, y, w) {
   });
   return x;
 }
-function drawFigure(who, key, x, y, h) {
-  var w = avWidth(who, h);
-  var g = glide(key, besideHomes(x, y, w), y);
-  var hop = g.moving > 0 && !reduceMotion ? -Math.abs(Math.round(Math.sin(cloudPhase / 2.2) * 2)) : avBob(who === 'elena' ? 1.3 : 0);
-  return drawAvatar(ctx, who, g.x, g.y, h, null, { res: DPR, lift: hop, flip: g.flip });
+function drawFigure(who, x, y, h) {
+  return drawAvatar(ctx, who, besideHomes(x, y, avWidth(who, h)), y, h, null, { res: DPR });
 }
 HOOKS.afterOverlays.push(function () {
-  if (S.mode !== 'map' || !S.who) return;
+  if (S.mode !== 'map' || !S.who || !AV_ON) return;
   var h = avatarHeight(); if (!h) return;
   var m = PR.mine, p = PR.partner, box, pt, labels = S.zoom > 9;
-  function tag(x, y, text) { if (labels) tryLabel(x, y, text, { size: 10, border: C.princess }); }
+  function tag(x, y, text) { if (labels) tryLabel(x, y, text, { size: 10 }); }
 
   if (PR.hands && m.lat != null && p && p.lat != null) {
-    var mid = midpoint(); pt = proj(mid.lat, mid.lng);
+    var mid = midpoint(), g = worldGlide('pair', mid.lat, mid.lng);
+    pt = proj(g.lat, g.lng);
     var pw = avWidth('bruce', h) + avWidth('elena', h);
-    var gp = glide('pair', besideHomes(pt.x, pt.y, pw), pt.y);
-    box = drawTogetherPair(ctx, gp.x, gp.y, h, DPR);
-    if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(gp.x, box.y - 2, 'Together'); }
+    box = drawTogetherPair(ctx, besideHomes(pt.x, pt.y, pw), pt.y, h, DPR);
+    if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(box.x + box.w / 2, box.y - 2, 'Together'); }
     return;
   }
   var them = other(S.who);
   [[them, p, p && p.sharing && p.lat != null], [S.who, m, m.sharing && m.lat != null]].forEach(function (it) {
     var who = it[0], st = it[1], live = it[2], online = who === S.who ? true : !!st;
     if (live) {
-      pt = proj(st.lat, st.lng);
-      box = drawFigure(who, who + '-live', pt.x, pt.y, h);
+      var gw = worldGlide(who, st.lat, st.lng);
+      pt = proj(gw.lat, gw.lng);
+      box = drawFigure(who, pt.x, pt.y, h);
       if (box) { addHit(box, { kind: 'avatar', who: who }); tag(box.x + box.w / 2, box.y - 2, who === S.who ? 'You' : jrShortName(who) + ' \u00b7 live'); }
     } else if (online && HOMEBOXES[who] && S.zoom > 8.6) {
-      /* waiting at home: stand just beside the house, on the same ground line */
+      /* waiting at home: standing beside the house, on its ground line, never moving */
       var hb = HOMEBOXES[who], w = avWidth(who, h);
       var x = who === 'elena' ? hb.x - w / 2 - 1 : hb.x + hb.w + w / 2 + 1;
-      box = drawFigure(who, who + '-home', x, hb.baseY, h);
+      box = drawAvatar(ctx, who, x, hb.baseY, h, null, { res: DPR });
       if (box) addHit(box, { kind: 'avatar', who: who });
     }
   });
