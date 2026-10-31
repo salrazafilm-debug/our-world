@@ -9,7 +9,7 @@ var HOMEBASE = [
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(38, Math.min(78, 38 + (z - 6.9) * 9)); }   /* homes always stand well above the trees */
+function homeArtH(z) { return Math.max(34, Math.min(78, 34 + (z - 6.9) * 10)); }   /* homes always stand well above the trees */
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Calvert County' };
@@ -75,7 +75,10 @@ HOOKS.beforePins.push(function () {
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;
-    drawHeartBadge(b.x + b.w / 2, b.y - 16, C.pink);
+    var bx = b.x + b.w / 2, by = b.y - 16, o = HOMEBOXES[other(k)];
+    /* if the badge would land on the other home, tuck it beside this one instead */
+    if (o && bx + 12 > o.x && bx - 12 < o.x + o.w && by + 15 > o.y && by - 11 < o.y + o.h) { bx = b.x + b.w + 10; by = b.y + 6; }
+    drawHeartBadge(bx, by, C.pink);
     if (HB_LABEL[k]) pill(b.x + b.w / 2, b.y + b.h + 24, HB_LABEL[k]);
   });
   HOMEBASE.forEach(function (h) {

@@ -671,7 +671,7 @@ var C = {
   gold:'#E7B765', softgold:'#F5D88E', land:'#8CBC68', landdeep:'#5E8D63',
   water:'#58A6D6', waterlite:'#9ED5EE', fog:'#C5C1CF', cloud:'#E2DDE7',
   ink:'#3D2838', space:'#1F1D39',
-  landmuted:'#9DBE7C', landmutededge:'#8EAE6E'
+  landmuted:'#93BF6F', landmutededge:'#86B163'
 };
 var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
@@ -1175,10 +1175,11 @@ function drawBase() {
         if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
       }
       g.closePath(); g.fill();
+      g.strokeStyle = g.fillStyle; g.lineWidth = 1.3; g.lineJoin = 'round'; g.stroke();   /* closes hairline seams between shapes */
     }
   }
-  /* county / regional boundaries — faint texture, only once you are close enough */
-  if (z > 6.2) {
+  /* county / regional boundaries — faint texture, only once you are close in */
+  if (z > 9.2) {
     g.lineWidth = 0.4; g.lineJoin = 'round';
     for (i = 0; i < GEO.states.length; i++) {
       st = GEO.states[i];
@@ -1207,15 +1208,15 @@ function drawBase() {
   }
   /* routes */
   if (z > 6.6) {
-    var RT = window.OW_ROUTES, wgt = Math.max(0.4, (z - 6) * 0.26);
+    var RT = window.OW_ROUTES, wgt = Math.max(0.9, (z - 6) * 0.34);
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (i = 0; i < RT.length; i++) {
       var pts = RT[i][1];
-      g.strokeStyle = 'rgba(122,91,58,.30)'; g.lineWidth = wgt + 0.7;
+      g.strokeStyle = 'rgba(166,128,82,.45)'; g.lineWidth = wgt + 1.2;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
-      g.strokeStyle = 'rgba(255,248,240,.72)'; g.lineWidth = wgt;
+      g.strokeStyle = 'rgba(236,214,168,.95)'; g.lineWidth = wgt;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();

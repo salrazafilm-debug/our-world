@@ -37,9 +37,13 @@ function terNoise(x, y) {
   return (a + (b - a) * fx) + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fy;
 }
 function grove(lat, lng) {
-  var n = terNoise(lat / 0.22, lng / 0.22) * 0.65 + terNoise(lat / 0.06, lng / 0.06) * 0.35;
-  var t = Math.max(0, Math.min(1, (n - 0.36) / 0.34));
-  return 0.04 + t * t * (3 - 2 * t) * 0.62;          /* clearings ≈ 4%, deep forest ≈ 66% */
+  var n = terNoise(lat / 0.3, lng / 0.3) * 0.7 + terNoise(lat / 0.07, lng / 0.07) * 0.3;
+  var t = Math.max(0, Math.min(1, (n - 0.4) / 0.28));
+  var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields ≈ 2%, deep forest ≈ 87% */
+  /* the home base itself stays open countryside, the woods gather around it */
+  var dh = haversine(lat, lng, 38.86, -76.68);
+  if (dh < 45 && S.zoom < 9.2) g *= 0.25 + 0.75 * Math.max(0, (dh - 18) / 27);
+  return g;
 }
 
 /* Cinematic depth: the middle of the screen is in focus; toward the top and
@@ -72,7 +76,7 @@ HOOKS.terrain.push(function () {
   var cell = 0.009 * Math.pow(2, Math.max(0, Math.floor((11.6 - z) / 1.0)));
   var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
   /* lighter close in so homes and pins breathe; lusher far out so the home base reads as countryside */
-  var thin = z > 9.5 ? 0.36 : (z < 8.6 ? 0.95 : 0.6), floor = z < 8.6 ? 0.04 : 0;
+  var thin = z > 9.5 ? 0.5 : (z < 8.6 ? 0.9 : 0.6), floor = 0;
   if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) < 2600) {
     for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
       var cy = (gy + 0.5) * cell, cx = (gx + 0.5) * cell;
@@ -93,7 +97,7 @@ HOOKS.terrain.push(function () {
       var vary = 0.8 + Math.pow(terHash(gx, gy, 5), 1.6) * 0.5;            /* most average, a few taller */
       var kind = type === 3 ? 0.6 : (type === 1 ? 1.12 : 1);
       var depth = 0.86 + 0.14 * Math.max(0, Math.min(1, p.y / H));          /* a little smaller toward the top */
-      var base = Math.max(9, Math.min(24, 9 + (z - 6.3) * 3)) * kind * vary * depth;   /* always well under a home's height */
+      var base = Math.max(12, Math.min(24, 12 + (z - 6.3) * 2.6)) * kind * vary * depth;   /* always well under a home's height */
       items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, ghost: !isRevealed(lat, lng, 0.94), f: focusAt(p.y), k: terHash(gx, gy, 9) });
     }
   }
