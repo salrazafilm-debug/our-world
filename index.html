@@ -1142,10 +1142,10 @@ window.OWCloud = {
 /* ============================== constants ============================== */
 var C = {
   bg:'#FFF8FB', pink:'#D85A92', deep:'#9F3D6D', princess:'#F3A9C7',
-  gold:'#E7B765', softgold:'#F5D88E', land:'#91B979', landdeep:'#5E8D63',
-  water:'#63B9C7', waterlite:'#A5E1E5', fog:'#C5C1CF', cloud:'#E2DDE7',
+  gold:'#E7B765', softgold:'#F5D88E', land:'#8CBC68', landdeep:'#5E8D63',
+  water:'#58A6D6', waterlite:'#9ED5EE', fog:'#C5C1CF', cloud:'#E2DDE7',
   ink:'#3D2838', space:'#1F1D39',
-  landmuted:'#BFCBA6', landmutededge:'#A9B592'
+  landmuted:'#93BF6F', landmutededge:'#86B163'
 };
 var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
@@ -1174,7 +1174,7 @@ var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u26
 var LM_ART = { mountain: 'mountain', skyline: 'city', lighthouse: 'lighthouse' };
 function lmDraw(type, x, y, sc) {
   var a = LM_ART[type];
-  if (a) { var h = SP[type].length * sc * 1.15, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
+  if (a) { var h = SP[type].length * sc * 1.5, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
   return drawSprite(ctx, SP[type], PAL[type], x, y, sc, '#FFFFFF');
 }
 var LANDMARKS = [
@@ -1581,7 +1581,7 @@ function drawBase() {
   /* water: a pastel wash, then chunky wave dashes pinned to the world so they
      stay put as you pan rather than swimming about */
   var grad = g.createLinearGradient(0, 0, 0, bh);
-  grad.addColorStop(0, '#BDECEF'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
+  grad.addColorStop(0, '#B4E1F2'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
   g.fillStyle = grad; g.fillRect(0, 0, bw, bh);
 
   var z = S.zoom;
@@ -1649,10 +1649,11 @@ function drawBase() {
         if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
       }
       g.closePath(); g.fill();
+      g.strokeStyle = g.fillStyle; g.lineWidth = 1.3; g.lineJoin = 'round'; g.stroke();   /* closes hairline seams between shapes */
     }
   }
-  /* county / regional boundaries — faint texture, only once you are close enough */
-  if (z > 6.2) {
+  /* county / regional boundaries — faint texture, only once you are close in */
+  if (z > 9.2) {
     g.lineWidth = 0.4; g.lineJoin = 'round';
     for (i = 0; i < GEO.states.length; i++) {
       st = GEO.states[i];
@@ -1681,15 +1682,15 @@ function drawBase() {
   }
   /* routes */
   if (z > 6.6) {
-    var RT = window.OW_ROUTES, wgt = Math.max(0.4, (z - 6) * 0.26);
+    var RT = window.OW_ROUTES, wgt = Math.max(0.9, (z - 6) * 0.34);
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (i = 0; i < RT.length; i++) {
       var pts = RT[i][1];
-      g.strokeStyle = 'rgba(122,91,58,.30)'; g.lineWidth = wgt + 0.7;
+      g.strokeStyle = 'rgba(166,128,82,.45)'; g.lineWidth = wgt + 1.2;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
-      g.strokeStyle = 'rgba(255,248,240,.72)'; g.lineWidth = wgt;
+      g.strokeStyle = 'rgba(236,214,168,.95)'; g.lineWidth = wgt;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
@@ -1761,7 +1762,7 @@ function drawFog() {
 
   /* The milky veil over unexplored ground fades away as you zoom out, so the
      far views stay crisp and colourful; only the drifting clouds remain. */
-  var haze = Math.max(0, Math.min(1, (S.zoom - 6.6) / 2.6));
+  var haze = Math.max(0, Math.min(1, (S.zoom - 8.4) / 2.2));
   if (haze > 0.005) { g.fillStyle = 'rgba(213,207,222,' + haze.toFixed(3) + ')'; g.fillRect(0, 0, bw, bh); }
 
   /* Clouds live over the ground, not over the screen: each one belongs to a
@@ -1792,7 +1793,8 @@ function drawFog() {
 
   var gy0 = Math.floor(latLo / CELL), gy1 = Math.ceil(latHi / CELL);
   var gx0 = Math.floor(lngLo / CELL), gx1 = Math.ceil(lngHi / CELL);
-  if ((gy1 - gy0) * (gx1 - gx0) < 4000) {
+  /* the old blocky clouds are retired: soft cloud sprites (src/features/terrain.js) replace them */
+  if (false && (gy1 - gy0) * (gx1 - gx0) < 4000) {
     for (var gy = gy0; gy <= gy1; gy++) {
       for (var gx = gx0; gx <= gx1; gx++) {
         var h0 = hash2(gx, gy);
@@ -3673,9 +3675,9 @@ function artLoad(name) {
   im.src = 'art/' + name + '.png';
   return e;
 }
-['castle-pink', 'castle-blue', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
+['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
   .forEach(artLoad);
-['castle-blue', 'city-ghost', 'blossom'].forEach(artLoad);
+['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 
 function artSized(name, h, res) {
   var e = artLoad(name);
@@ -3684,42 +3686,60 @@ function artSized(name, h, res) {
   if (ARTSIZED[key]) return ARTSIZED[key];
   var pw = Math.max(4, Math.round(e.img.width * px / e.img.height));
   var c = document.createElement('canvas'); c.width = pw; c.height = px;
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  /* shrinking: smooth (keeps detail); enlarging: chunky nearest-neighbour (keeps the pixel-art look) */
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = px < e.img.height; g.imageSmoothingQuality = 'high';
   g.drawImage(e.img, 0, 0, pw, px);
   var id = g.getImageData(0, 0, pw, px);
   for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 100 ? 255 : 0;
   g.putImageData(id, 0, 0);
   return (ARTSIZED[key] = c);
 }
+/* A soft-focus copy for the cinematic edges: shrink, then stretch back with
+   smoothing. Works in every browser (no canvas filters needed). */
+function artSoft(name, h, res) {
+  var sharp = artSized(name, h, res);
+  if (!sharp) return null;
+  var key = name + '@' + sharp.height + '~soft';
+  if (ARTSIZED[key]) return ARTSIZED[key];
+  /* a clear margin all round so the soft edge fades out instead of being cut off square */
+  var pad = Math.ceil(sharp.height * 0.18), W2 = sharp.width + pad * 2, H2 = sharp.height + pad * 2;
+  var sw = Math.max(2, Math.round(W2 / 3)), sh = Math.max(2, Math.round(H2 / 3));
+  var t = document.createElement('canvas'); t.width = sw; t.height = sh;
+  var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high';
+  tg.drawImage(sharp, pad * sw / W2, pad * sh / H2, sharp.width * sw / W2, sharp.height * sh / H2);
+  var c = document.createElement('canvas'); c.width = W2; c.height = H2;
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, W2, H2);
+  c.pad = pad;
+  return (ARTSIZED[key] = c);
+}
 /* stands on (x, y), h tall (css px); returns its box, or null while the art loads */
-function drawArt(g, name, x, y, h, res) {
-  var c = artSized(name, h, res);
+function drawArt(g, name, x, y, h, res, soft) {
+  var c = soft ? artSoft(name, h, res) : artSized(name, h, res);
   if (!c) return null;
-  var w = c.width / (res || 1), hh = c.height / (res || 1);
-  g.save(); g.imageSmoothingEnabled = false;
-  g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh), w, hh);
+  var w = c.width / (res || 1), hh = c.height / (res || 1), pad = (c.pad || 0) / (res || 1);
+  g.save(); g.imageSmoothingEnabled = !!soft;
+  g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh + pad), w, hh);
   g.restore();
   return { x: x - w / 2, y: y - hh, w: w, h: hh };
 }
 
 /* ---- features/homebase.js ---- */
 /* The home base, drawn like the reference art: big homes with heart badges,
-   Montgomery County's blue castle and Northern Virginia's mountains, name pills
+   Northern Virginia's mountains, name pills
    under them, glowing gold paths joining our places, and grey "ghost" cities
    out in the parts we have not explored yet. */
 
 var HOMEBASE = [
-  { id: 'hb-montgomery', name: 'Montgomery County', lat: 39.20, lng: -77.17, r: 20, art: 'castle-blue', heart: '#6FA3E8', scale: 1 },
   { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'mountain', scale: 1.05 }
 ];
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(30, Math.min(62, 30 + (z - 6.9) * 7.4)); }
+function homeArtH(z) { return Math.max(34, Math.min(78, 34 + (z - 6.9) * 10)); }   /* homes always stand well above the trees */
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Calvert County' };
-var HB_PILLS = { 'Montgomery County': 1, 'Northern Virginia': 1, 'Calvert County': 1 };
+var HB_PILLS = { 'Northern Virginia': 1, 'Calvert County': 1 };
 var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], ['Philadelphia', 39.95, -75.17], ['Wilmington', 39.74, -75.55],
   ['Frederick', 39.41, -77.41], ['Fredericksburg', 38.30, -77.46], ['Harrisburg', 40.27, -76.88], ['Norfolk', 36.85, -76.29], ['Hagerstown', 39.64, -77.72]];
 
@@ -3727,10 +3747,10 @@ var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], [
 HOOKS.terrain.unshift(function () {
   if (S.mode !== 'map' || S.zoom > 10.6) return;
   var P = {
-    m: proj(HOMEBASE[0].lat, HOMEBASE[0].lng), n: proj(HOMEBASE[1].lat, HOMEBASE[1].lng),
+    n: proj(HOMEBASE[0].lat, HOMEBASE[0].lng),
     e: proj(HOMES.elena.lat, HOMES.elena.lng), b: proj(HOMES.bruce.lat, HOMES.bruce.lng)
   };
-  var links = [['m', 'e'], ['e', 'b'], ['b', 'n'], ['n', 'm']];
+  var links = [['e', 'b'], ['b', 'n'], ['n', 'e']];
   ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   function path(a, b, bow) {
     var dx = b.x - a.x, dy = b.y - a.y;
@@ -3781,7 +3801,10 @@ HOOKS.beforePins.push(function () {
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;
-    drawHeartBadge(b.x + b.w / 2, b.y - 16, C.pink);
+    var bx = b.x + b.w / 2, by = b.y - 16, o = HOMEBOXES[other(k)];
+    /* if the badge would land on the other home, tuck it beside this one instead */
+    if (o && bx + 12 > o.x && bx - 12 < o.x + o.w && by + 15 > o.y && by - 11 < o.y + o.h) { bx = b.x + b.w + 10; by = b.y + 6; }
+    drawHeartBadge(bx, by, C.pink);
     if (HB_LABEL[k]) pill(b.x + b.w / 2, b.y + b.h + 24, HB_LABEL[k]);
   });
   HOMEBASE.forEach(function (h) {
@@ -3822,6 +3845,32 @@ function terHash(a, b, s) {
 }
 var TER_TYPES = ['tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink'];
 
+/* Groves and clearings: a slow, smooth noise over the world decides where the
+   forests are thick and where the land opens up, like a real landscape. */
+function terNoise(x, y) {
+  var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+  fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  var a = terHash(x0, y0, 21), b = terHash(x0 + 1, y0, 21), c = terHash(x0, y0 + 1, 21), d = terHash(x0 + 1, y0 + 1, 21);
+  return (a + (b - a) * fx) + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fy;
+}
+function grove(lat, lng) {
+  var n = terNoise(lat / 0.3, lng / 0.3) * 0.7 + terNoise(lat / 0.07, lng / 0.07) * 0.3;
+  var t = Math.max(0, Math.min(1, (n - 0.4) / 0.28));
+  var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields ≈ 2%, deep forest ≈ 87% */
+  /* the home base itself stays open countryside, the woods gather around it */
+  var dh = haversine(lat, lng, 38.86, -76.68);
+  if (dh < 45 && S.zoom < 9.2) g *= 0.25 + 0.75 * Math.max(0, (dh - 18) / 27);
+  return g;
+}
+
+/* Cinematic depth: the middle of the screen is in focus; toward the top and
+   bottom, trees go soft, fade a little and (at the top) get smaller, as if seen
+   farther away — a tilt-shift look. */
+function focusAt(y) {
+  var d = Math.abs(y - H * 0.55) / (H * 0.55);
+  return Math.max(0, Math.min(1, (d - 0.42) / 0.5));
+}
+
 HOOKS.terrain.push(function () {
   if (S.mode !== 'map' || !TER.on || !TER.px) return;
   var z = S.zoom;
@@ -3829,29 +3878,44 @@ HOOKS.terrain.push(function () {
   var tl = unproj(0, 0), br = unproj(W, H);
   var latHi = Math.max(tl.lat, br.lat), latLo = Math.min(tl.lat, br.lat), lngLo = Math.min(tl.lng, br.lng), lngHi = Math.max(tl.lng, br.lng);
   var items = [], i;
-  var homeBoxes = [HOMEBOXES.bruce, HOMEBOXES.elena];
-
-  /* trees and bushes on every bit of land: full colour where we have been, faded where we have not */
   var avoid = [HOMEBOXES.bruce, HOMEBOXES.elena].concat(Object.keys(HBBOX).map(function (k) { return HBBOX[k]; }));
-  if (z >= 6.3) {
-    var dens = z > 9.5 ? 0.2 : 0.34;           /* lighter close in so the castle and pins breathe */
-    var cell = 0.009 * Math.pow(2, Math.max(0, Math.floor((11.6 - z) / 1.0)));
-    var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
-    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) < 2600) {
-      for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
-        if (terHash(gx, gy, 1) > dens) continue;
-        var lat = (gy + 0.5 + (terHash(gx, gy, 2) - 0.5) * 0.85) * cell, lng = (gx + 0.5 + (terHash(gx, gy, 3) - 0.5) * 0.85) * cell;
-        var p = proj(lat, lng);
-        if (p.x < -30 || p.y < -10 || p.x > W + 30 || p.y > H + 60) continue;
-        if (terrainAt(p.x, p.y) !== 'land') continue;
-        var near = false;
-        for (i = 0; i < avoid.length; i++) { var hb = avoid[i]; if (hb && p.x > hb.x - 18 && p.x < hb.x + hb.w + 18 && p.y > hb.y - 6 && p.y < hb.y + hb.h + 34) near = true; }
-        if (near) continue;
-        if (!labelFree({ x: p.x - 12, y: p.y - 26, w: 24, h: 28 })) continue;      /* never grow over a name */
-        var t = terHash(gx, gy, 4), type = t < 0.22 ? 0 : (t < 0.68 ? 1 : (t < 0.92 ? 2 : 3));
-        var base = Math.max(10, Math.min(30, 10 + (z - 6.3) * 4)) * (type === 3 ? 0.62 : (type === 1 ? 1.05 : 1)) * (0.88 + terHash(gx, gy, 5) * 0.24);
-        items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, ghost: !isRevealed(lat, lng, 0.94) });
-      }
+
+  /* every place that matters gets an open clearing around it */
+  var pois = [];
+  ['bruce', 'elena'].forEach(function (k) { pois.push(proj(HOMES[k].lat, HOMES[k].lng)); });
+  HOMEBASE.forEach(function (h) { pois.push(proj(h.lat, h.lng)); });
+  LANDMARKS.forEach(function (l) { pois.push(proj(l[2], l[3])); });
+  S.memories.forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
+  (S.plans || []).forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
+  var clear = Math.max(34, homeArtH(z) * 0.95);
+
+  /* trees and bushes on land: groves and clearings, mixed heights */
+  var cell = 0.009 * Math.pow(2, Math.max(0, Math.floor((11.6 - z) / 1.0)));
+  var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
+  /* lighter close in so homes and pins breathe; lusher far out so the home base reads as countryside */
+  var thin = z > 9.5 ? 0.5 : (z < 8.6 ? 0.9 : 0.6), floor = 0;
+  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) < 2600) {
+    for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+      var cy = (gy + 0.5) * cell, cx = (gx + 0.5) * cell;
+      if (terHash(gx, gy, 1) > grove(cy, cx) * thin + floor) continue;
+      var lat = (gy + 0.5 + (terHash(gx, gy, 2) - 0.5) * 0.9) * cell, lng = (gx + 0.5 + (terHash(gx, gy, 3) - 0.5) * 0.9) * cell;
+      var p = proj(lat, lng);
+      if (p.x < -30 || p.y < -10 || p.x > W + 30 || p.y > H + 60) continue;
+      if (terrainAt(p.x, p.y) !== 'land') continue;
+      var near = false;
+      for (i = 0; i < avoid.length; i++) { var hb = avoid[i]; if (hb && p.x > hb.x - 18 && p.x < hb.x + hb.w + 18 && p.y > hb.y - 6 && p.y < hb.y + hb.h + 34) near = true; }
+      if (near || !labelFree({ x: p.x - 12, y: p.y - 26, w: 24, h: 28 })) continue;
+      for (i = 0; i < pois.length; i++) { var dx = p.x - pois[i].x, dy = (p.y - pois[i].y) * 1.3; if (dx * dx + dy * dy < clear * clear) { near = true; break; } }
+      if (near) continue;
+      /* deep in a grove: more pines and oaks; at its edges: blossoms and bushes */
+      var g = grove(lat, lng), t = terHash(gx, gy, 4), type;
+      if (g > 0.45) type = t < 0.18 ? 0 : (t < 0.7 ? 1 : (t < 0.95 ? 2 : 3));
+      else type = t < 0.42 ? 0 : (t < 0.6 ? 1 : (t < 0.78 ? 2 : 3));
+      var vary = 0.8 + Math.pow(terHash(gx, gy, 5), 1.6) * 0.5;            /* most average, a few taller */
+      var kind = type === 3 ? 0.6 : (type === 1 ? 1.12 : 1);
+      var depth = 0.86 + 0.14 * Math.max(0, Math.min(1, p.y / H));          /* a little smaller toward the top */
+      var base = Math.max(12, Math.min(24, 12 + (z - 6.3) * 2.6)) * kind * vary * depth;   /* always well under a home's height */
+      items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, ghost: !isRevealed(lat, lng, 0.94), f: focusAt(p.y), k: terHash(gx, gy, 9) });
     }
   }
   /* sailboats on open water, one every so often */
@@ -3864,15 +3928,31 @@ HOOKS.terrain.push(function () {
       var bp = proj(blat, blng);
       if (bp.x < -30 || bp.y < -10 || bp.x > W + 30 || bp.y > H + 50) continue;
       if (terrainAt(bp.x, bp.y) !== 'water') continue;
-      items.push({ x: bp.x, y: bp.y, n: 'boat', h: Math.min(36, 13 + (z - 6.3) * 4) });
+      items.push({ x: bp.x, y: bp.y, n: 'boat', h: Math.min(36, 13 + (z - 6.3) * 4), f: focusAt(bp.y), k: 0 });
     }
   }
+  /* too many for one frame? thin them evenly over the whole view (not just the bottom rows) */
+  var CAP = 420;
+  if (items.length > CAP) { var keep = CAP / items.length; items = items.filter(function (it) { return it.k < keep; }); }
   items.sort(function (a, b) { return a.y - b.y; });
-  for (i = 0; i < items.length && i < 320; i++) {
-    if (items[i].ghost) { ctx.save(); ctx.globalAlpha = 0.5; }
-    drawArt(ctx, items[i].n, items[i].x, items[i].y, items[i].h, DPR);
-    if (items[i].ghost) ctx.restore();
+  for (i = 0; i < items.length; i++) {
+    var it = items[i], soft = it.f > 0.35 || it.ghost;
+    var alpha = (it.ghost ? 0.72 : 1) * (1 - it.f * 0.4);
+    /* a soft shadow grounds each tree */
+    ctx.save(); ctx.globalAlpha = alpha * 0.22; ctx.fillStyle = '#3D4A2E';
+    ctx.beginPath(); ctx.ellipse(it.x, it.y, it.h * 0.28, it.h * 0.07, 0, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = alpha;
+    drawArt(ctx, it.n, it.x, it.y, it.h, DPR, soft);
+    ctx.restore();
   }
+
+  drawSkyClouds(z);
+
+  /* pink haze at the top and bottom of the view, like distance in a film shot */
+  var hz = ctx.createLinearGradient(0, 0, 0, H);
+  hz.addColorStop(0, 'rgba(250,226,238,.62)'); hz.addColorStop(0.2, 'rgba(250,226,238,0)');
+  hz.addColorStop(0.8, 'rgba(250,226,238,0)'); hz.addColorStop(1, 'rgba(250,226,238,.5)');
+  ctx.fillStyle = hz; ctx.fillRect(0, 0, W, H);
 });
 
 /* a fine grain over land and water, like the texture pack */
@@ -3886,6 +3966,80 @@ function terGrain() {
   return TER_GRAIN;
 }
 HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fillRect(0, 0, baseCv.width, baseCv.height); });
+
+/* Soft clouds over the ground we have not explored yet. They sit on the world
+   (drifting very slowly), gather thickest at the edges of the screen and thin
+   out toward the middle, so the view is framed like the reference art. */
+var SKY_LADDER = [0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56];
+function drawSkyClouds(z) {
+  var want = 120 * kmPerPx(S.center.lat, z) / 111, cell = SKY_LADDER[SKY_LADDER.length - 1];
+  for (var li = 0; li < SKY_LADDER.length; li++) if (SKY_LADDER[li] >= want) { cell = SKY_LADDER[li]; break; }
+  var px = cell * 111 / kmPerPx(S.center.lat, z);                 /* the cell's size on screen */
+  var tl = unproj(-px, -px), br = unproj(W + px, H + px);
+  var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
+  var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
+  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 400) return;
+  var drift = reduceMotion ? 0 : cloudPhase * 0.00035 * cell / 0.16;
+  var list = [];
+  for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+    var h0 = terHash(gx, gy, 31);
+    if (h0 > 0.38) continue;
+    var lat = (gy + 0.5 + (terHash(gx, gy, 32) - 0.5) * 0.8) * cell, lng0 = (gx + 0.5 + (terHash(gx, gy, 33) - 0.5) * 0.8) * cell;
+    var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
+    if (isRevealed(lat, lng0, 1.25) || isRevealed(lat, lng0 - half, 1.25) || isRevealed(lat, lng0 + half, 1.25) ||
+        isRevealed(lat + half * 0.5, lng0, 1.25) || isRevealed(lat - half * 0.5, lng0, 1.25)) continue;
+    var lng = lng0 + drift * (0.6 + terHash(gx, gy, 34) * 0.6);
+    var p = proj(lat, lng);
+    var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
+    edge = Math.max(0, Math.min(1, edge));
+    if (edge > 0.7) continue;        /* keep the middle of the view clear, like a framed shot */
+    var w = Math.max(110, Math.min(230, px * (0.75 + terHash(gx, gy, 35) * 0.5)));   /* clouds, not slabs */
+    list.push({ x: p.x, y: p.y, h: w * 0.4, n: h0 < 0.3 ? 'cloud1' : 'cloud2', a: 0.8 - 0.65 * edge });
+  }
+  list.sort(function (a, b) { return a.y - b.y; });
+  list.forEach(function (c) {
+    ctx.save(); ctx.globalAlpha = c.a;
+    drawArt(ctx, c.n, c.x, c.y + c.h * 0.5, c.h, DPR, true);
+    ctx.restore();
+  });
+}
+
+/* Bunnies: rare, scattered, sitting quietly in open meadows we have explored.
+   Fixed to the world like the trees, so they never move about. */
+SP.bunny = [
+  '.ww.ww..',
+  '.wp.wp..',
+  '.ww.ww..',
+  '.wwwww..',
+  'wwkwwwo.',
+  'wwwwwww.',
+  '.wwwwwwW',
+  '.wwwwww.',
+  '..ss.ss.'
+];
+PAL.bunny = { w: '#FFF8F6', p: '#F3A9C7', k: '#3D2838', o: '#F7C6D6', W: '#FFFFFF', s: '#E6D6D2' };
+HOOKS.beforePins.push(function () {
+  if (S.mode !== 'map' || !TER.on || !TER.px || S.zoom < 9.2) return;
+  var z = S.zoom, cell = 0.03;
+  var tl = unproj(0, 0), br = unproj(W, H);
+  var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
+  var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell), gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
+  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 1500) return;
+  var sc = z > 11 ? 3 : 2;
+  for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+    if (terHash(gx, gy, 41) > 0.09) continue;                     /* rare */
+    var lat = (gy + 0.5 + (terHash(gx, gy, 42) - 0.5) * 0.8) * cell, lng = (gx + 0.5 + (terHash(gx, gy, 43) - 0.5) * 0.8) * cell;
+    if (!isRevealed(lat, lng, 0.9) || grove(lat, lng) > 0.35) continue;   /* meadows, not deep woods */
+    var p = proj(lat, lng);
+    if (p.x < 10 || p.y < 10 || p.x > W - 10 || p.y > H - 10 || terrainAt(p.x, p.y) !== 'land') continue;
+    if (!labelFree({ x: p.x - 10, y: p.y - 22, w: 20, h: 24 })) continue;
+    var flip = terHash(gx, gy, 44) < 0.5;
+    ctx.save();
+    if (flip) { ctx.translate(Math.round(p.x) * 2, 0); ctx.scale(-1, 1); }
+    drawSprite(ctx, SP.bunny, PAL.bunny, p.x, p.y, sc, null);
+    ctx.restore();
+  }
+});
 
 /* ---- features/beacon.js ---- */
 /* Location markers: a pin on "home" (and on far-off places we have been) that

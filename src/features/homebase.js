@@ -1,20 +1,19 @@
 /* The home base, drawn like the reference art: big homes with heart badges,
-   Montgomery County's blue castle and Northern Virginia's mountains, name pills
+   Northern Virginia's mountains, name pills
    under them, glowing gold paths joining our places, and grey "ghost" cities
    out in the parts we have not explored yet. */
 
 var HOMEBASE = [
-  { id: 'hb-montgomery', name: 'Montgomery County', lat: 39.20, lng: -77.17, r: 20, art: 'castle-blue', heart: '#6FA3E8', scale: 1 },
   { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'mountain', scale: 1.05 }
 ];
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(30, Math.min(62, 30 + (z - 6.9) * 7.4)); }
+function homeArtH(z) { return Math.max(34, Math.min(78, 34 + (z - 6.9) * 10)); }   /* homes always stand well above the trees */
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Calvert County' };
-var HB_PILLS = { 'Montgomery County': 1, 'Northern Virginia': 1, 'Calvert County': 1 };
+var HB_PILLS = { 'Northern Virginia': 1, 'Calvert County': 1 };
 var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], ['Philadelphia', 39.95, -75.17], ['Wilmington', 39.74, -75.55],
   ['Frederick', 39.41, -77.41], ['Fredericksburg', 38.30, -77.46], ['Harrisburg', 40.27, -76.88], ['Norfolk', 36.85, -76.29], ['Hagerstown', 39.64, -77.72]];
 
@@ -22,10 +21,10 @@ var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], [
 HOOKS.terrain.unshift(function () {
   if (S.mode !== 'map' || S.zoom > 10.6) return;
   var P = {
-    m: proj(HOMEBASE[0].lat, HOMEBASE[0].lng), n: proj(HOMEBASE[1].lat, HOMEBASE[1].lng),
+    n: proj(HOMEBASE[0].lat, HOMEBASE[0].lng),
     e: proj(HOMES.elena.lat, HOMES.elena.lng), b: proj(HOMES.bruce.lat, HOMES.bruce.lng)
   };
-  var links = [['m', 'e'], ['e', 'b'], ['b', 'n'], ['n', 'm']];
+  var links = [['e', 'b'], ['b', 'n'], ['n', 'e']];
   ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   function path(a, b, bow) {
     var dx = b.x - a.x, dy = b.y - a.y;
@@ -76,7 +75,10 @@ HOOKS.beforePins.push(function () {
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;
-    drawHeartBadge(b.x + b.w / 2, b.y - 16, C.pink);
+    var bx = b.x + b.w / 2, by = b.y - 16, o = HOMEBOXES[other(k)];
+    /* if the badge would land on the other home, tuck it beside this one instead */
+    if (o && bx + 12 > o.x && bx - 12 < o.x + o.w && by + 15 > o.y && by - 11 < o.y + o.h) { bx = b.x + b.w + 10; by = b.y + 6; }
+    drawHeartBadge(bx, by, C.pink);
     if (HB_LABEL[k]) pill(b.x + b.w / 2, b.y + b.h + 24, HB_LABEL[k]);
   });
   HOMEBASE.forEach(function (h) {
