@@ -2953,11 +2953,11 @@ function openPlaces() {
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'
   );
 }
-document.getElementById('btnPlaces').addEventListener('click', function () { openMenu(); });
+document.getElementById('btnPlaces').addEventListener('click', function () { openWorldHub(); });
 document.getElementById('btnHere').addEventListener('click', function () {
   discover(S.center.lat, S.center.lng);
 });
-document.getElementById('btnCalendar').addEventListener('click', openCal);
+document.getElementById('btnCalendar').addEventListener('click', openWorldCalendar);
 document.getElementById('calClose').addEventListener('click', closeCal);
 document.getElementById('calPrev').addEventListener('click', function () { stepCal(-1); });
 document.getElementById('calNext').addEventListener('click', function () { stepCal(1); });
@@ -3204,6 +3204,7 @@ function hydrateLocal() {
 //#include features/albums.js
 //#include features/polaroid.js
 //#include features/more.js
+//#include features/world-foundation.js
 
 function boot() {
   hydrateLocal();
