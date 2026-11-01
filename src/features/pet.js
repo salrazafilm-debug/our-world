@@ -13,6 +13,8 @@
 var PET_STARTER = 20;                        /* a welcome gift of hearts */
 var PET = { open: false, name: 'Baby', owned: [], equipped: {}, spent: 0, treats: 0, mode: 'room', tab: 'mine', sel: null, woke: 0, lastPet: 0, bubble: '', visits: {} };
 S.love = { bruce: 0, elena: 0 };
+S.spend = { bruce: 0, elena: 0 };          /* what each of you has spent (own document each, so shopping together is safe) */
+try { var sp0 = JSON.parse(localStorage.getItem('ow.spend') || 'null'); if (sp0) S.spend = { bruce: sp0.bruce || 0, elena: sp0.elena || 0 }; } catch (e) {}
 try {
   var pl = JSON.parse(localStorage.getItem('ow.pet') || 'null'); if (pl) { PET.name = pl.name || PET.name; PET.owned = pl.owned || []; PET.equipped = pl.equipped || {}; PET.spent = pl.spent || 0; PET.treats = pl.treats || 0; }
   var ll = JSON.parse(localStorage.getItem('ow.love') || 'null'); if (ll) S.love = { bruce: ll.bruce || 0, elena: ll.elena || 0 };
@@ -81,7 +83,18 @@ function petLearnSizes(root) {
 }
 
 /* ---------------- hearts ---------------- */
-function petHearts() { return Math.max(0, (S.love.bruce || 0) + (S.love.elena || 0) + PET_STARTER - (PET.spent || 0)); }
+function petHearts() { return Math.max(0, (S.love.bruce || 0) + (S.love.elena || 0) + PET_STARTER - (PET.spent || 0) - (S.spend.bruce || 0) - (S.spend.elena || 0)); }
+function petSpend(n) {
+  if (!S.who) return;
+  S.spend[S.who] = (S.spend[S.who] || 0) + n;
+  try { localStorage.setItem('ow.spend', JSON.stringify(S.spend)); } catch (e) {}
+  if (S.db) S.db.collection('petspend').doc(S.who).set({ n: S.spend[S.who], at: Date.now() }).catch(function () {});
+}
+ROWHOOKS.petspend = function (rows) {
+  rows.forEach(function (r) { if (r.id === 'bruce' || r.id === 'elena') S.spend[r.id] = Math.max(S.spend[r.id] || 0, Number(r.n) || 0); });
+  try { localStorage.setItem('ow.spend', JSON.stringify(S.spend)); } catch (e) {}
+  petPill();
+};
 function petPersistLocal() {
   try { localStorage.setItem('ow.pet', JSON.stringify({ name: PET.name, owned: PET.owned, equipped: PET.equipped, spent: PET.spent, treats: PET.treats })); localStorage.setItem('ow.love', JSON.stringify(S.love)); } catch (e) {}
 }
@@ -381,7 +394,7 @@ function petAct(a) {
 }
 function petGiveTreat(t) {
   if (petHearts() < t.price) { toast('Not enough Love Hearts yet — earn some by adding memories, notes and more.', '💗', 3600); return false; }
-  PET.spent += t.price; PET.treats = (PET.treats || 0) + 1; petSavePet(); petPill();
+  petSpend(t.price); PET.treats = (PET.treats || 0) + 1; petSavePet(); petPill();
   var dog = document.getElementById('psDog');
   if (dog && PET.mode === 'room') {
     var f = document.createElement('div'); f.className = 'ps-fly'; f.innerHTML = treatImg(t);
@@ -455,7 +468,7 @@ function shopClick(b) {
   var it = petItem(sel); if (!it) return;
   if (a === 'buy') {
     if (petHearts() < it.price) return;
-    PET.spent += it.price; PET.owned.push(it.id); PET.equipped[it.slot] = it.id;
+    petSpend(it.price); PET.owned.push(it.id); PET.equipped[it.slot] = it.id;
     petSavePet(); toast('New: ' + it.name + ' — now wearing it', '🎀', 3000); sparkle();
     if (typeof playSound === 'function') playSound('chime');
     PET.sel = null; return petRenderShop();

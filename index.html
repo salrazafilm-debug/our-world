@@ -44,8 +44,8 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 <style>
 :root{
   --bg:#FFF8FB; --pink:#D85A92; --deep:#9F3D6D; --princess:#F3A9C7;
-  --gold:#E7B765; --softgold:#F5D88E; --land:#91B979; --landdeep:#5E8D63;
-  --water:#63B9C7; --waterlite:#A5E1E5; --fog:#C5C1CF; --cloud:#E2DDE7;
+  --gold:#FFD56A; --softgold:#FFF0B2; --land:#9AD66F; --landdeep:#397E55;
+  --water:#31AFE9; --waterlite:#91DDF8; --fog:#E9D8F2; --cloud:#F9EAF7;
   --ink:#3D2838; --space:#1F1D39;
   --ink-70:rgba(61,40,56,.70); --ink-45:rgba(61,40,56,.45);
   --panel:#FFF7FB; --panel-edge:#F2D3E2;
@@ -433,7 +433,37 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 .d-tile .badge{position:absolute; top:8px; right:8px; background:var(--berry); color:var(--cream); font-family:var(--fdisp); font-size:13px; padding:2px 8px; clip-path:var(--px-step)}
 .d-more{display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:20px}
 .d-more .pxbtn{font-size:14px; padding:9px 14px}
+.d-today{display:block;width:100%;max-width:620px;margin:0 auto 14px;text-align:left;padding:12px 16px 14px;background:var(--paper);border:3px solid var(--wood-dk);border-bottom-width:7px;clip-path:var(--px-step);cursor:pointer;color:var(--ink)}
+.d-today .tt{display:block;font-family:var(--fdisp);font-weight:600;font-size:15px;color:var(--berry)}
+.d-today .tx{display:block;margin-top:5px;font-size:16px;line-height:1.5}
+.d-today .nx{display:block;margin-top:8px;padding-top:7px;border-top:2px dashed #E2C2AE;font-family:var(--fdisp);font-size:14px;color:var(--wood)}
+.d-today:active{transform:translateY(4px);border-bottom-width:3px}
 .d-look{display:block; margin:0 auto 16px; max-width:520px; text-align:center; background:var(--paper); border:3px dashed var(--wood); padding:8px 12px; font-size:14px; color:var(--ink)}
+
+
+/* ---------- leftovers brought into the kit ---------- */
+#worldchip[hidden]{display:none}
+@media (max-width:430px){#partnerchip{top:100px; right:10px}}
+.chip.warn{border-color:var(--peach); background:#FFF3E6}
+.field input,.field textarea,.field select{border:3px solid #E2C2AE; background:#FFFDF8; border-radius:0; font-size:16px}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--berry)}
+.field label{color:var(--berry-dk)}
+.note,.hint{color:var(--ink-70)}
+.sheet-head h2,.sheet-sub{font-family:var(--fdisp)}
+.whobtn{background:var(--cream); border:3px solid var(--berry); border-bottom-width:8px; box-shadow:none; clip-path:var(--px-step); transition:transform .1s}
+.whobtn:hover{transform:translateY(-2px)}.whobtn:active{transform:translateY(5px); border-bottom-width:3px; box-shadow:none}
+.whobtn .n{color:var(--berry-dk)}
+#intro,#gate{background:linear-gradient(180deg,#5B2F3A 0%,#7A4A44 55%,#8A5638 100%)}
+#intro h1,#gate h1{font-family:var(--ftitle); color:var(--cream); text-shadow:0 3px 0 var(--wood-dk)}
+#intro p,#gate p{color:#F3DCC6}
+#gate .card{background:var(--paper); border:4px solid var(--wood-dk); border-bottom-width:9px; box-shadow:none; clip-path:var(--px-step)}
+#gate .card h1{color:var(--berry); text-shadow:none}#gate .card p{color:var(--ink-70)}
+#gate label{color:var(--berry-dk)}
+#gate input{border:3px solid #E2C2AE; background:#FFFDF8; border-radius:0}#gate input:focus{border-color:var(--berry)}
+#gate .gerr{color:#B2323E}
+/* the pink "Discover" bar becomes a small button */
+#actions>.primary{align-self:flex-end; width:auto; font-size:14px; padding:9px 16px 8px}
+@media (max-width:720px){#actions>.primary{align-self:center}}
 
 /* ---------- placing mode ---------- */
 #placing{
@@ -1199,10 +1229,10 @@ window.OWCloud = {
 /* ============================== constants ============================== */
 var C = {
   bg:'#FFF8FB', pink:'#D85A92', deep:'#9F3D6D', princess:'#F3A9C7',
-  gold:'#E7B765', softgold:'#F5D88E', land:'#8CBC68', landdeep:'#5E8D63',
-  water:'#58A6D6', waterlite:'#9ED5EE', fog:'#C5C1CF', cloud:'#E2DDE7',
+  gold:'#FFD56A', softgold:'#FFF0B2', land:'#9AD66F', landdeep:'#397E55',
+  water:'#31AFE9', waterlite:'#91DDF8', fog:'#E9D8F2', cloud:'#F9EAF7',
   ink:'#3D2838', space:'#1F1D39',
-  landmuted:'#93BF6F', landmutededge:'#86B163'
+  landmuted:'#87C96D', landmutededge:'#579B60'
 };
 var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
@@ -1638,7 +1668,7 @@ function drawBase() {
   /* water: a pastel wash, then chunky wave dashes pinned to the world so they
      stay put as you pan rather than swimming about */
   var grad = g.createLinearGradient(0, 0, 0, bh);
-  grad.addColorStop(0, '#B4E1F2'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
+  grad.addColorStop(0, '#91DCF7'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
   g.fillStyle = grad; g.fillRect(0, 0, bw, bh);
 
   var z = S.zoom;
@@ -1743,11 +1773,11 @@ function drawBase() {
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (i = 0; i < RT.length; i++) {
       var pts = RT[i][1];
-      g.strokeStyle = 'rgba(166,128,82,.45)'; g.lineWidth = wgt + 1.2;
+      g.strokeStyle = 'rgba(194,126,61,.55)'; g.lineWidth = wgt + 1.5;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
-      g.strokeStyle = 'rgba(236,214,168,.95)'; g.lineWidth = wgt;
+      g.strokeStyle = 'rgba(255,226,139,.98)'; g.lineWidth = wgt;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
@@ -1794,8 +1824,8 @@ function drawBase() {
     g.restore();
 
     var wg = g.createRadialGradient(rcx, rcy, 0, rcx, rcy, rr2);
-    wg.addColorStop(0, 'rgba(245,216,142,.30)');
-    wg.addColorStop(0.62, 'rgba(231,183,101,.20)');
+    wg.addColorStop(0, 'rgba(255,232,164,.12)');
+    wg.addColorStop(0.62, 'rgba(255,213,106,.08)');
     wg.addColorStop(1, 'rgba(231,183,101,0)');
     g.fillStyle = wg; g.beginPath(); g.arc(rcx, rcy, rr2, 0, 7); g.fill();
   }
@@ -1819,8 +1849,11 @@ function drawFog() {
 
   /* The milky veil over unexplored ground fades away as you zoom out, so the
      far views stay crisp and colourful; only the drifting clouds remain. */
-  var haze = Math.max(0, Math.min(1, (S.zoom - 8.4) / 2.2));
-  if (haze > 0.005) { g.fillStyle = 'rgba(213,207,222,' + haze.toFixed(3) + ')'; g.fillRect(0, 0, bw, bh); }
+  var haze = 0;
+  /* A single pixel-cloud layer, clipped by the discovery mask below. */
+  g.save(); g.scale(1 / s, 1 / s);
+  drawSkyClouds(S.zoom, g);
+  g.restore();
 
   /* Clouds live over the ground, not over the screen: each one belongs to a
      patch of the world, so panning moves the map underneath them and every
@@ -2202,6 +2235,10 @@ function drawMapOverlays() {
   })();
 
   runHooks('terrain');
+  drawFog();
+  ctx.save(); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
+  ctx.restore();
 
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
@@ -2391,11 +2428,6 @@ function draw() {
 
   if (baseDirty) { drawBase(); runHooks('afterBase'); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
-  drawFog();
-  /* far out, the clouds thin so the land reads clearly, like the reference art */
-  ctx.globalAlpha = S.zoom > 9.4 ? 0.95 : (S.zoom > 8.2 ? 0.8 : (S.zoom > 7.4 ? 0.6 : 0.45));
-  ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
-  ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
@@ -2661,8 +2693,9 @@ var DBS = { claude: false, useFn: false, db: false, assets: false, note: '', cou
 function setWorldChip() {
   var c = document.getElementById('worldchip'), n = document.getElementById('worldnam');
   if (!c) return;
-  if (DBS.db) { c.classList.add('live'); c.classList.remove('warn'); n.textContent = 'Shared'; }
-  else { c.classList.remove('live'); c.classList.add('warn'); n.textContent = 'This device only'; }
+  /* quiet when everything works; it only appears when sharing is down */
+  if (DBS.db) { c.hidden = true; c.classList.add('live'); c.classList.remove('warn'); n.textContent = 'Shared'; }
+  else { c.hidden = false; c.classList.remove('live'); c.classList.add('warn'); n.textContent = 'Offline \u00b7 this phone only'; }
 }
 
 function connect() {
@@ -3781,6 +3814,7 @@ HOOKS.terrain.push(function () {
   if (z > 5.6 && z < 9.6) {
     GHOST_CITIES.forEach(function (c) {
       if (isRevealed(c[1], c[2], 1.1)) return;
+      if (haversine(c[1], c[2], HOMES.elena.lat, HOMES.elena.lng) < 55 || haversine(c[1], c[2], HOMES.bruce.lat, HOMES.bruce.lng) < 55) return;   /* home stays countryside */
       var p = proj(c[1], c[2]);
       if (p.x < -60 || p.y < -10 || p.x > W + 60 || p.y > H + 60) return;
       ctx.save(); ctx.globalAlpha = 0.5;
@@ -3828,7 +3862,7 @@ HOOKS.beforePins.push(function () {
 /* Living terrain: cherry trees, pines, oaks and blossom bushes grow over the
    ground we have cleared, and little sailboats sit on the water. Positions come
    from a fixed grid on the world (not the screen), so nothing moves when you
-   pan or zoom — more simply appear as you zoom in. */
+   pan or zoom - more simply appear as you zoom in. */
 
 var TER = { px: null, w: 0, h: 0, on: true };
 try { TER.on = localStorage.getItem('ow.terrain') !== 'off'; } catch (e) {}
@@ -3866,16 +3900,14 @@ function terNoise(x, y) {
 function grove(lat, lng) {
   var n = terNoise(lat / 0.3, lng / 0.3) * 0.7 + terNoise(lat / 0.07, lng / 0.07) * 0.3;
   var t = Math.max(0, Math.min(1, (n - 0.4) / 0.28));
-  var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields ≈ 2%, deep forest ≈ 87% */
+  var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields ~2%, deep forest ~87% */
   /* the home base itself stays open countryside, the woods gather around it */
-  var dh = haversine(lat, lng, 38.86, -76.68);
-  if (dh < 45 && S.zoom < 9.2) g *= 0.25 + 0.75 * Math.max(0, (dh - 18) / 27);
   return g;
 }
 
 /* Cinematic depth: the middle of the screen is in focus; toward the top and
    bottom, trees go soft, fade a little and (at the top) get smaller, as if seen
-   farther away — a tilt-shift look. */
+   farther away - a tilt-shift look. */
 function focusAt(y) {
   var d = Math.abs(y - H * 0.55) / (H * 0.55);
   return Math.max(0, Math.min(1, (d - 0.42) / 0.5));
@@ -3884,11 +3916,12 @@ function focusAt(y) {
 HOOKS.terrain.push(function () {
   if (S.mode !== 'map' || !TER.on || !TER.px) return;
   var z = S.zoom;
-  if (z < 6.3) return;
+  if (z < 5.8) return;
   var tl = unproj(0, 0), br = unproj(W, H);
   var latHi = Math.max(tl.lat, br.lat), latLo = Math.min(tl.lat, br.lat), lngLo = Math.min(tl.lng, br.lng), lngHi = Math.max(tl.lng, br.lng);
   var items = [], i;
-  var avoid = [HOMEBOXES.bruce, HOMEBOXES.elena].concat(Object.keys(HBBOX).map(function (k) { return HBBOX[k]; }));
+  /* Use current projected places below, never sprite boxes from the previous zoom. */
+  var avoid = [];
 
   /* every place that matters gets an open clearing around it */
   var pois = [];
@@ -3900,16 +3933,24 @@ HOOKS.terrain.push(function () {
   (S.plans || []).forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
   var clear = Math.max(34, homeArtH(z) * 0.95);
 
-  /* trees and bushes on land: groves and clearings, mixed heights */
-  var cell = 0.009 * Math.pow(2, Math.max(0, Math.floor((11.6 - z) / 1.0)));
-  var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
-  /* lighter close in so homes and pins breathe; lusher far out so the home base reads as countryside */
-  var thin = z > 9.5 ? 0.5 : (z < 8.6 ? 0.9 : 0.6), floor = 0;
-  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) < 2600) {
+  /* Three permanent world grids. Zoom only fades finer grids in; it never
+     replaces one grid with another, so forests do not pop or reshuffle. */
+  var layers = [
+    { cell: 0.048, density: 0.86, alpha: 1, seed: 100 },
+    { cell: 0.024, density: 0.52, alpha: Math.max(0, Math.min(1, (z - 6.8) / 1.1)), seed: 200 },
+    { cell: 0.012, density: 0.26, alpha: Math.max(0, Math.min(1, (z - 8.7) / 1.2)), seed: 300 }
+  ];
+  for (var lv = 0; lv < layers.length; lv++) {
+    var layer = layers[lv];
+    if (layer.alpha <= 0.01) continue;
+    var cell = layer.cell;
+    var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
+    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) >= 9000) continue;
     for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
       var cy = (gy + 0.5) * cell, cx = (gx + 0.5) * cell;
-      if (terHash(gx, gy, 1) > grove(cy, cx) * thin + floor) continue;
-      var lat = (gy + 0.5 + (terHash(gx, gy, 2) - 0.5) * 0.9) * cell, lng = (gx + 0.5 + (terHash(gx, gy, 3) - 0.5) * 0.9) * cell;
+      if (terHash(gx, gy, layer.seed + 1) > grove(cy, cx) * layer.density) continue;
+      var lat = (gy + 0.5 + (terHash(gx, gy, layer.seed + 2) - 0.5) * 0.9) * cell;
+      var lng = (gx + 0.5 + (terHash(gx, gy, layer.seed + 3) - 0.5) * 0.9) * cell;
       var p = proj(lat, lng);
       if (p.x < -30 || p.y < -10 || p.x > W + 30 || p.y > H + 60) continue;
       if (terrainAt(p.x, p.y) !== 'land') continue;
@@ -3919,14 +3960,15 @@ HOOKS.terrain.push(function () {
       for (i = 0; i < pois.length; i++) { var dx = p.x - pois[i].x, dy = (p.y - pois[i].y) * 1.3; if (dx * dx + dy * dy < clear * clear) { near = true; break; } }
       if (near) continue;
       /* deep in a grove: more pines and oaks; at its edges: blossoms and bushes */
-      var g = grove(lat, lng), t = terHash(gx, gy, 4), type;
+      var g = grove(lat, lng), t = terHash(gx, gy, layer.seed + 4), type;
       if (g > 0.45) type = t < 0.18 ? 0 : (t < 0.7 ? 1 : (t < 0.95 ? 2 : 3));
       else type = t < 0.42 ? 0 : (t < 0.6 ? 1 : (t < 0.78 ? 2 : 3));
-      var vary = 0.8 + Math.pow(terHash(gx, gy, 5), 1.6) * 0.5;            /* most average, a few taller */
+      var vary = 0.8 + Math.pow(terHash(gx, gy, layer.seed + 5), 1.6) * 0.5;
       var kind = type === 3 ? 0.6 : (type === 1 ? 1.12 : 1);
       var depth = 0.86 + 0.14 * Math.max(0, Math.min(1, p.y / H));          /* a little smaller toward the top */
-      var base = Math.max(12, Math.min(24, 12 + (z - 6.3) * 2.6)) * kind * vary * depth;   /* always well under a home's height */
-      items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, ghost: !isRevealed(lat, lng, 0.94), f: focusAt(p.y), k: terHash(gx, gy, 9) });
+      var base = Math.max(18, Math.min(34, 18 + (z - 6.3) * 3)) * kind * vary * depth;
+      items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, a: layer.alpha,
+        ghost: !isRevealed(lat, lng, 0.94), f: focusAt(p.y), k: terHash(gx, gy, layer.seed + 9) });
     }
   }
   /* sailboats on open water, one every so often */
@@ -3943,12 +3985,12 @@ HOOKS.terrain.push(function () {
     }
   }
   /* too many for one frame? thin them evenly over the whole view (not just the bottom rows) */
-  var CAP = 420;
+  var CAP = 520;
   if (items.length > CAP) { var keep = CAP / items.length; items = items.filter(function (it) { return it.k < keep; }); }
   items.sort(function (a, b) { return a.y - b.y; });
   for (i = 0; i < items.length; i++) {
-    var it = items[i], soft = it.f > 0.35 || it.ghost;
-    var alpha = (it.ghost ? 0.72 : 1) * (1 - it.f * 0.4);
+    var it = items[i], soft = false;
+    var alpha = it.a == null ? 1 : it.a;
     /* a soft shadow grounds each tree */
     ctx.save(); ctx.globalAlpha = alpha * 0.22; ctx.fillStyle = '#3D4A2E';
     ctx.beginPath(); ctx.ellipse(it.x, it.y, it.h * 0.28, it.h * 0.07, 0, 0, 6.283); ctx.fill();
@@ -3957,13 +3999,6 @@ HOOKS.terrain.push(function () {
     ctx.restore();
   }
 
-  drawSkyClouds(z);
-
-  /* pink haze at the top and bottom of the view, like distance in a film shot */
-  var hz = ctx.createLinearGradient(0, 0, 0, H);
-  hz.addColorStop(0, 'rgba(250,226,238,.62)'); hz.addColorStop(0.2, 'rgba(250,226,238,0)');
-  hz.addColorStop(0.8, 'rgba(250,226,238,0)'); hz.addColorStop(1, 'rgba(250,226,238,.5)');
-  ctx.fillStyle = hz; ctx.fillRect(0, 0, W, H);
 });
 
 /* a fine grain over land and water, like the texture pack */
@@ -3981,39 +4016,48 @@ HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fi
 /* Soft clouds over the ground we have not explored yet. They sit on the world
    (drifting very slowly), gather thickest at the edges of the screen and thin
    out toward the middle, so the view is framed like the reference art. */
-var SKY_LADDER = [0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56];
-function drawSkyClouds(z) {
-  var want = 120 * kmPerPx(S.center.lat, z) / 111, cell = SKY_LADDER[SKY_LADDER.length - 1];
-  for (var li = 0; li < SKY_LADDER.length; li++) if (SKY_LADDER[li] >= want) { cell = SKY_LADDER[li]; break; }
-  var px = cell * 111 / kmPerPx(S.center.lat, z);                 /* the cell's size on screen */
-  var tl = unproj(-px, -px), br = unproj(W + px, H + px);
-  var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
-  var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
-  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 400) return;
-  var drift = reduceMotion ? 0 : cloudPhase * 0.00035 * cell / 0.16;
+function drawSkyClouds(z, target) {
+  var sky = target || ctx;
   var list = [];
-  for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
-    var h0 = terHash(gx, gy, 31);
-    if (h0 > 0.38) continue;
-    var lat = (gy + 0.5 + (terHash(gx, gy, 32) - 0.5) * 0.8) * cell, lng0 = (gx + 0.5 + (terHash(gx, gy, 33) - 0.5) * 0.8) * cell;
+  var cloudLayers = [
+    { cell: 0.32, a: 1, seed: 500 },
+    { cell: 0.08, a: Math.max(0, Math.min(1, (z - 9.1) / 1.2)), seed: 600 }
+  ];
+  for (var li = 0; li < cloudLayers.length; li++) {
+    var cl = cloudLayers[li];
+    if (cl.a <= 0.01) continue;
+    var cell = cl.cell, px = cell * 111 / kmPerPx(S.center.lat, z);
+    var tl = unproj(-px, -px), br = unproj(W + px, H + px);
+    var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
+    var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
+    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 700) continue;
+    var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
+    for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+    var h0 = terHash(gx, gy, cl.seed + 31);
+    if (h0 > 0.42) continue;
+    var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
+    var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
     var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
     if (isRevealed(lat, lng0, 1.25) || isRevealed(lat, lng0 - half, 1.25) || isRevealed(lat, lng0 + half, 1.25) ||
         isRevealed(lat + half * 0.5, lng0, 1.25) || isRevealed(lat - half * 0.5, lng0, 1.25)) continue;
-    var lng = lng0 + drift * (0.6 + terHash(gx, gy, 34) * 0.6);
+    var lng = lng0 + drift * (0.6 + terHash(gx, gy, cl.seed + 34) * 0.6);
     var p = proj(lat, lng);
     var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
     edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.7) continue;        /* keep the middle of the view clear, like a framed shot */
-    var w = Math.max(110, Math.min(230, px * (0.75 + terHash(gx, gy, 35) * 0.5)));   /* clouds, not slabs */
-    list.push({ x: p.x, y: p.y, h: w * 0.4, n: h0 < 0.3 ? 'cloud1' : 'cloud2', a: 0.8 - 0.65 * edge });
+    if (edge > 0.52) continue;
+    var w = Math.max(130, Math.min(280, px * (0.85 + terHash(gx, gy, cl.seed + 35) * 0.35)));
+    list.push({ x: p.x, y: p.y, h: w * 0.43, n: h0 < 0.22 ? 'cloud1' : 'cloud2', a: cl.a * (0.98 - 0.42 * edge) });
+    }
   }
   list.sort(function (a, b) { return a.y - b.y; });
   list.forEach(function (c) {
-    ctx.save(); ctx.globalAlpha = c.a;
-    drawArt(ctx, c.n, c.x, c.y + c.h * 0.5, c.h, DPR, true);
-    ctx.restore();
+    sky.save(); sky.globalAlpha = c.a;
+    drawArt(sky, c.n, c.x, c.y + c.h * 0.5, c.h, 1, false);
+    sky.restore();
   });
 }
+
+
 
 /* ---- features/beacon.js ---- */
 /* Location markers: a pin on "home" (and on far-off places we have been) that
@@ -5424,7 +5468,7 @@ HOOKS.beforePins.push(function () {
   if (S.mode !== 'map' || !S.who) return;
   var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */
   var p = proj(MAIL_POS.lat, MAIL_POS.lng);
-  var h = Math.round(homeArtH(z) * 1.05), w = h * 449 / 314;
+  var h = Math.round(homeArtH(z) * 0.8), w = h * 449 / 314;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
   var fade = Math.min(1, (z - 6.8) / 0.8), unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;
@@ -5722,6 +5766,8 @@ setInterval(function () {
 var PET_STARTER = 20;                        /* a welcome gift of hearts */
 var PET = { open: false, name: 'Baby', owned: [], equipped: {}, spent: 0, treats: 0, mode: 'room', tab: 'mine', sel: null, woke: 0, lastPet: 0, bubble: '', visits: {} };
 S.love = { bruce: 0, elena: 0 };
+S.spend = { bruce: 0, elena: 0 };          /* what each of you has spent (own document each, so shopping together is safe) */
+try { var sp0 = JSON.parse(localStorage.getItem('ow.spend') || 'null'); if (sp0) S.spend = { bruce: sp0.bruce || 0, elena: sp0.elena || 0 }; } catch (e) {}
 try {
   var pl = JSON.parse(localStorage.getItem('ow.pet') || 'null'); if (pl) { PET.name = pl.name || PET.name; PET.owned = pl.owned || []; PET.equipped = pl.equipped || {}; PET.spent = pl.spent || 0; PET.treats = pl.treats || 0; }
   var ll = JSON.parse(localStorage.getItem('ow.love') || 'null'); if (ll) S.love = { bruce: ll.bruce || 0, elena: ll.elena || 0 };
@@ -5790,7 +5836,18 @@ function petLearnSizes(root) {
 }
 
 /* ---------------- hearts ---------------- */
-function petHearts() { return Math.max(0, (S.love.bruce || 0) + (S.love.elena || 0) + PET_STARTER - (PET.spent || 0)); }
+function petHearts() { return Math.max(0, (S.love.bruce || 0) + (S.love.elena || 0) + PET_STARTER - (PET.spent || 0) - (S.spend.bruce || 0) - (S.spend.elena || 0)); }
+function petSpend(n) {
+  if (!S.who) return;
+  S.spend[S.who] = (S.spend[S.who] || 0) + n;
+  try { localStorage.setItem('ow.spend', JSON.stringify(S.spend)); } catch (e) {}
+  if (S.db) S.db.collection('petspend').doc(S.who).set({ n: S.spend[S.who], at: Date.now() }).catch(function () {});
+}
+ROWHOOKS.petspend = function (rows) {
+  rows.forEach(function (r) { if (r.id === 'bruce' || r.id === 'elena') S.spend[r.id] = Math.max(S.spend[r.id] || 0, Number(r.n) || 0); });
+  try { localStorage.setItem('ow.spend', JSON.stringify(S.spend)); } catch (e) {}
+  petPill();
+};
 function petPersistLocal() {
   try { localStorage.setItem('ow.pet', JSON.stringify({ name: PET.name, owned: PET.owned, equipped: PET.equipped, spent: PET.spent, treats: PET.treats })); localStorage.setItem('ow.love', JSON.stringify(S.love)); } catch (e) {}
 }
@@ -6090,7 +6147,7 @@ function petAct(a) {
 }
 function petGiveTreat(t) {
   if (petHearts() < t.price) { toast('Not enough Love Hearts yet — earn some by adding memories, notes and more.', '💗', 3600); return false; }
-  PET.spent += t.price; PET.treats = (PET.treats || 0) + 1; petSavePet(); petPill();
+  petSpend(t.price); PET.treats = (PET.treats || 0) + 1; petSavePet(); petPill();
   var dog = document.getElementById('psDog');
   if (dog && PET.mode === 'room') {
     var f = document.createElement('div'); f.className = 'ps-fly'; f.innerHTML = treatImg(t);
@@ -6164,7 +6221,7 @@ function shopClick(b) {
   var it = petItem(sel); if (!it) return;
   if (a === 'buy') {
     if (petHearts() < it.price) return;
-    PET.spent += it.price; PET.owned.push(it.id); PET.equipped[it.slot] = it.id;
+    petSpend(it.price); PET.owned.push(it.id); PET.equipped[it.slot] = it.id;
     petSavePet(); toast('New: ' + it.name + ' — now wearing it', '🎀', 3000); sparkle();
     if (typeof playSound === 'function') playSound('chime');
     PET.sel = null; return petRenderShop();
@@ -6366,6 +6423,7 @@ function dashEnsure() {
     else if (d === 'dreams') ACTIONS['mn-dream']();
     else if (d === 'set') ACTIONS['mn-set']();
     else if (d === 'add') openAddMenu();
+    else if (d === 'today') mailOpen({ room: true, tab: 'note' });
   });
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dashEl.classList.contains('on')) dashClose(); });
   return dashEl;
@@ -6382,6 +6440,7 @@ function openMenu() {
     '<div class="d-top"><button class="pxbtn" type="button" data-d="close" aria-label="Back to the map">‹ Map</button>' +
       '<div class="d-hearts" title="Our Love Hearts"><img src="art/heart.png" alt="">' + petHearts() + '</div></div>' +
     '<div class="d-sign"><div class="board"><h1>Our World</h1></div><div class="rib">' + esc(rib) + '</div></div>' +
+    todayCardHtml() +
     (td.length ? '<button type="button" class="d-look" data-d="goto" data-lat="' + td[0].m.lat + '" data-lng="' + td[0].m.lng + '">' + esc(yearsAgo(td[0].years)) + ': <b>' + esc(td[0].m.title) + '</b></button>' : '') +
     '<div class="d-grid">' + DASH.map(function (t) {
       var bd = dashBadge(t[0]);
@@ -6390,6 +6449,17 @@ function openMenu() {
     '<div class="d-more"><button class="pxbtn" type="button" data-d="add">Add something</button><button class="pxbtn" type="button" data-d="dreams">Dreams</button><button class="pxbtn" type="button" data-d="set">Settings</button></div>' +
     '</div>';
   dashEl.classList.add('on'); dashEl.scrollTop = 0;
+}
+/* today: the note waiting for you, and what is coming up next */
+function todayCardHtml() {
+  var them = other(S.who), n = S.notes && S.notes[them], who = whoName(them).replace('Princess ', '');
+  var iso = todayISO(), next = null, label = '';
+  (S.calendarEvents || []).forEach(function (e) { if (e.date && e.date >= iso && (!next || e.date < next.date || (e.date === next.date && (e.time || '') < (next.time || '')))) next = e; });
+  (S.plans || []).forEach(function (p) { if (p.date && p.date >= iso && (!next || p.date < next.date)) next = { title: p.title, date: p.date, plan: true }; });
+  if (next) { var d = daysUntil(next.date); label = (d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : 'In ' + d + ' days') + ': ' + next.title; }
+  return '<button type="button" class="d-today" data-d="today"><span class="tt">Today\u2019s note from ' + esc(who) + '</span>' +
+    '<span class="tx">' + (n && n.text ? esc(n.text.length > 130 ? n.text.slice(0, 127) + '\u2026' : n.text) : 'Nothing yet. Tap to write yours.') + '</span>' +
+    (label ? '<span class="nx">' + esc(label) + '</span>' : '') + '</button>';
 }
 function dashClose() { if (dashEl) dashEl.classList.remove('on'); }
 function subPage(title, sub, rows) {
@@ -6766,7 +6836,16 @@ function startBehindGate() {
     try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('ow.') === 0) localStorage.removeItem(k); }); } catch (e) {}
     location.reload();
   });
-  OWCloud.session().then(function (sess) { if (sess) unlock(); else { gate.hidden = false; document.getElementById('gEmail').focus(); } });
+  /* Never leave a fresh browser on an empty locked page while the remote
+     session wakes up. The gate is the loading state and disappears for a
+     valid session. */
+  gate.hidden = false;
+  OWCloud.session().then(function (sess) {
+    if (sess) unlock();
+    else document.getElementById('gEmail').focus();
+  }).catch(function () {
+    err.textContent = 'Could not reach the shared world yet. Check your connection and try again.';
+  });
   form.addEventListener('submit', function (ev) {
     ev.preventDefault();
     err.textContent = ''; btn.disabled = true; btn.textContent = 'Opening\u2026';

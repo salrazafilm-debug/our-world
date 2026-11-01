@@ -5,8 +5,8 @@
 <style>
 :root{
   --bg:#FFF8FB; --pink:#D85A92; --deep:#9F3D6D; --princess:#F3A9C7;
-  --gold:#E7B765; --softgold:#F5D88E; --land:#91B979; --landdeep:#5E8D63;
-  --water:#63B9C7; --waterlite:#A5E1E5; --fog:#C5C1CF; --cloud:#E2DDE7;
+  --gold:#FFD56A; --softgold:#FFF0B2; --land:#9AD66F; --landdeep:#397E55;
+  --water:#31AFE9; --waterlite:#91DDF8; --fog:#E9D8F2; --cloud:#F9EAF7;
   --ink:#3D2838; --space:#1F1D39;
   --ink-70:rgba(61,40,56,.70); --ink-45:rgba(61,40,56,.45);
   --panel:#FFF7FB; --panel-edge:#F2D3E2;
@@ -394,7 +394,37 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 .d-tile .badge{position:absolute; top:8px; right:8px; background:var(--berry); color:var(--cream); font-family:var(--fdisp); font-size:13px; padding:2px 8px; clip-path:var(--px-step)}
 .d-more{display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:20px}
 .d-more .pxbtn{font-size:14px; padding:9px 14px}
+.d-today{display:block;width:100%;max-width:620px;margin:0 auto 14px;text-align:left;padding:12px 16px 14px;background:var(--paper);border:3px solid var(--wood-dk);border-bottom-width:7px;clip-path:var(--px-step);cursor:pointer;color:var(--ink)}
+.d-today .tt{display:block;font-family:var(--fdisp);font-weight:600;font-size:15px;color:var(--berry)}
+.d-today .tx{display:block;margin-top:5px;font-size:16px;line-height:1.5}
+.d-today .nx{display:block;margin-top:8px;padding-top:7px;border-top:2px dashed #E2C2AE;font-family:var(--fdisp);font-size:14px;color:var(--wood)}
+.d-today:active{transform:translateY(4px);border-bottom-width:3px}
 .d-look{display:block; margin:0 auto 16px; max-width:520px; text-align:center; background:var(--paper); border:3px dashed var(--wood); padding:8px 12px; font-size:14px; color:var(--ink)}
+
+
+/* ---------- leftovers brought into the kit ---------- */
+#worldchip[hidden]{display:none}
+@media (max-width:430px){#partnerchip{top:100px; right:10px}}
+.chip.warn{border-color:var(--peach); background:#FFF3E6}
+.field input,.field textarea,.field select{border:3px solid #E2C2AE; background:#FFFDF8; border-radius:0; font-size:16px}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--berry)}
+.field label{color:var(--berry-dk)}
+.note,.hint{color:var(--ink-70)}
+.sheet-head h2,.sheet-sub{font-family:var(--fdisp)}
+.whobtn{background:var(--cream); border:3px solid var(--berry); border-bottom-width:8px; box-shadow:none; clip-path:var(--px-step); transition:transform .1s}
+.whobtn:hover{transform:translateY(-2px)}.whobtn:active{transform:translateY(5px); border-bottom-width:3px; box-shadow:none}
+.whobtn .n{color:var(--berry-dk)}
+#intro,#gate{background:linear-gradient(180deg,#5B2F3A 0%,#7A4A44 55%,#8A5638 100%)}
+#intro h1,#gate h1{font-family:var(--ftitle); color:var(--cream); text-shadow:0 3px 0 var(--wood-dk)}
+#intro p,#gate p{color:#F3DCC6}
+#gate .card{background:var(--paper); border:4px solid var(--wood-dk); border-bottom-width:9px; box-shadow:none; clip-path:var(--px-step)}
+#gate .card h1{color:var(--berry); text-shadow:none}#gate .card p{color:var(--ink-70)}
+#gate label{color:var(--berry-dk)}
+#gate input{border:3px solid #E2C2AE; background:#FFFDF8; border-radius:0}#gate input:focus{border-color:var(--berry)}
+#gate .gerr{color:#B2323E}
+/* the pink "Discover" bar becomes a small button */
+#actions>.primary{align-self:flex-end; width:auto; font-size:14px; padding:9px 16px 8px}
+@media (max-width:720px){#actions>.primary{align-self:center}}
 
 /* ---------- placing mode ---------- */
 #placing{
@@ -725,10 +755,10 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 /* ============================== constants ============================== */
 var C = {
   bg:'#FFF8FB', pink:'#D85A92', deep:'#9F3D6D', princess:'#F3A9C7',
-  gold:'#E7B765', softgold:'#F5D88E', land:'#8CBC68', landdeep:'#5E8D63',
-  water:'#58A6D6', waterlite:'#9ED5EE', fog:'#C5C1CF', cloud:'#E2DDE7',
+  gold:'#FFD56A', softgold:'#FFF0B2', land:'#9AD66F', landdeep:'#397E55',
+  water:'#31AFE9', waterlite:'#91DDF8', fog:'#E9D8F2', cloud:'#F9EAF7',
   ink:'#3D2838', space:'#1F1D39',
-  landmuted:'#93BF6F', landmutededge:'#86B163'
+  landmuted:'#87C96D', landmutededge:'#579B60'
 };
 var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
@@ -1164,7 +1194,7 @@ function drawBase() {
   /* water: a pastel wash, then chunky wave dashes pinned to the world so they
      stay put as you pan rather than swimming about */
   var grad = g.createLinearGradient(0, 0, 0, bh);
-  grad.addColorStop(0, '#B4E1F2'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
+  grad.addColorStop(0, '#91DCF7'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
   g.fillStyle = grad; g.fillRect(0, 0, bw, bh);
 
   var z = S.zoom;
@@ -1269,11 +1299,11 @@ function drawBase() {
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (i = 0; i < RT.length; i++) {
       var pts = RT[i][1];
-      g.strokeStyle = 'rgba(166,128,82,.45)'; g.lineWidth = wgt + 1.2;
+      g.strokeStyle = 'rgba(194,126,61,.55)'; g.lineWidth = wgt + 1.5;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
-      g.strokeStyle = 'rgba(236,214,168,.95)'; g.lineWidth = wgt;
+      g.strokeStyle = 'rgba(255,226,139,.98)'; g.lineWidth = wgt;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
@@ -1320,8 +1350,8 @@ function drawBase() {
     g.restore();
 
     var wg = g.createRadialGradient(rcx, rcy, 0, rcx, rcy, rr2);
-    wg.addColorStop(0, 'rgba(245,216,142,.30)');
-    wg.addColorStop(0.62, 'rgba(231,183,101,.20)');
+    wg.addColorStop(0, 'rgba(255,232,164,.12)');
+    wg.addColorStop(0.62, 'rgba(255,213,106,.08)');
     wg.addColorStop(1, 'rgba(231,183,101,0)');
     g.fillStyle = wg; g.beginPath(); g.arc(rcx, rcy, rr2, 0, 7); g.fill();
   }
@@ -1345,8 +1375,11 @@ function drawFog() {
 
   /* The milky veil over unexplored ground fades away as you zoom out, so the
      far views stay crisp and colourful; only the drifting clouds remain. */
-  var haze = Math.max(0, Math.min(1, (S.zoom - 8.4) / 2.2));
-  if (haze > 0.005) { g.fillStyle = 'rgba(213,207,222,' + haze.toFixed(3) + ')'; g.fillRect(0, 0, bw, bh); }
+  var haze = 0;
+  /* A single pixel-cloud layer, clipped by the discovery mask below. */
+  g.save(); g.scale(1 / s, 1 / s);
+  drawSkyClouds(S.zoom, g);
+  g.restore();
 
   /* Clouds live over the ground, not over the screen: each one belongs to a
      patch of the world, so panning moves the map underneath them and every
@@ -1728,6 +1761,10 @@ function drawMapOverlays() {
   })();
 
   runHooks('terrain');
+  drawFog();
+  ctx.save(); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
+  ctx.restore();
 
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
@@ -1917,11 +1954,6 @@ function draw() {
 
   if (baseDirty) { drawBase(); runHooks('afterBase'); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
-  drawFog();
-  /* far out, the clouds thin so the land reads clearly, like the reference art */
-  ctx.globalAlpha = S.zoom > 9.4 ? 0.95 : (S.zoom > 8.2 ? 0.8 : (S.zoom > 7.4 ? 0.6 : 0.45));
-  ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
-  ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
@@ -2187,8 +2219,9 @@ var DBS = { claude: false, useFn: false, db: false, assets: false, note: '', cou
 function setWorldChip() {
   var c = document.getElementById('worldchip'), n = document.getElementById('worldnam');
   if (!c) return;
-  if (DBS.db) { c.classList.add('live'); c.classList.remove('warn'); n.textContent = 'Shared'; }
-  else { c.classList.remove('live'); c.classList.add('warn'); n.textContent = 'This device only'; }
+  /* quiet when everything works; it only appears when sharing is down */
+  if (DBS.db) { c.hidden = true; c.classList.add('live'); c.classList.remove('warn'); n.textContent = 'Shared'; }
+  else { c.hidden = false; c.classList.remove('live'); c.classList.add('warn'); n.textContent = 'Offline \u00b7 this phone only'; }
 }
 
 function connect() {
@@ -3246,7 +3279,16 @@ function startBehindGate() {
     try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('ow.') === 0) localStorage.removeItem(k); }); } catch (e) {}
     location.reload();
   });
-  OWCloud.session().then(function (sess) { if (sess) unlock(); else { gate.hidden = false; document.getElementById('gEmail').focus(); } });
+  /* Never leave a fresh browser on an empty locked page while the remote
+     session wakes up. The gate is the loading state and disappears for a
+     valid session. */
+  gate.hidden = false;
+  OWCloud.session().then(function (sess) {
+    if (sess) unlock();
+    else document.getElementById('gEmail').focus();
+  }).catch(function () {
+    err.textContent = 'Could not reach the shared world yet. Check your connection and try again.';
+  });
   form.addEventListener('submit', function (ev) {
     ev.preventDefault();
     err.textContent = ''; btn.disabled = true; btn.textContent = 'Opening\u2026';

@@ -1,7 +1,7 @@
 /* Living terrain: cherry trees, pines, oaks and blossom bushes grow over the
    ground we have cleared, and little sailboats sit on the water. Positions come
    from a fixed grid on the world (not the screen), so nothing moves when you
-   pan or zoom — more simply appear as you zoom in. */
+   pan or zoom - more simply appear as you zoom in. */
 
 var TER = { px: null, w: 0, h: 0, on: true };
 try { TER.on = localStorage.getItem('ow.terrain') !== 'off'; } catch (e) {}
@@ -39,16 +39,14 @@ function terNoise(x, y) {
 function grove(lat, lng) {
   var n = terNoise(lat / 0.3, lng / 0.3) * 0.7 + terNoise(lat / 0.07, lng / 0.07) * 0.3;
   var t = Math.max(0, Math.min(1, (n - 0.4) / 0.28));
-  var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields ≈ 2%, deep forest ≈ 87% */
+  var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields ~2%, deep forest ~87% */
   /* the home base itself stays open countryside, the woods gather around it */
-  var dh = haversine(lat, lng, 38.86, -76.68);
-  if (dh < 45 && S.zoom < 9.2) g *= 0.25 + 0.75 * Math.max(0, (dh - 18) / 27);
   return g;
 }
 
 /* Cinematic depth: the middle of the screen is in focus; toward the top and
    bottom, trees go soft, fade a little and (at the top) get smaller, as if seen
-   farther away — a tilt-shift look. */
+   farther away - a tilt-shift look. */
 function focusAt(y) {
   var d = Math.abs(y - H * 0.55) / (H * 0.55);
   return Math.max(0, Math.min(1, (d - 0.42) / 0.5));
@@ -57,11 +55,12 @@ function focusAt(y) {
 HOOKS.terrain.push(function () {
   if (S.mode !== 'map' || !TER.on || !TER.px) return;
   var z = S.zoom;
-  if (z < 6.3) return;
+  if (z < 5.8) return;
   var tl = unproj(0, 0), br = unproj(W, H);
   var latHi = Math.max(tl.lat, br.lat), latLo = Math.min(tl.lat, br.lat), lngLo = Math.min(tl.lng, br.lng), lngHi = Math.max(tl.lng, br.lng);
   var items = [], i;
-  var avoid = [HOMEBOXES.bruce, HOMEBOXES.elena].concat(Object.keys(HBBOX).map(function (k) { return HBBOX[k]; }));
+  /* Use current projected places below, never sprite boxes from the previous zoom. */
+  var avoid = [];
 
   /* every place that matters gets an open clearing around it */
   var pois = [];
@@ -73,16 +72,24 @@ HOOKS.terrain.push(function () {
   (S.plans || []).forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
   var clear = Math.max(34, homeArtH(z) * 0.95);
 
-  /* trees and bushes on land: groves and clearings, mixed heights */
-  var cell = 0.009 * Math.pow(2, Math.max(0, Math.floor((11.6 - z) / 1.0)));
-  var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
-  /* lighter close in so homes and pins breathe; lusher far out so the home base reads as countryside */
-  var thin = z > 9.5 ? 0.5 : (z < 8.6 ? 0.9 : 0.6), floor = 0;
-  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) < 2600) {
+  /* Three permanent world grids. Zoom only fades finer grids in; it never
+     replaces one grid with another, so forests do not pop or reshuffle. */
+  var layers = [
+    { cell: 0.048, density: 0.86, alpha: 1, seed: 100 },
+    { cell: 0.024, density: 0.52, alpha: Math.max(0, Math.min(1, (z - 6.8) / 1.1)), seed: 200 },
+    { cell: 0.012, density: 0.26, alpha: Math.max(0, Math.min(1, (z - 8.7) / 1.2)), seed: 300 }
+  ];
+  for (var lv = 0; lv < layers.length; lv++) {
+    var layer = layers[lv];
+    if (layer.alpha <= 0.01) continue;
+    var cell = layer.cell;
+    var gy0 = Math.floor(latLo / cell), gy1 = Math.ceil(latHi / cell), gx0 = Math.floor(lngLo / cell), gx1 = Math.ceil(lngHi / cell);
+    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) >= 9000) continue;
     for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
       var cy = (gy + 0.5) * cell, cx = (gx + 0.5) * cell;
-      if (terHash(gx, gy, 1) > grove(cy, cx) * thin + floor) continue;
-      var lat = (gy + 0.5 + (terHash(gx, gy, 2) - 0.5) * 0.9) * cell, lng = (gx + 0.5 + (terHash(gx, gy, 3) - 0.5) * 0.9) * cell;
+      if (terHash(gx, gy, layer.seed + 1) > grove(cy, cx) * layer.density) continue;
+      var lat = (gy + 0.5 + (terHash(gx, gy, layer.seed + 2) - 0.5) * 0.9) * cell;
+      var lng = (gx + 0.5 + (terHash(gx, gy, layer.seed + 3) - 0.5) * 0.9) * cell;
       var p = proj(lat, lng);
       if (p.x < -30 || p.y < -10 || p.x > W + 30 || p.y > H + 60) continue;
       if (terrainAt(p.x, p.y) !== 'land') continue;
@@ -92,14 +99,15 @@ HOOKS.terrain.push(function () {
       for (i = 0; i < pois.length; i++) { var dx = p.x - pois[i].x, dy = (p.y - pois[i].y) * 1.3; if (dx * dx + dy * dy < clear * clear) { near = true; break; } }
       if (near) continue;
       /* deep in a grove: more pines and oaks; at its edges: blossoms and bushes */
-      var g = grove(lat, lng), t = terHash(gx, gy, 4), type;
+      var g = grove(lat, lng), t = terHash(gx, gy, layer.seed + 4), type;
       if (g > 0.45) type = t < 0.18 ? 0 : (t < 0.7 ? 1 : (t < 0.95 ? 2 : 3));
       else type = t < 0.42 ? 0 : (t < 0.6 ? 1 : (t < 0.78 ? 2 : 3));
-      var vary = 0.8 + Math.pow(terHash(gx, gy, 5), 1.6) * 0.5;            /* most average, a few taller */
+      var vary = 0.8 + Math.pow(terHash(gx, gy, layer.seed + 5), 1.6) * 0.5;
       var kind = type === 3 ? 0.6 : (type === 1 ? 1.12 : 1);
       var depth = 0.86 + 0.14 * Math.max(0, Math.min(1, p.y / H));          /* a little smaller toward the top */
-      var base = Math.max(12, Math.min(24, 12 + (z - 6.3) * 2.6)) * kind * vary * depth;   /* always well under a home's height */
-      items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, ghost: !isRevealed(lat, lng, 0.94), f: focusAt(p.y), k: terHash(gx, gy, 9) });
+      var base = Math.max(18, Math.min(34, 18 + (z - 6.3) * 3)) * kind * vary * depth;
+      items.push({ x: p.x, y: p.y, n: TER_TYPES[type], h: base, a: layer.alpha,
+        ghost: !isRevealed(lat, lng, 0.94), f: focusAt(p.y), k: terHash(gx, gy, layer.seed + 9) });
     }
   }
   /* sailboats on open water, one every so often */
@@ -116,12 +124,12 @@ HOOKS.terrain.push(function () {
     }
   }
   /* too many for one frame? thin them evenly over the whole view (not just the bottom rows) */
-  var CAP = 420;
+  var CAP = 520;
   if (items.length > CAP) { var keep = CAP / items.length; items = items.filter(function (it) { return it.k < keep; }); }
   items.sort(function (a, b) { return a.y - b.y; });
   for (i = 0; i < items.length; i++) {
-    var it = items[i], soft = it.f > 0.35 || it.ghost;
-    var alpha = (it.ghost ? 0.72 : 1) * (1 - it.f * 0.4);
+    var it = items[i], soft = false;
+    var alpha = it.a == null ? 1 : it.a;
     /* a soft shadow grounds each tree */
     ctx.save(); ctx.globalAlpha = alpha * 0.22; ctx.fillStyle = '#3D4A2E';
     ctx.beginPath(); ctx.ellipse(it.x, it.y, it.h * 0.28, it.h * 0.07, 0, 0, 6.283); ctx.fill();
@@ -130,13 +138,6 @@ HOOKS.terrain.push(function () {
     ctx.restore();
   }
 
-  drawSkyClouds(z);
-
-  /* pink haze at the top and bottom of the view, like distance in a film shot */
-  var hz = ctx.createLinearGradient(0, 0, 0, H);
-  hz.addColorStop(0, 'rgba(250,226,238,.62)'); hz.addColorStop(0.2, 'rgba(250,226,238,0)');
-  hz.addColorStop(0.8, 'rgba(250,226,238,0)'); hz.addColorStop(1, 'rgba(250,226,238,.5)');
-  ctx.fillStyle = hz; ctx.fillRect(0, 0, W, H);
 });
 
 /* a fine grain over land and water, like the texture pack */
@@ -154,36 +155,45 @@ HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fi
 /* Soft clouds over the ground we have not explored yet. They sit on the world
    (drifting very slowly), gather thickest at the edges of the screen and thin
    out toward the middle, so the view is framed like the reference art. */
-var SKY_LADDER = [0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56];
-function drawSkyClouds(z) {
-  var want = 120 * kmPerPx(S.center.lat, z) / 111, cell = SKY_LADDER[SKY_LADDER.length - 1];
-  for (var li = 0; li < SKY_LADDER.length; li++) if (SKY_LADDER[li] >= want) { cell = SKY_LADDER[li]; break; }
-  var px = cell * 111 / kmPerPx(S.center.lat, z);                 /* the cell's size on screen */
-  var tl = unproj(-px, -px), br = unproj(W + px, H + px);
-  var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
-  var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
-  if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 400) return;
-  var drift = reduceMotion ? 0 : cloudPhase * 0.00035 * cell / 0.16;
+function drawSkyClouds(z, target) {
+  var sky = target || ctx;
   var list = [];
-  for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
-    var h0 = terHash(gx, gy, 31);
-    if (h0 > 0.38) continue;
-    var lat = (gy + 0.5 + (terHash(gx, gy, 32) - 0.5) * 0.8) * cell, lng0 = (gx + 0.5 + (terHash(gx, gy, 33) - 0.5) * 0.8) * cell;
+  var cloudLayers = [
+    { cell: 0.32, a: 1, seed: 500 },
+    { cell: 0.08, a: Math.max(0, Math.min(1, (z - 9.1) / 1.2)), seed: 600 }
+  ];
+  for (var li = 0; li < cloudLayers.length; li++) {
+    var cl = cloudLayers[li];
+    if (cl.a <= 0.01) continue;
+    var cell = cl.cell, px = cell * 111 / kmPerPx(S.center.lat, z);
+    var tl = unproj(-px, -px), br = unproj(W + px, H + px);
+    var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
+    var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
+    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 700) continue;
+    var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
+    for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
+    var h0 = terHash(gx, gy, cl.seed + 31);
+    if (h0 > 0.42) continue;
+    var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
+    var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
     var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
     if (isRevealed(lat, lng0, 1.25) || isRevealed(lat, lng0 - half, 1.25) || isRevealed(lat, lng0 + half, 1.25) ||
         isRevealed(lat + half * 0.5, lng0, 1.25) || isRevealed(lat - half * 0.5, lng0, 1.25)) continue;
-    var lng = lng0 + drift * (0.6 + terHash(gx, gy, 34) * 0.6);
+    var lng = lng0 + drift * (0.6 + terHash(gx, gy, cl.seed + 34) * 0.6);
     var p = proj(lat, lng);
     var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
     edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.7) continue;        /* keep the middle of the view clear, like a framed shot */
-    var w = Math.max(110, Math.min(230, px * (0.75 + terHash(gx, gy, 35) * 0.5)));   /* clouds, not slabs */
-    list.push({ x: p.x, y: p.y, h: w * 0.4, n: h0 < 0.3 ? 'cloud1' : 'cloud2', a: 0.8 - 0.65 * edge });
+    if (edge > 0.52) continue;
+    var w = Math.max(130, Math.min(280, px * (0.85 + terHash(gx, gy, cl.seed + 35) * 0.35)));
+    list.push({ x: p.x, y: p.y, h: w * 0.43, n: h0 < 0.22 ? 'cloud1' : 'cloud2', a: cl.a * (0.98 - 0.42 * edge) });
+    }
   }
   list.sort(function (a, b) { return a.y - b.y; });
   list.forEach(function (c) {
-    ctx.save(); ctx.globalAlpha = c.a;
-    drawArt(ctx, c.n, c.x, c.y + c.h * 0.5, c.h, DPR, true);
-    ctx.restore();
+    sky.save(); sky.globalAlpha = c.a;
+    drawArt(sky, c.n, c.x, c.y + c.h * 0.5, c.h, 1, false);
+    sky.restore();
   });
 }
+
+

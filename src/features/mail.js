@@ -37,7 +37,7 @@ HOOKS.beforePins.push(function () {
   if (S.mode !== 'map' || !S.who) return;
   var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */
   var p = proj(MAIL_POS.lat, MAIL_POS.lng);
-  var h = Math.round(homeArtH(z) * 1.05), w = h * 449 / 314;
+  var h = Math.round(homeArtH(z) * 0.8), w = h * 449 / 314;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
   var fade = Math.min(1, (z - 6.8) / 0.8), unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;

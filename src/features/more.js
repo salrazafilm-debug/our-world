@@ -72,6 +72,7 @@ function dashEnsure() {
     else if (d === 'dreams') ACTIONS['mn-dream']();
     else if (d === 'set') ACTIONS['mn-set']();
     else if (d === 'add') openAddMenu();
+    else if (d === 'today') mailOpen({ room: true, tab: 'note' });
   });
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dashEl.classList.contains('on')) dashClose(); });
   return dashEl;
@@ -88,6 +89,7 @@ function openMenu() {
     '<div class="d-top"><button class="pxbtn" type="button" data-d="close" aria-label="Back to the map">‹ Map</button>' +
       '<div class="d-hearts" title="Our Love Hearts"><img src="art/heart.png" alt="">' + petHearts() + '</div></div>' +
     '<div class="d-sign"><div class="board"><h1>Our World</h1></div><div class="rib">' + esc(rib) + '</div></div>' +
+    todayCardHtml() +
     (td.length ? '<button type="button" class="d-look" data-d="goto" data-lat="' + td[0].m.lat + '" data-lng="' + td[0].m.lng + '">' + esc(yearsAgo(td[0].years)) + ': <b>' + esc(td[0].m.title) + '</b></button>' : '') +
     '<div class="d-grid">' + DASH.map(function (t) {
       var bd = dashBadge(t[0]);
@@ -96,6 +98,17 @@ function openMenu() {
     '<div class="d-more"><button class="pxbtn" type="button" data-d="add">Add something</button><button class="pxbtn" type="button" data-d="dreams">Dreams</button><button class="pxbtn" type="button" data-d="set">Settings</button></div>' +
     '</div>';
   dashEl.classList.add('on'); dashEl.scrollTop = 0;
+}
+/* today: the note waiting for you, and what is coming up next */
+function todayCardHtml() {
+  var them = other(S.who), n = S.notes && S.notes[them], who = whoName(them).replace('Princess ', '');
+  var iso = todayISO(), next = null, label = '';
+  (S.calendarEvents || []).forEach(function (e) { if (e.date && e.date >= iso && (!next || e.date < next.date || (e.date === next.date && (e.time || '') < (next.time || '')))) next = e; });
+  (S.plans || []).forEach(function (p) { if (p.date && p.date >= iso && (!next || p.date < next.date)) next = { title: p.title, date: p.date, plan: true }; });
+  if (next) { var d = daysUntil(next.date); label = (d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : 'In ' + d + ' days') + ': ' + next.title; }
+  return '<button type="button" class="d-today" data-d="today"><span class="tt">Today\u2019s note from ' + esc(who) + '</span>' +
+    '<span class="tx">' + (n && n.text ? esc(n.text.length > 130 ? n.text.slice(0, 127) + '\u2026' : n.text) : 'Nothing yet. Tap to write yours.') + '</span>' +
+    (label ? '<span class="nx">' + esc(label) + '</span>' : '') + '</button>';
 }
 function dashClose() { if (dashEl) dashEl.classList.remove('on'); }
 function subPage(title, sub, rows) {
