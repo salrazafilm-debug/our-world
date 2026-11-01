@@ -111,7 +111,7 @@ function stopWalk(save) {
     S.walks.push(rec);
     try { localStorage.setItem('ow.walks', JSON.stringify(S.walks)); } catch (e) {}
     if (S.db) S.db.collection('walks').doc(rec.id).set(rec).catch(function () {});
-    toast('Walk saved · ' + rec.km + ' km', '👣', 3600); sparkle();
+    toast('Walk saved · ' + rec.km + ' km', '👣', 3600); sparkle(); if (window.earnHearts) earnHearts(2, 'walk');
   } else if (save) toast('Too short to save — walk a little further next time.', '👣', 3600);
   WALK.pts = []; WALK.started = 0;
   try { localStorage.removeItem('ow.walk.draft'); } catch (e) {}

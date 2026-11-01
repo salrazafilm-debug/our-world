@@ -42,48 +42,91 @@ ACTIONS['grp'] = function (b) {
   if (el) el.classList.toggle('open', !!MENU.open[id]);
 };
 
+/* The menu: six big, friendly tiles. Each opens a short page of its own, so
+   no screen ever shows more than a handful of choices. Adding things lives on
+   the pink heart button, not here. */
+var MENU_TILES = [
+  ['baby',  'art/pets/dog-face-happy.png', 'Our Baby',   '#FFE6CC', '#E9B089'],
+  ['notes', 'art/heart.png',               'Love notes', '#FFE0EC', '#EBA3C1'],
+  ['mem',   'art/calendar.png',            'Memories',   '#E6F1FF', '#9DBCE6'],
+  ['dream', 'art/star.png',                'Dreams',     '#FFF4CC', '#E6C766'],
+  ['us',    'art/house-i.png',             'Us',         '#E8F6E6', '#9CCB94'],
+  ['set',   'art/moon.png',                'Settings',   '#EFE8FA', '#B8A6DC']
+];
+function menuBadge(id) {
+  if (id === 'notes') { var n = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length; return n ? n : ''; }
+  if (id === 'baby') return petHearts() + ' ♥';
+  return '';
+}
 function openMenu() {
-  var td = thisDayList(), html = head('Menu', 'everything in one place') + annCardHtml();
-  if (td.length) {
-    html += '<div class="list" style="margin-bottom:10px">' + td.map(function (it) {
-      return '<button type="button" data-act="goto" data-lat="' + it.m.lat + '" data-lng="' + it.m.lng + '" data-z="13">' +
-        '<span class="ico">💗</span><span><span class="t">' + esc(it.m.title) + '</span><br><span class="s">' + esc(yearsAgo(it.years)) + '</span></span></button>';
-    }).join('') + '</div>';
-  }
-  var them = whoName(other(S.who)).replace('Princess ', ''), online = PR.partner ? 'online now' : 'offline';
-  var unopened = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length;
-  html +=
-    grp('add', '➕', 'Add', '', 
-      moreRow('add-memory', '💗', 'A memory', 'Pin where something happened') +
-      moreRow('add-letter', '💌', 'A sealed letter', 'Opens at a place, or on a day') +
-      moreRow('plan-new', '⭐', 'A place we want to go', 'Waits on the map, counts down') +
-      moreRow('walk', '👣', WALK.rec ? 'Stop recording our walk' : 'Record a walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : 'Adds the route to our heat trail')) +
-    grp('explore', '🗺️', 'Explore', '',
-      moreRow('places', '🏡', 'Our places', 'Everywhere the clouds have lifted') +
-      moreRow('calendar', '📅', 'Calendar', 'Memories by day') +
-      moreRow('albums', '🖼️', 'Photo albums', 'Polaroid stacks, by place') +
-      moreRow('trips-list', '🧵', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') : 'Thread memories into a journey') +
-      moreRow('together-map', '🏘️', 'Show us together', 'Both homes on one map') +
-      moreRow('discover-here', '✨', 'Clear the ground here', 'Lift the clouds where the map is centred') +
-      moreRow('poster', '🖼️', 'Save the map as a poster', 'Frame it, or send it to them')) +
-    grp('us', '💞', 'Us', unopened ? unopened + ' letter' + (unopened > 1 ? 's' : '') : '',
-      moreRow('note-edit', '💌', 'My daily love note', S.notes[S.who] && S.notes[S.who].text ? S.notes[S.who].text.slice(0, 40) + (S.notes[S.who].text.length > 40 ? '…' : '') : 'Waits for ' + them + ' every time they open the map') +
-      moreRow('journal', '📓', 'Our journal', 'How today felt · you both read it') +
-      moreRow('letters', '💌', 'Letters', unopened ? unopened + ' sealed for you' : 'Sealed for each other') +
-      moreRow('bucket', '🌠', 'Bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' to do together' : 'Things we want to do together') +
-      moreRow('plans-list', '⭐', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
-      moreRow('ann-edit', '📅', 'Our anniversary', S.us && S.us.anniversary ? fmtDate(S.us.anniversary) : 'Set the day it started')) +
-    grp('me', '🧍', 'Avatars & location', '',
-      moreRow('av-toggle', '🧍', AV_ON ? 'Avatars on the map: ON' : 'Avatars on the map: OFF', AV_ON ? 'Tap to hide them' : 'Tap to show them') +
-      moreRow('avatars', '👗', 'Change outfit', 'Top, ' + (S.who === 'elena' ? 'skirt' : 'trousers') + ' and shoes') +
-      moreRow('share-loc', '📍', PR.mine.sharing ? 'Live location: ON' : 'Share my live location', PR.mine.sharing ? 'Tap to stop · ' + them + ' is ' + online : 'Appear on the map when we are both here')) +
-    grp('set', '⚙️', 'Settings', '',
-      moreRow('atmos', '🌙', 'Atmosphere & sound', (AMB.tod === 'live' ? 'Real clock' : AMB.tod === 'day' ? 'Always day' : 'Always night') + (AMB.weather ? ' · weather on' : ' · weather off')) +
-      moreRow('trees-toggle', '🌳', TER.on ? 'Trees & boats: ON' : 'Trees & boats: OFF', TER.on ? 'Tap to hide' : 'Tap to show') +
-      moreRow('install', '📱', 'Add to your home screen', 'Opens full-screen like an app') +
-      moreRow('sign-out', '🚪', 'Sign out', 'Locks this device'));
+  var td = thisDayList(), a = annInfo(), html = '<div class="mn-hd"><div><h2>Our World</h2><div class="mn-sub">' +
+    (a && a.days > 0 ? 'Together ' + a.days.toLocaleString() + ' days 💗' : 'Hi, ' + esc(whoName(S.who).replace('Princess ', '')) + ' 💗') +
+    '</div></div><button class="closex" type="button" data-act="close" aria-label="Close">✕</button></div>';
+  if (td.length) html += '<button type="button" class="mn-look" data-act="goto" data-lat="' + td[0].m.lat + '" data-lng="' + td[0].m.lng + '" data-z="13">📸 ' + esc(yearsAgo(td[0].years)) + ': <b>' + esc(td[0].m.title) + '</b></button>';
+  html += '<div class="mn-grid">' + MENU_TILES.map(function (t) {
+    var badge = menuBadge(t[0]);
+    return '<button type="button" class="mn-tile" data-act="mn-' + t[0] + '" style="--bg:' + t[3] + ';--bd:' + t[4] + '"><img src="' + t[1] + '" alt=""><span>' + t[2] + '</span>' + (badge !== '' ? '<i>' + badge + '</i>' : '') + '</button>';
+  }).join('') + '</div>';
   openSheet(html);
 }
+function subPage(title, sub, rows) {
+  openSheet('<div class="mn-hd"><button class="mn-back" type="button" data-act="more" aria-label="Back">‹</button><div style="flex:1"><h2>' + esc(title) + '</h2>' + (sub ? '<div class="mn-sub">' + esc(sub) + '</div>' : '') + '</div>' +
+    '<button class="closex" type="button" data-act="close" aria-label="Close">✕</button></div><div class="list mn-list">' + rows + '</div>');
+}
+ACTIONS['mn-baby'] = function () { petOpen(); };
+ACTIONS['mn-notes'] = function () {
+  var them = whoName(other(S.who)).replace('Princess ', ''), un = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length;
+  subPage('Love notes', 'words for each other',
+    moreRow('note-edit', '💌', 'Today’s note', S.notes[S.who] && S.notes[S.who].text ? '“' + S.notes[S.who].text.slice(0, 36) + (S.notes[S.who].text.length > 36 ? '…' : '') + '”' : 'Greets ' + them + ' when they open the map') +
+    moreRow('journal', '📓', 'Our journal', 'How today felt · you both read it') +
+    moreRow('letters', '✉️', 'Sealed letters', un ? un + ' waiting for you' : 'Open at a place, or on a day'));
+};
+ACTIONS['mn-mem'] = function () {
+  subPage('Memories', 'everywhere we have been',
+    moreRow('calendar', '📅', 'Calendar', 'Memories and plans, day by day') +
+    moreRow('albums', '🖼️', 'Photo albums', 'Polaroid stacks, by place') +
+    moreRow('places', '🏡', 'Our places', 'Everywhere the clouds have lifted') +
+    moreRow('trips-list', '🧵', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') : 'Thread memories into a journey') +
+    moreRow('poster', '🎞️', 'Map poster', 'Save our world as a picture'));
+};
+ACTIONS['mn-dream'] = function () {
+  subPage('Dreams', 'what comes next',
+    moreRow('bucket', '🌠', 'Bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' to do together' : 'Things we want to do together') +
+    moreRow('plans-list', '⭐', 'Places to go', S.plans.length ? S.plans.length + ' on the map' : 'Stars on the map, with countdowns') +
+    moreRow('ann-edit', '💞', 'Our anniversary', S.us && S.us.anniversary ? fmtDate(S.us.anniversary) : 'Set the day it started'));
+};
+ACTIONS['mn-us'] = function () {
+  var them = whoName(other(S.who)).replace('Princess ', '');
+  subPage('Us', them + (PR.partner ? ' is online now' : ' is offline'),
+    moreRow('together-map', '🏘️', 'Show us together', 'Both homes on one map') +
+    moreRow('share-loc', '📍', PR.mine.sharing ? 'Live location is on' : 'Share live location', PR.mine.sharing ? 'Tap to stop' : 'Meet on the map when you are both out') +
+    moreRow('walk', '👣', WALK.rec ? 'Stop recording the walk' : 'Record a walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : 'Warms up our heat trail') +
+    moreRow('avatars', '👗', 'Outfits', 'Change what you are wearing') +
+    moreRow('av-toggle', '🧍', AV_ON ? 'Avatars on the map: on' : 'Avatars on the map: off', 'Tap to ' + (AV_ON ? 'hide' : 'show') + ' them'));
+};
+ACTIONS['mn-set'] = function () {
+  subPage('Settings', '',
+    moreRow('atmos', '🌙', 'Atmosphere & sound', (AMB.tod === 'live' ? 'Real clock' : AMB.tod === 'day' ? 'Always day' : 'Always night') + (AMB.weather ? ' · weather on' : ' · weather off')) +
+    moreRow('trees-toggle', '🌳', TER.on ? 'Trees & boats: on' : 'Trees & boats: off', 'Tap to ' + (TER.on ? 'hide' : 'show')) +
+    moreRow('install', '📱', 'Add to home screen', 'Opens like an app') +
+    moreRow('sign-out', '🚪', 'Sign out', 'Locks this phone'));
+};
+(function () {
+  var st = document.createElement('style');
+  st.textContent =
+    '.mn-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}.mn-hd h2{margin:0;font-family:var(--fdisp);font-size:24px;color:var(--deep)}' +
+    '.mn-sub{font-size:13px;font-weight:700;color:var(--ink-45);margin-top:2px}.mn-hd .closex{margin-left:auto}' +
+    '.mn-back{width:40px;height:40px;flex:none;border:3px solid var(--panel-edge);background:#fff;color:var(--deep);font-size:24px;line-height:1;padding:0}' +
+    '.mn-look{display:block;width:100%;text-align:left;margin:0 0 12px;padding:10px 12px;background:#FFF6E6;border:2.5px dashed #E6C08A;font-size:13.5px;color:var(--ink-70)}' +
+    '.mn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
+    '.mn-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;aspect-ratio:1.55;background:var(--bg);border:3px solid var(--bd);box-shadow:0 5px 0 var(--bd);padding:10px;transition:transform .12s}' +
+    '.mn-tile:active{transform:translateY(4px);box-shadow:0 1px 0 var(--bd)}' +
+    '.mn-tile img{width:46px;height:46px;object-fit:contain;image-rendering:pixelated}' +
+    '.mn-tile span{font-family:var(--fdisp);font-size:17px;color:var(--deep)}' +
+    '.mn-tile i{position:absolute;top:7px;right:8px;font-style:normal;font-size:11.5px;font-weight:800;color:#fff;background:var(--pink);padding:2px 7px;border:2px solid #fff;box-shadow:0 2px 0 rgba(0,0,0,.12)}' +
+    '.mn-list button{padding-top:12px;padding-bottom:12px}';
+  document.head.appendChild(st);
+})();
 var openMore = openMenu;
 document.getElementById('btnMore').addEventListener('click', openMenu);
 ACTIONS['more'] = openMenu;
@@ -336,7 +379,7 @@ ACTIONS['plan-save'] = function (b) {
   S.plans = [rec].concat(S.plans); LS.write('plans', S.plans);
   if (S.db) S.db.collection('plans').doc(rec.id).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 5000); });
   closeSheet(); draw();
-  toast('On the list: ' + title, '⭐', 3600); sparkle();
+  toast('On the list: ' + title, '⭐', 3600); sparkle(); if (window.earnHearts) earnHearts(1, 'plan');
 };
 function openPlan(id) {
   var p = planById(id); if (!p) return;

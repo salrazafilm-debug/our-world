@@ -107,7 +107,7 @@ ACTIONS['jr-save'] = function (b) {
   }
   done.then(function () {
     toast(JR.edit ? 'Entry updated.' : 'Shared with ' + jrShort(other(S.who)) + '.', '📓', 3200);
-    playSound('save');
+    playSound('save'); if (!JR.edit) { if (window.earnHearts) earnHearts(2, 'journal'); }
     ACTIONS['journal']();
   }).catch(function (e) {
     b.disabled = false; b.textContent = 'Try again';

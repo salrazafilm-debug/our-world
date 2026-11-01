@@ -53,7 +53,7 @@ ACTIONS['bk-done'] = function (b) {
   var it = bucketById(b.dataset.id); if (!it) return;
   it.done = !it.done; it.doneAt = it.done ? Date.now() : null;
   bucketWrite(it); ACTIONS['bucket']();
-  if (it.done) { sparkle(); toast('Done together: ' + it.title, '🎉', 4200); }
+  if (it.done) { sparkle(); if (window.earnHearts) earnHearts(2, 'bucket'); toast('Done together: ' + it.title, '🎉', 4200); }
 };
 ACTIONS['bk-del'] = function (b) {
   var id = b.dataset.id;

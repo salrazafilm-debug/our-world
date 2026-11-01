@@ -27,4 +27,24 @@ console.log(ok ? '  ok   geography pack: ' + g.OW_GEO.states.length + ' states, 
   g.OW_ROUTES.length + ' routes' : '  FAIL geography pack did not load');
 if (!ok) bad++;
 
+
+/* ---- guards against a broken publish ---- */
+const { execFileSync } = require('child_process');
+const os = require('os');
+const tmpOut = path.join(os.tmpdir(), 'ow-check-index.html');
+try {
+  execFileSync(process.execPath, [path.join(__dirname, 'build-site.js')], { env: Object.assign({}, process.env, { OW_OUT: tmpOut }), stdio: 'pipe' });
+  const fresh = fs.readFileSync(tmpOut, 'utf8');
+  /* 1. every script in the page we would publish must parse */
+  [...fresh.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].forEach((m, i) => check('built index.html script #' + (i + 1), m[1]));
+  /* 2. the committed index.html must be exactly what the build makes (nobody hand-edited it) */
+  const committed = fs.existsSync(path.join(ROOT, 'index.html')) ? fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8') : '';
+  if (committed !== fresh) { bad++; console.error('  FAIL index.html is out of date or was hand-edited. Edit src/ and run: npm run build'); }
+  else console.log('  ok   index.html matches a fresh build');
+  /* 3. no corrupted emoji / curly quotes */
+  if (/\uFFFD/.test(fresh)) { bad++; console.error('  FAIL built page contains U+FFFD (a corrupted character)'); }
+} catch (e) { bad++; console.error('  FAIL could not build to check index.html: ' + (e.stderr ? e.stderr.toString() : e.message)); }
+const srcFiles = [path.join(ROOT, 'src', 'index.html')].concat(fs.readdirSync(path.join(ROOT, 'src', 'features')).map(f => path.join(ROOT, 'src', 'features', f)));
+srcFiles.forEach(f => { if (/\?\?/.test(fs.readFileSync(f, 'utf8').replace(/\?\?\?/g, ''))) { bad++; console.error('  FAIL "??" found in ' + path.relative(ROOT, f) + ' (emoji turned into question marks?)'); } });
+
 process.exit(bad ? 1 : 0);
