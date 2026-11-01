@@ -1803,7 +1803,7 @@ function drawMapOverlays() {
     p = proj(lm[2], lm[3]);
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
-    var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * (lm[6] || 1)));
+    var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * 1.4 * (lm[6] || 1)));   /* places are about 1.4x bigger than before */
     var gh2 = SP[lm[4]].length * lsc;
     if (planned) {
       /* still ahead of us: a dashed ring on the ground and the icon held back a little */
@@ -1907,7 +1907,7 @@ function drawMapOverlays() {
     p = proj(m.lat, m.lng);
     var pk = m.lat.toFixed(4) + ',' + m.lng.toFixed(4), pn = pinCount[pk], pi = pinSeen[pk] || 0;
     pinSeen[pk] = pi + 1;
-    if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; var pr = z > 9.2 ? 30 : 15; p = { x: p.x + Math.cos(pa) * pr, y: p.y + Math.sin(pa) * pr }; }
+    if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; var pr = z > 9.2 ? 46 : 24; p = { x: p.x + Math.cos(pa) * pr, y: p.y + Math.sin(pa) * pr }; }
     if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
     var b = polaroidPin(m, p, z) || drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
     addHit({ x: b.x - 7, y: b.y - 7, w: b.w + 14, h: b.h + 14 }, { kind: 'memory', id: m.id });
@@ -2586,17 +2586,17 @@ function memoryForm(ll, starterId, prefillTitle) {
     head('New memory', nt.name) +
     '<div class="field"><label for="m-title">Title</label>' +
       '<input id="m-title" type="text" maxlength="80" placeholder="title your memory &lt;3" value="' + esc(prefillTitle || '') + '"></div>' +
-    '<div class="rowfields">' +
-      '<div class="field"><label for="m-date">Date</label><input id="m-date" type="date" value="' + todayISO() + '"></div>' +
-      '<div class="field"><label for="m-photo">Photos (optional, add as many as you like)</label><input id="m-photo" type="file" accept="image/*" multiple></div>' +
-    '</div>' +
+    '<div class="field"><label for="m-date">Date</label><input id="m-date" type="date" value="' + todayISO() + '"></div>' +
+    memPhotosHtml() +
     '<div class="field"><label for="m-note">Note</label><textarea id="m-note" maxlength="900" placeholder="What you want to remember about it."></textarea></div>' +
+    memPreviewField() +
     '<p class="hint">Pinned near ' + esc(nt.name) + ' — roughly where it happened, not an exact address.</p>' +
     '<div class="sheet-actions">' +
       '<button class="pxbtn primary" type="button" data-act="save-memory" data-lat="' + ll.lat + '" data-lng="' + ll.lng + '" data-starter="' + esc(starterId || '') + '">Save memory</button>' +
       '<button class="pxbtn" type="button" data-act="close">Cancel</button>' +
     '</div>'
   );
+  memPhotosInit(ll);
   setTimeout(function () { var e = document.getElementById('m-title'); if (e) e.focus(); }, 120);
 }
 
@@ -2634,7 +2634,7 @@ function saveMemory(btn) {
     by: S.who, lat: parseFloat(btn.dataset.lat), lng: parseFloat(btn.dataset.lng), at: Date.now()
   };
   var starter = btn.dataset.starter;
-  var files = Array.prototype.slice.call(document.getElementById('m-photo').files || [], 0, 12);
+  var files = memPhotoFiles();     /* every photo, whole or cropped by you */
   btn.disabled = true; btn.textContent = 'Saving…';
 
   function finish() {
@@ -3282,6 +3282,7 @@ function hydrateLocal() {
 //#include features/albums.js
 //#include features/polaroid.js
 //#include features/book.js
+//#include features/memphotos.js
 //#include features/mail.js
 //#include features/pet.js
 //#include features/calendar-events.js

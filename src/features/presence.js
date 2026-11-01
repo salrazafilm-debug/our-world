@@ -163,7 +163,7 @@ togetherBtn.addEventListener('click', function () {
    house. When someone is online but not sharing a location, they wait beside
    their own home. */
 function homeScaleNow() { var z = S.zoom; return z > 10.6 ? 4 : (z > 9 ? 3 : 2); }
-function avatarHeight() { return S.zoom < 7.2 ? 0 : Math.round(homeArtH(S.zoom) * 0.8); }
+function avatarHeight() { return S.zoom < 7.2 ? 0 : Math.round(homeArtH(S.zoom) * 0.64); }   /* a little bigger than before, but not as much as the homes */
 
 /* A live avatar eases to its new place on the WORLD (not the screen), and only
    when it has really moved: panning, zooming and GPS noise never make it move. */
