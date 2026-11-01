@@ -75,6 +75,8 @@ function bookEnsure() {
     '.pols{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 12px;margin-top:6px}',
     '.pol{display:flex;flex-direction:column;align-items:center;background:#fff;border:2px solid #E2C2AE;padding:6px 6px 8px;box-shadow:0 3px 0 rgba(120,70,60,.25);transform:rotate(var(--r,0deg));cursor:zoom-in;min-width:0}',
     '.pol img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.pol span{margin-top:6px;font-family:var(--fdisp);font-size:12.5px;color:var(--berry-dk);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.pols.n1{grid-template-columns:1fr;width:72%;margin:12px auto 0}.pols.n1 .pol img{aspect-ratio:4/3}.pols.n3 .pol img,.pols.n4 .pol img{aspect-ratio:1}',
+    '.mm-note{margin:4px 0 0;font-size:15.5px;line-height:1.6;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}.mm-note.sm{font-size:14px;line-height:1.5}.mm-note.xs{font-size:13px;line-height:1.45}',
     '.pgrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:0 0 8px;padding:9px 12px 8px;background:var(--cream);border:3px solid #E2C2AE;border-bottom-width:6px;color:var(--berry-dk);font-family:var(--fdisp);font-weight:600;font-size:15px}',
     '.pgrow small{display:block;font-family:var(--fbody);font-weight:500;font-size:13px;color:#9A7A6A}.pgrow .n{width:26px;height:26px;flex:none;background:var(--berry);color:var(--cream);display:grid;place-items:center;font-size:13px}',
     '.pgrow:active{transform:translateY(3px);border-bottom-width:3px}',
@@ -112,7 +114,7 @@ function bookEnsure() {
 function bookOpen() {
   bookEnsure(); closeSheet();
   if (typeof dashClose === 'function') dashClose();
-  BOOK.open = true; BOOK.stage = 'cover'; BOOK.idx = 0;
+  BOOK.open = true; BOOK.stage = 'cover'; BOOK.idx = 0; BOOK.section = 'story';
   bookRenderCover(); bookEl.classList.add('on');
 }
 function bookClose() { BOOK.open = false; if (bookEl) bookEl.classList.remove('on'); }
@@ -151,25 +153,36 @@ function pgWrap(inner, n, cls) { return '<div class="pg' + (cls ? ' ' + cls : ''
 function bkEmpty(title, msg, addBtn) {
   return [pgWrap('<div class="cv"><div class="big">' + esc(title) + '</div><p>' + esc(msg) + '</p>' + (addBtn ? '<button class="b-btn primary" type="button" data-b="add" style="margin-top:18px">Add a memory</button>' : '') + '</div>', '')];
 }
-function memEntry(m) {
-  var src = photoCandidates(m)[0];
-  return '<article class="mm"><div class="mm-h"><b>' + esc(m.title || 'A memory') + '</b><span>' + esc(fmtDate(m.date)) + ' · ' + esc(nearestTown(m.lat, m.lng).name) + ' · ' + esc(whoName(m.by)) + '</span></div>' +
-    (src ? '<button class="ph" type="button" data-b="photo" data-src="' + esc(src) + '" data-cap="' + esc(m.title || '') + '"><img alt="" src="' + esc(src) + '"></button>' : '') +
-    (m.note ? '<p>' + esc(m.note) + '</p>' : '') +
-    '<button class="mm-go" type="button" data-b="map" data-id="' + esc(m.id) + '">Show on the map</button></article>';
+/* Each memory is its own page (or pages): the title, when and where, the note, and its photos as polaroids.
+   A memory with many photos runs on to more pages; long notes get smaller type. */
+function memPhotos(m) {
+  var list = (m.photos && m.photos.length) ? m.photos : [m];
+  return list.map(function (p) { return { src: photoCandidates(p)[0] || '' }; }).filter(function (p) { return p.src; });
+}
+function memPolGrid(list) {
+  if (!list.length) return '';
+  return '<div class="pols n' + Math.min(list.length, 4) + '">' + list.map(function (p) {
+    return '<button class="pol" type="button" data-b="photo" data-src="' + esc(p.src) + '" data-cap="' + esc('') + '"><img alt="" src="' + esc(p.src) + '"></button>';
+  }).join('') + '</div>';
+}
+function memPages(m) {
+  var ph = memPhotos(m), note = (m.note || '').trim();
+  var size = note.length > 700 ? ' xs' : note.length > 320 ? ' sm' : '';
+  var sub = fmtDate(m.date) + ' \u00b7 ' + nearestTown(m.lat, m.lng).name + ' \u00b7 ' + whoName(m.by);
+  var firstN = note ? 2 : 4, first = ph.slice(0, firstN), rest = ph.slice(firstN), chunks = [];
+  for (var i = 0; i < rest.length; i += 4) chunks.push(rest.slice(i, i + 4));
+  var pages = [];
+  pages.push('<h2>' + esc(m.title || 'A memory') + '</h2><div class="sub">' + esc(sub) + '</div>' +
+    (note ? '<p class="mm-note' + size + '">' + esc(note) + '</p>' : '') + memPolGrid(first));
+  chunks.forEach(function (c) { pages.push('<h2>' + esc(m.title || 'A memory') + '</h2><div class="sub">continued</div>' + memPolGrid(c)); });
+  pages[pages.length - 1] += '<button class="mm-go" type="button" data-b="map" data-id="' + esc(m.id) + '">Show on the map</button>';
+  return pages.map(function (h) { return pgWrap(h, ''); });
 }
 function storyPages() {
-  var mems = S.memories.slice().sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.at || 0) - (b.at || 0); });
-  var a = typeof annInfo === 'function' ? annInfo() : null;
-  var pages = [pgWrap('<div class="cv"><div class="big">Our<br>Memories<br>Book</div><img class="hrt" alt="" src="art/heart.png"><p>' + (a && a.days > 0 ? 'Together ' + a.days.toLocaleString() + ' days. ' : '') +
-    mems.length + (mems.length === 1 ? ' memory' : ' memories') + ' so far, and many more to come.</p></div>', '')];
-  if (!mems.length) return bkEmpty('The first page is waiting', 'Pin your first memory and it will be written here.', true);
-  var groups = {}, order = [];
-  mems.forEach(function (m) { var k = (m.date || '').slice(0, 7) || 'undated'; if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(m); });
-  order.forEach(function (k) {
-    var title = k === 'undated' ? 'Undated' : BOOK_MONTHS[parseInt(k.slice(5, 7), 10) - 1] + ' ' + k.slice(0, 4), list = groups[k];
-    for (var i = 0; i < list.length; i += 3) pages.push(pgWrap('<h2>' + esc(title) + '</h2><div class="sub">' + (i === 0 ? list.length + (list.length === 1 ? ' memory' : ' memories') : 'continued') + '</div>' + list.slice(i, i + 3).map(memEntry).join(''), ''));
-  });
+  var mems = S.memories.slice().sort(function (a, b) { return (b.date || '').localeCompare(a.date || '') || (b.at || 0) - (a.at || 0); });
+  if (!mems.length) return [pgWrap('<div class="cv"><div class="big">Save your memories!</div><img class="hrt" alt="" src="art/heart.png"><p>Tap the heart on the map to save a memory. Each one gets its own page here, newest first.</p><button class="b-btn primary" type="button" data-b="close" style="margin-top:18px">Back to the map</button></div>', '')];
+  var pages = [];
+  mems.forEach(function (m) { memPages(m).forEach(function (p) { pages.push(p); }); });
   return pages;
 }
 function photoPages() {

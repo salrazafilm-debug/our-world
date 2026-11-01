@@ -2588,7 +2588,7 @@ function memoryForm(ll, starterId, prefillTitle) {
       '<input id="m-title" type="text" maxlength="80" placeholder="title your memory &lt;3" value="' + esc(prefillTitle || '') + '"></div>' +
     '<div class="rowfields">' +
       '<div class="field"><label for="m-date">Date</label><input id="m-date" type="date" value="' + todayISO() + '"></div>' +
-      '<div class="field"><label for="m-photo">Photo</label><input id="m-photo" type="file" accept="image/*"></div>' +
+      '<div class="field"><label for="m-photo">Photos (optional, add as many as you like)</label><input id="m-photo" type="file" accept="image/*" multiple></div>' +
     '</div>' +
     '<div class="field"><label for="m-note">Note</label><textarea id="m-note" maxlength="900" placeholder="What you want to remember about it."></textarea></div>' +
     '<p class="hint">Pinned near ' + esc(nt.name) + ' — roughly where it happened, not an exact address.</p>' +
@@ -2634,7 +2634,7 @@ function saveMemory(btn) {
     by: S.who, lat: parseFloat(btn.dataset.lat), lng: parseFloat(btn.dataset.lng), at: Date.now()
   };
   var starter = btn.dataset.starter;
-  var file = document.getElementById('m-photo').files[0];
+  var files = Array.prototype.slice.call(document.getElementById('m-photo').files || [], 0, 12);
   btn.disabled = true; btn.textContent = 'Saving…';
 
   function finish() {
@@ -2657,19 +2657,27 @@ function saveMemory(btn) {
   }
   function fail() { btn.disabled = false; btn.textContent = 'Save memory'; toast('Could not save that — try again.', '⚠️'); }
 
-  if (!file) { finish(); return; }
-  shrinkImage(file, function (blob, canvas) {
-    if (!blob) { finish(); return; }
-    if (S.assets) {
-      S.assets.upload(blob).then(function (a) { rec.photoUrl = a.url; rec.assetId = a.id; finish(); })
-        .catch(function () { var u = canvas && smallDataUrl(canvas); if (u) rec.photoUrl = u; else toast('Photo was too large — saved the memory without it.', '📷', 5000); finish(); });
-    } else {
-      var u = canvas && smallDataUrl(canvas);
-      if (u) { rec.photoUrl = u; }
-      else { toast('Photo storage is not available to you, and this one is too big to store in the pin. Saved without it.', '\ud83d\udcf7', 7000); }
-      finish();
+  /* a memory keeps every photo in rec.photos; the first one also sits on rec.photoUrl for map pins */
+  rec.photos = [];
+  function addPhoto(i) {
+    if (i >= files.length) {
+      if (rec.photos.length) { rec.photoUrl = rec.photos[0].photoUrl; if (rec.photos[0].assetId) rec.assetId = rec.photos[0].assetId; }
+      if (files.length && !rec.photos.length) toast('Photos could not be saved, so the memory was saved without them.', '\ud83d\udcf7', 7000);
+      return finish();
     }
-  });
+    shrinkImage(files[i], function (blob, canvas) {
+      if (!blob) return addPhoto(i + 1);
+      var keep = function (p) { if (p) rec.photos.push(p); addPhoto(i + 1); };
+      if (S.assets) {
+        S.assets.upload(blob).then(function (a) { keep({ photoUrl: a.url, assetId: a.id }); })
+          .catch(function () { var u = canvas && smallDataUrl(canvas); keep(u ? { photoUrl: u } : null); });
+      } else {
+        var u = canvas && smallDataUrl(canvas);
+        keep(u ? { photoUrl: u } : null);
+      }
+    });
+  }
+  addPhoto(0);
 }
 
 function surpriseForm(ll) {

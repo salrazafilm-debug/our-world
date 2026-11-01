@@ -141,8 +141,10 @@ var assets = {
 function signPhotos(rows) {
   var paths = [], seen = {};
   (rows || []).forEach(function (m) {
-    var a = m && m.assetId;
-    if (a && String(a).indexOf('/') > 0 && !seen[a]) { seen[a] = 1; paths.push(a); }
+    var ids = [m && m.assetId].concat((m && m.photos || []).map(function (p) { return p && p.assetId; }));
+    ids.forEach(function (a) {
+      if (a && String(a).indexOf('/') > 0 && !seen[a]) { seen[a] = 1; paths.push(a); }
+    });
   });
   if (!paths.length) return Promise.resolve();
   return sb.storage.from(BUCKET).createSignedUrls(paths, SIGN_SECONDS).then(function (r) {
