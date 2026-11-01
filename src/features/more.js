@@ -42,38 +42,80 @@ ACTIONS['grp'] = function (b) {
   if (el) el.classList.toggle('open', !!MENU.open[id]);
 };
 
-/* The menu: six big, friendly tiles. Each opens a short page of its own, so
-   no screen ever shows more than a handful of choices. Adding things lives on
-   the pink heart button, not here. */
-var MENU_TILES = [
-  ['baby',  'art/pets/dog-face-happy.png', 'Our Baby',   '#FFE6CC', '#E9B089'],
-  ['notes', 'art/heart.png',               'Love notes', '#FFE0EC', '#EBA3C1'],
-  ['mem',   'art/calendar.png',            'Memories',   '#E6F1FF', '#9DBCE6'],
-  ['dream', 'art/star.png',                'Dreams',     '#FFF4CC', '#E6C766'],
-  ['us',    'art/house-i.png',             'Us',         '#E8F6E6', '#9CCB94'],
-  ['set',   'art/moon.png',                'Settings',   '#EFE8FA', '#B8A6DC']
+/* The dashboard: a cozy room with six objects you tap. Secondary things sit in a
+   short row of small buttons underneath. Style rules: STYLE.md. */
+var DASH = [
+  ['mem',     'art/ui/book.png',     'Our Memories Book'],
+  ['baby',    'art/ui/paw.png',      'Our First Baby'],
+  ['shop',    'art/ui/shop.png',     'Pup Shop'],
+  ['cal',     'art/ui/calendar.png', 'Our Calendar'],
+  ['letters', 'art/ui/letters.png',  'Love Letters'],
+  ['avatars', 'art/ui/avatars.png',  'Our Avatars']
 ];
-function menuBadge(id) {
-  if (id === 'notes') { var n = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length; return n ? n : ''; }
-  if (id === 'baby') return petHearts() + ' ♥';
+var dashEl = null;
+function dashEnsure() {
+  if (dashEl) return dashEl;
+  dashEl = document.createElement('section'); dashEl.id = 'dash'; dashEl.setAttribute('aria-label', 'Our World');
+  document.body.appendChild(dashEl);
+  dashEl.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-d]'); if (!b) return;
+    var d = b.dataset.d;
+    if (d === 'close') return dashClose();
+    if (d === 'goto') { dashClose(); flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), 13); return; }
+    dashClose();
+    if (d === 'baby') petOpen();
+    else if (d === 'shop') { petOpen(); PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; petRender(); }
+    else if (d === 'cal') openCal();
+    else if (d === 'mem') ACTIONS['mn-mem']();
+    else if (d === 'letters') mailOpen({ room: true });
+    else if (d === 'avatars') ACTIONS['mn-us']();
+    else if (d === 'dreams') ACTIONS['mn-dream']();
+    else if (d === 'set') ACTIONS['mn-set']();
+    else if (d === 'add') openAddMenu();
+    else if (d === 'today') mailOpen({ room: true, tab: 'note' });
+  });
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dashEl.classList.contains('on')) dashClose(); });
+  return dashEl;
+}
+function dashBadge(id) {
+  if (id === 'letters') { var n = mailUnread().length; return n ? n + ' new' : ''; }
   return '';
 }
 function openMenu() {
-  var td = thisDayList(), a = annInfo(), html = '<div class="mn-hd"><div><h2>Our World</h2><div class="mn-sub">' +
-    (a && a.days > 0 ? 'Together ' + a.days.toLocaleString() + ' days 💗' : 'Hi, ' + esc(whoName(S.who).replace('Princess ', '')) + ' 💗') +
-    '</div></div><button class="closex" type="button" data-act="close" aria-label="Close">✕</button></div>';
-  if (td.length) html += '<button type="button" class="mn-look" data-act="goto" data-lat="' + td[0].m.lat + '" data-lng="' + td[0].m.lng + '" data-z="13">📸 ' + esc(yearsAgo(td[0].years)) + ': <b>' + esc(td[0].m.title) + '</b></button>';
-  html += '<div class="mn-grid">' + MENU_TILES.map(function (t) {
-    var badge = menuBadge(t[0]);
-    return '<button type="button" class="mn-tile" data-act="mn-' + t[0] + '" style="--bg:' + t[3] + ';--bd:' + t[4] + '"><img src="' + t[1] + '" alt=""><span>' + t[2] + '</span>' + (badge !== '' ? '<i>' + badge + '</i>' : '') + '</button>';
-  }).join('') + '</div>';
-  openSheet(html);
+  closeSheet(); dashEnsure();
+  var td = thisDayList(), a = annInfo();
+  var rib = a && a.days > 0 ? 'Together ' + a.days.toLocaleString() + ' days' : 'Hi, ' + whoName(S.who).replace('Princess ', '');
+  dashEl.innerHTML = '<div class="d-bg"></div><div class="d-in">' +
+    '<div class="d-top"><button class="pxbtn" type="button" data-d="close" aria-label="Back to the map">‹ Map</button>' +
+      '<div class="d-hearts" title="Our Love Hearts"><img src="art/heart.png" alt="">' + petHearts() + '</div></div>' +
+    '<div class="d-sign"><div class="board"><h1>Our World</h1></div><div class="rib">' + esc(rib) + '</div></div>' +
+    todayCardHtml() +
+    (td.length ? '<button type="button" class="d-look" data-d="goto" data-lat="' + td[0].m.lat + '" data-lng="' + td[0].m.lng + '">' + esc(yearsAgo(td[0].years)) + ': <b>' + esc(td[0].m.title) + '</b></button>' : '') +
+    '<div class="d-grid">' + DASH.map(function (t) {
+      var bd = dashBadge(t[0]);
+      return '<button type="button" class="d-tile" data-d="' + t[0] + '"><span class="art"><img src="' + t[1] + '" alt=""></span><span class="lbl">' + esc(t[2]) + '</span>' + (bd ? '<span class="badge">' + esc(bd) + '</span>' : '') + '</button>';
+    }).join('') + '</div>' +
+    '<div class="d-more"><button class="pxbtn" type="button" data-d="add">Add something</button><button class="pxbtn" type="button" data-d="dreams">Dreams</button><button class="pxbtn" type="button" data-d="set">Settings</button></div>' +
+    '</div>';
+  dashEl.classList.add('on'); dashEl.scrollTop = 0;
 }
+/* today: the note waiting for you, and what is coming up next */
+function todayCardHtml() {
+  var them = other(S.who), n = S.notes && S.notes[them], who = whoName(them).replace('Princess ', '');
+  var iso = todayISO(), next = null, label = '';
+  (S.calendarEvents || []).forEach(function (e) { if (e.date && e.date >= iso && (!next || e.date < next.date || (e.date === next.date && (e.time || '') < (next.time || '')))) next = e; });
+  (S.plans || []).forEach(function (p) { if (p.date && p.date >= iso && (!next || p.date < next.date)) next = { title: p.title, date: p.date, plan: true }; });
+  if (next) { var d = daysUntil(next.date); label = (d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : 'In ' + d + ' days') + ': ' + next.title; }
+  return '<button type="button" class="d-today" data-d="today"><span class="tt">Today\u2019s note from ' + esc(who) + '</span>' +
+    '<span class="tx">' + (n && n.text ? esc(n.text.length > 130 ? n.text.slice(0, 127) + '\u2026' : n.text) : 'Nothing yet. Tap to write yours.') + '</span>' +
+    (label ? '<span class="nx">' + esc(label) + '</span>' : '') + '</button>';
+}
+function dashClose() { if (dashEl) dashEl.classList.remove('on'); }
 function subPage(title, sub, rows) {
   openSheet('<div class="mn-hd"><button class="mn-back" type="button" data-act="more" aria-label="Back">‹</button><div style="flex:1"><h2>' + esc(title) + '</h2>' + (sub ? '<div class="mn-sub">' + esc(sub) + '</div>' : '') + '</div>' +
     '<button class="closex" type="button" data-act="close" aria-label="Close">✕</button></div><div class="list mn-list">' + rows + '</div>');
 }
-ACTIONS['mn-baby'] = function () { petOpen(); };
+
 ACTIONS['mn-notes'] = function () {
   var them = whoName(other(S.who)).replace('Princess ', ''), un = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length;
   subPage('Love notes', 'words for each other',
@@ -114,16 +156,9 @@ ACTIONS['mn-set'] = function () {
 (function () {
   var st = document.createElement('style');
   st.textContent =
-    '.mn-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}.mn-hd h2{margin:0;font-family:var(--fdisp);font-size:24px;color:var(--deep)}' +
-    '.mn-sub{font-size:13px;font-weight:700;color:var(--ink-45);margin-top:2px}.mn-hd .closex{margin-left:auto}' +
-    '.mn-back{width:40px;height:40px;flex:none;border:3px solid var(--panel-edge);background:#fff;color:var(--deep);font-size:24px;line-height:1;padding:0}' +
-    '.mn-look{display:block;width:100%;text-align:left;margin:0 0 12px;padding:10px 12px;background:#FFF6E6;border:2.5px dashed #E6C08A;font-size:13.5px;color:var(--ink-70)}' +
-    '.mn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
-    '.mn-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;aspect-ratio:1.55;background:var(--bg);border:3px solid var(--bd);box-shadow:0 5px 0 var(--bd);padding:10px;transition:transform .12s}' +
-    '.mn-tile:active{transform:translateY(4px);box-shadow:0 1px 0 var(--bd)}' +
-    '.mn-tile img{width:46px;height:46px;object-fit:contain;image-rendering:pixelated}' +
-    '.mn-tile span{font-family:var(--fdisp);font-size:17px;color:var(--deep)}' +
-    '.mn-tile i{position:absolute;top:7px;right:8px;font-style:normal;font-size:11.5px;font-weight:800;color:#fff;background:var(--pink);padding:2px 7px;border:2px solid #fff;box-shadow:0 2px 0 rgba(0,0,0,.12)}' +
+    '.mn-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}.mn-hd h2{margin:0;font-family:var(--ftitle);font-size:24px;color:var(--berry)}' +
+    '.mn-sub{font-size:14px;font-weight:600;color:var(--ink-70);margin-top:2px}.mn-hd .closex{margin-left:auto}' +
+    '.mn-back{width:44px;height:44px;flex:none;border:3px solid var(--berry);border-bottom-width:6px;background:var(--cream);color:var(--berry);font-size:24px;line-height:1;padding:0;clip-path:var(--px-step)}' +
     '.mn-list button{padding-top:12px;padding-bottom:12px}';
   document.head.appendChild(st);
 })();

@@ -39,7 +39,7 @@ function terNoise(x, y) {
 function grove(lat, lng) {
   var n = terNoise(lat / 0.3, lng / 0.3) * 0.7 + terNoise(lat / 0.07, lng / 0.07) * 0.3;
   var t = Math.max(0, Math.min(1, (n - 0.4) / 0.28));
-  var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields � 2%, deep forest � 87% */
+  var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields ~2%, deep forest ~87% */
   /* the home base itself stays open countryside, the woods gather around it */
   return g;
 }
@@ -66,6 +66,7 @@ HOOKS.terrain.push(function () {
   var pois = [];
   ['bruce', 'elena'].forEach(function (k) { pois.push(proj(HOMES[k].lat, HOMES[k].lng)); });
   HOMEBASE.forEach(function (h) { pois.push(proj(h.lat, h.lng)); });
+  if (typeof MAIL_POS !== 'undefined') { var mp = proj(MAIL_POS.lat, MAIL_POS.lng); pois.push(mp, { x: mp.x - 60, y: mp.y }, { x: mp.x + 60, y: mp.y }); }
   LANDMARKS.forEach(function (l) { pois.push(proj(l[2], l[3])); });
   S.memories.forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
   (S.plans || []).forEach(function (m) { pois.push(proj(m.lat, m.lng)); });

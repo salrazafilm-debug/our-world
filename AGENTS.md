@@ -23,6 +23,8 @@ A private pixel-art map for two people. Static site + Supabase. No frameworks.
 - `art/pets/` — the puppy, room and accessory sprites for **Your Baby** (`src/features/pet.js`); `art-src/pets/` holds the original sheets they were cut from.
 
 ## Taste
+**Read `STYLE.md` before any visual change.** It is the owner's style guide and overrides anything below.
+
 - Pixel art, soft pinks, cream panels. Avatars and map objects stand still (no wiggle).
 - Homes and landmarks must stay clearly bigger than trees; keep clearings around places.
 - No statistics dashboards, no pre-placed mystery markers, no background location tracking.

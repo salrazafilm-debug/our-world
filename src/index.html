@@ -40,14 +40,12 @@ input,textarea,select{font-size:16px}
   background:linear-gradient(180deg,#FFF4F9 0%, #FDE8F2 100%);
   border-bottom:3px solid var(--panel-edge); z-index:6;
 }
-#brand{display:flex; align-items:center; gap:10px; min-width:0}
+#brand{display:flex; align-items:baseline; gap:10px; min-width:0}
 #brand h1{
   font-family:var(--fdisp); font-weight:700; font-size:clamp(19px,4.6vw,26px);
   margin:0; letter-spacing:.5px; color:var(--deep); white-space:nowrap;
 }
 #brand h1 .w{color:var(--pink)}
-#brand .crown{display:inline-grid;place-items:center;margin-right:8px;font-size:30px;line-height:1;color:#D89A2F;text-shadow:2px 2px 0 #fff}
-#brand h1::after{content:' ? ';font-size:.55em;color:var(--pink);vertical-align:top;letter-spacing:1px}
 #where{
   font-size:12px; letter-spacing:.09em; text-transform:uppercase; font-weight:700;
   color:var(--ink-45); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -341,6 +339,93 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 #top>*{position:relative; z-index:1}
 #stage::after{box-shadow:inset 0 0 110px rgba(236,170,205,.38)}
 
+
+/* ================= Our World UI kit (see STYLE.md) ================= */
+:root{
+  --berry:#8E3A57; --berry-dk:#5E2238; --rose:#D9879F; --rose-lt:#F6D3DC; --cream:#FFF2DF; --paper:#FBEBD6;
+  --wood:#8A5638; --wood-dk:#5A3424; --peach:#F2B48C; --ftitle:"Pixelify Sans", var(--fdisp);
+  --px-step:polygon(0 6px,3px 6px,3px 3px,6px 3px,6px 0,calc(100% - 6px) 0,calc(100% - 6px) 3px,calc(100% - 3px) 3px,calc(100% - 3px) 6px,100% 6px,100% calc(100% - 6px),calc(100% - 3px) calc(100% - 6px),calc(100% - 3px) calc(100% - 3px),calc(100% - 6px) calc(100% - 3px),calc(100% - 6px) 100%,6px 100%,6px calc(100% - 3px),3px calc(100% - 3px),3px calc(100% - 6px),0 calc(100% - 6px));
+}
+.pxbtn{
+  font-family:var(--fdisp); font-weight:600; color:var(--berry); background:var(--cream);
+  border:3px solid var(--berry); border-bottom-width:7px; border-radius:0; box-shadow:none;
+  clip-path:var(--px-step); transition:transform .08s, border-bottom-width .08s, background .12s;
+}
+.pxbtn:not([disabled]):hover{transform:translateY(-1px); background:#FFF8EC}
+.pxbtn:not([disabled]):active{transform:translateY(4px); border-bottom-width:3px; box-shadow:none}
+.pxbtn.primary{background:var(--berry); color:var(--cream); border-color:var(--berry-dk)}
+.pxbtn.primary:not([disabled]):hover{background:#9C4463}
+.pxbtn[aria-pressed="true"]{background:var(--rose-lt); color:var(--berry-dk); border-color:var(--berry-dk); box-shadow:none}
+.chip{border:3px solid var(--rose); background:var(--cream); color:var(--berry); clip-path:var(--px-step); border-radius:0}
+#sheet{background:var(--paper); border-top:4px solid var(--berry)}
+#sheet h2{color:var(--berry)}
+.closex{border:3px solid var(--berry); border-bottom-width:6px; background:var(--cream); color:var(--berry); clip-path:var(--px-step)}
+.list button{background:var(--cream); border:3px solid #E9C7B8; border-bottom-width:5px; clip-path:var(--px-step)}
+.list button:hover{border-color:var(--rose)}
+.list button:active{transform:translateY(2px); border-bottom-width:3px}
+.toast{background:var(--cream); border-color:var(--berry); color:var(--berry)}
+
+/* ---------- the dashboard ---------- */
+#dash{position:fixed; inset:0; z-index:28; display:none; overflow:auto; color:var(--ink)}
+#dash.on{display:block; animation:dIn .2s ease-out}
+@keyframes dIn{from{opacity:0}}
+#dash .d-bg{position:fixed; inset:-12px; background:url(art/pets/room.jpg) center/cover; filter:blur(3px) saturate(1.05); transform:scale(1.03)}
+#dash .d-bg:after{content:''; position:absolute; inset:0; background:rgba(74,30,40,.48)}
+@media (max-aspect-ratio:9/10){ #dash .d-bg{background-image:url(art/pets/room-mobile.jpg)} }
+#dash .d-in{position:relative; max-width:860px; margin:0 auto; padding:calc(14px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+.d-top{display:flex; align-items:center; justify-content:space-between; gap:10px}
+.d-top .pxbtn{height:46px; min-width:46px; padding:0 12px; font-size:15px}
+.d-hearts{display:flex; align-items:center; gap:7px; height:46px; padding:0 14px; background:var(--cream); border:3px solid var(--berry); border-bottom-width:7px; clip-path:var(--px-step); font-family:var(--fdisp); font-size:18px; color:var(--berry)}
+.d-hearts img{width:22px; height:22px; image-rendering:pixelated}
+.d-sign{margin:14px auto 18px; text-align:center; position:relative; width:max-content; max-width:100%}
+.d-sign .board{background:var(--wood); border:4px solid var(--wood-dk); border-bottom-width:8px; clip-path:var(--px-step); padding:10px 30px 12px}
+.d-sign h1{margin:0; font-family:var(--ftitle); font-weight:700; font-size:clamp(34px,9vw,52px); color:var(--cream); letter-spacing:1px; line-height:1}
+.d-sign .rib{display:inline-block; margin-top:-6px; position:relative; background:var(--cream); color:var(--berry); border:3px solid var(--berry); clip-path:var(--px-step); padding:4px 16px 5px; font-family:var(--fdisp); font-weight:600; font-size:15px}
+.d-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px}
+@media (max-width:640px){ .d-grid{grid-template-columns:repeat(2,1fr); gap:12px} }
+.d-tile{position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:10px; padding:14px 10px 12px; min-height:170px;
+  background:var(--rose-lt); border:3px solid var(--berry); border-bottom-width:8px; clip-path:var(--px-step); cursor:pointer; transition:transform .1s, border-bottom-width .08s}
+.d-tile:hover{transform:translateY(-2px)}
+.d-tile:active{transform:translateY(5px); border-bottom-width:3px}
+.d-tile .art{flex:1; display:flex; align-items:center; justify-content:center; width:100%; min-height:0}
+.d-tile .art img{max-width:86%; max-height:110px; object-fit:contain; image-rendering:pixelated; transition:transform .15s}
+.d-tile:hover .art img{transform:translateY(-3px) rotate(-1.5deg)}
+.d-tile .lbl{width:100%; text-align:center; background:var(--cream); border:3px solid var(--berry); clip-path:var(--px-step); padding:6px 4px 7px; font-family:var(--fdisp); font-weight:600; font-size:clamp(14px,3.6vw,17px); color:var(--berry-dk); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.d-tile .badge{position:absolute; top:8px; right:8px; background:var(--berry); color:var(--cream); font-family:var(--fdisp); font-size:13px; padding:2px 8px; clip-path:var(--px-step)}
+.d-more{display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:20px}
+.d-more .pxbtn{font-size:14px; padding:9px 14px}
+.d-today{display:block;width:100%;max-width:620px;margin:0 auto 14px;text-align:left;padding:12px 16px 14px;background:var(--paper);border:3px solid var(--wood-dk);border-bottom-width:7px;clip-path:var(--px-step);cursor:pointer;color:var(--ink)}
+.d-today .tt{display:block;font-family:var(--fdisp);font-weight:600;font-size:15px;color:var(--berry)}
+.d-today .tx{display:block;margin-top:5px;font-size:16px;line-height:1.5}
+.d-today .nx{display:block;margin-top:8px;padding-top:7px;border-top:2px dashed #E2C2AE;font-family:var(--fdisp);font-size:14px;color:var(--wood)}
+.d-today:active{transform:translateY(4px);border-bottom-width:3px}
+.d-look{display:block; margin:0 auto 16px; max-width:520px; text-align:center; background:var(--paper); border:3px dashed var(--wood); padding:8px 12px; font-size:14px; color:var(--ink)}
+
+
+/* ---------- leftovers brought into the kit ---------- */
+#worldchip[hidden]{display:none}
+@media (max-width:430px){#partnerchip{top:100px; right:10px}}
+.chip.warn{border-color:var(--peach); background:#FFF3E6}
+.field input,.field textarea,.field select{border:3px solid #E2C2AE; background:#FFFDF8; border-radius:0; font-size:16px}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--berry)}
+.field label{color:var(--berry-dk)}
+.note,.hint{color:var(--ink-70)}
+.sheet-head h2,.sheet-sub{font-family:var(--fdisp)}
+.whobtn{background:var(--cream); border:3px solid var(--berry); border-bottom-width:8px; box-shadow:none; clip-path:var(--px-step); transition:transform .1s}
+.whobtn:hover{transform:translateY(-2px)}.whobtn:active{transform:translateY(5px); border-bottom-width:3px; box-shadow:none}
+.whobtn .n{color:var(--berry-dk)}
+#intro,#gate{background:linear-gradient(180deg,#5B2F3A 0%,#7A4A44 55%,#8A5638 100%)}
+#intro h1,#gate h1{font-family:var(--ftitle); color:var(--cream); text-shadow:0 3px 0 var(--wood-dk)}
+#intro p,#gate p{color:#F3DCC6}
+#gate .card{background:var(--paper); border:4px solid var(--wood-dk); border-bottom-width:9px; box-shadow:none; clip-path:var(--px-step)}
+#gate .card h1{color:var(--berry); text-shadow:none}#gate .card p{color:var(--ink-70)}
+#gate label{color:var(--berry-dk)}
+#gate input{border:3px solid #E2C2AE; background:#FFFDF8; border-radius:0}#gate input:focus{border-color:var(--berry)}
+#gate .gerr{color:#B2323E}
+/* the pink "Discover" bar becomes a small button */
+#actions>.primary{align-self:flex-end; width:auto; font-size:14px; padding:9px 16px 8px}
+@media (max-width:720px){#actions>.primary{align-self:center}}
+
 /* ---------- placing mode ---------- */
 #placing{
   position:absolute; left:50%; top:56px; transform:translateX(-50%); z-index:7;
@@ -536,7 +621,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 <div id="app">
   <header id="top">
     <div id="brand">
-      <h1><span class="crown" aria-hidden="true">&#9819;</span>Our <span class="w">World</span></h1>
+      <h1><img class="crown" src="art/crown.png" alt="" width="34" height="26">Our <span class="w">World</span></h1>
       <span id="where">Loading the map&hellip;</span>
     </div>
     <div id="topright">
@@ -588,7 +673,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
         <button id="btnHere" type="button"></button><button id="btnCalendar" type="button"></button><button id="btnTogether" type="button"></button>
         <button id="btnSurprise" type="button"></button><button id="btnMore" type="button"></button>
       </div>
-      <button class="pxbtn primary" id="btnDiscover">Discover this area ?</button>
+      <button class="pxbtn primary" id="btnDiscover">Discover this area ✦</button>
     </div>
 
     <div id="placing">
@@ -605,7 +690,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
       <div class="cal-wrap">
         <div class="cal-top">
           <div class="grow"><h2 style="font-family:var(--fdisp);font-size:20px;margin:0;color:var(--deep);letter-spacing:.4px">Our calendar</h2>
-          <div class="sheet-sub">Every memory, by the day it happened</div></div>
+          <div class="sheet-sub">Memories and plans, day by day</div></div>
           <button class="closex" type="button" id="calClose" aria-label="Close calendar">&#10005;</button>
         </div>
         <div class="cal-nav">
@@ -648,7 +733,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 </div>
 
 <div id="gate" hidden>
-  <div class="float" aria-hidden="true"><span style="left:8%;animation-delay:0s">??</span><span style="left:24%;animation-delay:2.4s">?</span><span style="left:42%;animation-delay:5s">??</span><span style="left:63%;animation-delay:1.2s">?</span><span style="left:80%;animation-delay:3.8s">??</span><span style="left:92%;animation-delay:6.5s">?</span></div>
+  <div class="float" aria-hidden="true"><span style="left:8%;animation-delay:0s">💗</span><span style="left:24%;animation-delay:2.4s">✨</span><span style="left:42%;animation-delay:5s">💗</span><span style="left:63%;animation-delay:1.2s">✨</span><span style="left:80%;animation-delay:3.8s">💗</span><span style="left:92%;animation-delay:6.5s">✨</span></div>
   <form class="card" id="gateForm" style="position:relative">
     <div class="pair"><canvas width="72" height="72" data-sprite="cottage-gold"></canvas><canvas width="78" height="82" data-sprite="castle"></canvas></div>
     <h1>Our World</h1>
@@ -710,15 +795,15 @@ var LANDMARKS = [
    'Eight waterfalls strung down a gorge in the Poconos. The main drop falls about a hundred feet, and the boardwalks take you right under it.'],
   ['greatfalls','Great Falls Park',38.9976,-77.2530,'fallsWide',
    'The Potomac drops seventy-six feet in less than a mile here and squeezes through Mather Gorge. The Virginia side, looking across at Maryland.'],
-  ['dales','Dale\u2019s Pocono Bistro',41.0092,-75.2510,'cup',
+  ['dales','Dale’s Pocono Bistro',41.0092,-75.2510,'cup',
    'Breakfast and lunch on Route 611 in Bartonsville, halfway between the mountain and the falls. Where we ate.'],
   ['lanterns','Night Lights, Pocono Raceway',41.0536,-75.5110,'sun',
    'The lantern festival on the tri-oval at Long Pond. Everyone let theirs go at once and the whole sky went gold.', 2.0, 1],
   ['camelback','Camelback Resort',41.0514,-75.3553,'mountain',
-   'Up the mountain at Tannersville - lifts, trails and the whole Pocono ridge underneath you.', 1.2],
+   'Up the mountain at Tannersville — lifts, trails and the whole Pocono ridge underneath you.', 1.2],
   ['nyc','New York City',40.7580,-73.9855,'liberty',
-   'Times Square, and the whole city around it. The furthest either of us has taken this map - and we got here together.', 1.7],
-  /* Planned - drawn on the map before we get there, and they stay sealed until we do.
+   'Times Square, and the whole city around it. The furthest either of us has taken this map — and we got here together.', 1.7],
+  /* Planned — drawn on the map before we get there, and they stay sealed until we do.
      Tuple slot 8 marks a landmark as planned. */
   ['chicago','Chicago',41.8781,-87.6298,'skyline',
    'Where the plane sets down. The river cutting through the towers, the lake going on like an ocean, and the whole skyline waiting on us.',
@@ -728,7 +813,7 @@ var LANDMARKS = [
    1.4, 0, 1]
 ];
 
-/* The flight out west - home, then Chicago, then up the shore to Milwaukee. */
+/* The flight out west — home, then Chicago, then up the shore to Milwaukee. */
 var FLIGHT = [
   [HOMES.bruce.lat, HOMES.bruce.lng],
   [41.8781, -87.6298],
@@ -1127,7 +1212,7 @@ function drawBase() {
     }
   }
 
-  /* land - county polygons overlap into one silhouette; core states read brighter */
+  /* land — county polygons overlap into one silhouette; core states read brighter */
   var i, k, j, st, ring, p;
 
   /* the rest of the planet: coarse world land sits under the detailed states so
@@ -1180,7 +1265,7 @@ function drawBase() {
       g.strokeStyle = g.fillStyle; g.lineWidth = 1.3; g.lineJoin = 'round'; g.stroke();   /* closes hairline seams between shapes */
     }
   }
-  /* county / regional boundaries - faint texture, only once you are close in */
+  /* county / regional boundaries — faint texture, only once you are close in */
   if (z > 9.2) {
     g.lineWidth = 0.4; g.lineJoin = 'round';
     for (i = 0; i < GEO.states.length; i++) {
@@ -1224,7 +1309,7 @@ function drawBase() {
       g.stroke();
     }
   }
-  /* Ground we have stood on comes alive - the muted states turn the same green as
+  /* Ground we have stood on comes alive — the muted states turn the same green as
      home inside a cleared region, then everything ours takes a warm gold cast. */
   var rs2 = allRegions();
   for (var ri = 0; ri < rs2.length; ri++) {
@@ -1422,7 +1507,7 @@ function drawGlobe() {
   og.addColorStop(0, C.waterlite); og.addColorStop(0.75, C.water); og.addColorStop(1, '#3F8F9E');
   g.fillStyle = og; g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.fill();
 
-  /* land - points behind the planet are pushed out to its edge, so a coastline
+  /* land — points behind the planet are pushed out to its edge, so a coastline
      curves round the horizon instead of being sliced by a straight line */
   g.save(); g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.clip();
   g.fillStyle = C.landmuted;
@@ -1473,7 +1558,7 @@ function drawGlobe() {
   g.strokeStyle = 'rgba(243,169,199,' + (0.55 + skyMix * 0.3) + ')'; g.lineWidth = 1;
   g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.stroke();
 
-  /* our place in the world - drawn last so no shading or atmosphere ever dulls it */
+  /* our place in the world — drawn last so no shading or atmosphere ever dulls it */
   drawGlobeBeacons(g, pt, cx, cy, Rp, l0, sinp0, cosp0);
   baseDirty = false;
 }
@@ -1570,7 +1655,7 @@ function drawMapOverlays() {
     labelBoxes.push({ x: hq.x - hw / 2 - 5, y: hq.y - hh2 - 5, w: hw + 10, h: hh2 + 12 });
   });
 
-  /* state names - how you find your way around when zoomed out */
+  /* state names — how you find your way around when zoomed out */
   if (z < 8.8) {
     var SL = window.OW_STATES_LBL, fade = Math.max(0.28, Math.min(0.72, (8.8 - z) / 2.2));
     ctx.font = '600 ' + (z < 6.4 ? 13 : 16) + 'px "Pixelify Sans", monospace';
@@ -1590,7 +1675,7 @@ function drawMapOverlays() {
     ctx.textBaseline = 'alphabetic';
   }
 
-  /* counties and city areas - the labels you see most of the time */
+  /* counties and city areas — the labels you see most of the time */
   var A = window.OW_AREAS;
   for (i = 0; i < A.length; i++) {
     if (!isRevealed(A[i][1], A[i][2], 1.25)) continue;
@@ -1600,7 +1685,7 @@ function drawMapOverlays() {
     tryLabel(p.x, p.y, A[i][0], { size: 13, fg: C.deep, bg: 'rgba(255,251,253,.82)' });
   }
 
-  /* towns and landmarks - only once you are right on top of them */
+  /* towns and landmarks — only once you are right on top of them */
   if (z > 11.2) {
     var T = window.OW_TOWNS;
     for (i = 0; i < T.length; i++) {
@@ -1624,7 +1709,7 @@ function drawMapOverlays() {
     }
   }
 
-  /* the flight out - a dashed hop from home to Chicago and up the shore to Milwaukee,
+  /* the flight out — a dashed hop from home to Chicago and up the shore to Milwaukee,
      with a small plane drifting along it. Nothing here is cleared ground; it is just the plan. */
   (function drawFlight() {
     var fp = [], fi;
@@ -1656,7 +1741,7 @@ function drawMapOverlays() {
     ctx.setLineDash([]); ctx.lineDashOffset = 0;
     ctx.restore();
 
-    /* where the plane has got to - one slow pass, about two and a half minutes end to end */
+    /* where the plane has got to — one slow pass, about two and a half minutes end to end */
     var ft = ((cloudPhase % 1600) / 1600) * total, seg = 0;
     while (seg < segLen.length - 1 && ft > segLen[seg]) { ft -= segLen[seg]; seg++; }
     var u = Math.max(0, Math.min(1, ft / (segLen[seg] || 1))), iu = 1 - u;
@@ -1758,7 +1843,7 @@ function drawMapOverlays() {
     var h = HOMES[k]; var q = proj(h.lat, h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
-    var bob = 0;                       /* homes stand still - everything placed beside them depends on it */
+    var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
     var box = (k === 'elena' ? drawArt(ctx, 'castle-pink', q.x, q.y, hz, DPR) : drawArt(ctx, 'cottage', q.x, q.y, hz * 0.84, DPR)) ||
       (k === 'elena'
@@ -1782,7 +1867,7 @@ function drawMapOverlays() {
     HOMEBOXES[k] = { x: box.x, y: box.y, w: box.w, h: box.h, sc: sc, baseY: q.y };
   });
 
-  /* memories - pins sharing a spot fan out in a ring so none hides another */
+  /* memories — pins sharing a spot fan out in a ring so none hides another */
   runHooks('beforePins');
   var pinCount = {}, pinSeen = {};
   for (i = 0; i < S.memories.length; i++) {
@@ -2021,7 +2106,7 @@ function updateWhere() {
   var reg = regionAt(S.center.lat, S.center.lng);
   if (reg) { el.textContent = reg.name; return; }
   var nt = nearestTown(S.center.lat, S.center.lng);
-  el.textContent = 'Unexplored - near ' + nt.name;
+  el.textContent = 'Unexplored — near ' + nt.name;
 }
 
 /* ============================== toasts ============================== */
@@ -2030,7 +2115,7 @@ function toast(msg, emoji, ms) {
   var d = document.createElement('div');
   d.className = 'toast';
   d.innerHTML = '<span class="em"></span><span class="tx"></span>';
-  d.querySelector('.em').textContent = emoji || '?';
+  d.querySelector('.em').textContent = emoji || '✨';
   d.querySelector('.tx').textContent = msg;
   wrap.appendChild(d);
   setTimeout(function () { d.style.transition = 'opacity .35s'; d.style.opacity = '0'; setTimeout(function(){ d.remove(); }, 380); }, ms || 3400);
@@ -2044,7 +2129,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function
 function head(title, sub) {
   return '<div class="sheet-head"><div class="grow"><h2>' + esc(title) + '</h2>' +
     (sub ? '<div class="sheet-sub">' + esc(sub) + '</div>' : '') +
-    '</div><button class="closex" type="button" data-act="close" aria-label="Close">?</button></div>';
+    '</div><button class="closex" type="button" data-act="close" aria-label="Close">✕</button></div>';
 }
 sheet.addEventListener('click', function (e) {
   var b = e.target.closest('[data-act]'); if (!b) return;
@@ -2060,7 +2145,7 @@ sheet.addEventListener('click', function (e) {
   else if (act === 'del-surprise') delSurprise(b.dataset.id);
   else if (act === 'mem-at') { memoryForm({ lat: parseFloat(b.dataset.lat), lng: parseFloat(b.dataset.lng) }); }
   else if (act === 'world-pull') {
-    b.disabled = true; b.textContent = 'Pulling.';
+    b.disabled = true; b.textContent = 'Pulling…';
     loadAll();
     setTimeout(function () { worldStatus(); toast('Pulled ' + S.memories.length + ' memories and ' + S.regions.length + ' places.', '\u2728', 3600); }, 1400);
   }
@@ -2068,7 +2153,7 @@ sheet.addEventListener('click', function (e) {
   else if (act === 'diagnose') { runDiagnostic(b); }
   else if (act === 'use-latlng') {
     var ll = parseLatLng(document.getElementById('ll-in').value);
-    if (!ll) { toast('That did not look like coordinates. Try 40.9269, -75.2026', '??', 4600); return; }
+    if (!ll) { toast('That did not look like coordinates. Try 40.9269, -75.2026', '📍', 4600); return; }
     S.me = ll;
     closeSheet();
     flyTo(ll.lat, ll.lng, 11.6);
@@ -2134,8 +2219,9 @@ var DBS = { claude: false, useFn: false, db: false, assets: false, note: '', cou
 function setWorldChip() {
   var c = document.getElementById('worldchip'), n = document.getElementById('worldnam');
   if (!c) return;
-  if (DBS.db) { c.classList.add('live'); c.classList.remove('warn'); n.textContent = 'Shared'; }
-  else { c.classList.remove('live'); c.classList.add('warn'); n.textContent = 'This device only'; }
+  /* quiet when everything works; it only appears when sharing is down */
+  if (DBS.db) { c.hidden = true; c.classList.add('live'); c.classList.remove('warn'); n.textContent = 'Shared'; }
+  else { c.hidden = false; c.classList.remove('live'); c.classList.add('warn'); n.textContent = 'Offline \u00b7 this phone only'; }
 }
 
 function connect() {
@@ -2236,24 +2322,25 @@ function offline() {
   if (warnedOffline) return;
   warnedOffline = true;
   setWorldChip();
-  toast('Saving on this device only - tap the gold chip up top to see why', '\u26a0\ufe0f', 6000);
+  toast('Saving on this device only — tap the gold chip up top to see why', '\u26a0\ufe0f', 6000);
 }
 
 /* ============================== discovery ============================== */
 function discover(lat, lng, quiet) {
   var existing = regionAt(lat, lng);
-  if (existing) { if (!quiet) toast('Already part of Our World: ' + existing.name, '???'); return false; }
+  if (existing) { if (!quiet) toast('Already part of Our World: ' + existing.name, '🗺️'); return false; }
   var nt = nearestTown(lat, lng);
   var name = nt.km < 26 ? nt.name : 'Uncharted ground';
   var rec = { name: name, lat: lat, lng: lng, r: REVEAL_KM, by: S.who, at: Date.now() };
   if (S.db) {
-    S.db.collection('discoveries').doc(uid()).set(rec).catch(function () { toast('Could not save that discovery.', '??'); });
+    S.db.collection('discoveries').doc(uid()).set(rec).catch(function () { toast('Could not save that discovery.', '⚠️'); });
   } else {
     rec.id = uid(); S.regions.push(rec);
   }
   baseDirty = true; renderHop(); draw();
   fxDiscover(lat, lng);
-  toast('New area discovered: ' + name, '??', 4200);
+  if (!quiet) { if (window.earnHearts) earnHearts(1, 'discover'); }
+  toast('New area discovered: ' + name, '🌟', 4200);
   sparkle();
   return true;
 }
@@ -2261,7 +2348,7 @@ function discover(lat, lng, quiet) {
 document.getElementById('btnDiscover').addEventListener('click', function () {
   var b = this;
   if (!navigator.geolocation || frameBlocked() === true) { locationHelp({ code: 1 }); return; }
-  b.disabled = true; b.textContent = 'Finding you.';
+  b.disabled = true; b.textContent = 'Finding you…';
   function done() { b.disabled = false; b.textContent = 'Discover this area'; }
   navigator.geolocation.getCurrentPosition(function (pos) {
     S.me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -2288,7 +2375,7 @@ document.getElementById('btnLocate').addEventListener('click', function () {
 document.getElementById('btnTogether').addEventListener('click', function () {
   var a = HOMES.bruce, b = HOMES.elena;
   flyTo((a.lat + b.lat) / 2, (a.lng + b.lng) / 2, 9.6);
-  toast('Chesapeake Beach and Arnold, on one map.', '??');
+  toast('Chesapeake Beach and Arnold, on one map.', '🏡');
 });
 
 function frameBlocked() {
@@ -2312,7 +2399,7 @@ function parseLatLng(txt) {
 
 function runDiagnostic(btn) {
   var out = document.getElementById('diag');
-  btn.disabled = true; btn.textContent = 'Checking.';
+  btn.disabled = true; btn.textContent = 'Checking…';
   var rows = [];
   function row(k, v) { rows.push('<dt>' + esc(k) + '</dt><dd>' + v + '</dd>'); }
   var ok = '<span style="color:#2E7D5B">Yes</span>', no = '<span style="color:#C2415F">No</span>';
@@ -2372,13 +2459,13 @@ function locationHelp(err) {
   var why, body;
   if (blocked === true || (err && err.code === 1)) {
     why = 'This page is not allowed to use location';
-    body = '<p class="note">Nothing is wrong with your phone. The map runs inside a frame that will not pass location through, so allowing it in Safari does not reach it. Use either of the two below - both work exactly the same once the area is cleared.</p>';
+    body = '<p class="note">Nothing is wrong with your phone. The map runs inside a frame that will not pass location through, so allowing it in Safari does not reach it. Use either of the two below — both work exactly the same once the area is cleared.</p>';
   } else if (err && err.code === 3) {
     why = 'Your phone took too long to find a signal';
     body = '<p class="note">Try again in a moment, or place it by hand below.</p>';
   } else {
     why = 'No location came back';
-    body = '<p class="note">Place it by hand below - it works the same.</p>';
+    body = '<p class="note">Place it by hand below — it works the same.</p>';
   }
   var nt = nearestTown(S.center.lat, S.center.lng);
   openSheet(
@@ -2426,7 +2513,7 @@ function sparkle() {
       setTimeout(function () {
         var s = document.createElement('span');
         s.className = 'sparkle';
-        s.textContent = i % 3 === 0 ? '?' : '??';
+        s.textContent = i % 3 === 0 ? '✨' : '💗';
         s.style.left = (30 + Math.random() * 40) + '%';
         s.style.top = (45 + Math.random() * 25) + '%';
         stage.appendChild(s);
@@ -2477,7 +2564,7 @@ function memoryForm(ll, starterId, prefillTitle) {
       '<div class="field"><label for="m-photo">Photo</label><input id="m-photo" type="file" accept="image/*"></div>' +
     '</div>' +
     '<div class="field"><label for="m-note">Note</label><textarea id="m-note" maxlength="900" placeholder="What you want to remember about it."></textarea></div>' +
-    '<p class="hint">Pinned near ' + esc(nt.name) + ' - roughly where it happened, not an exact address.</p>' +
+    '<p class="hint">Pinned near ' + esc(nt.name) + ' — roughly where it happened, not an exact address.</p>' +
     '<div class="sheet-actions">' +
       '<button class="pxbtn primary" type="button" data-act="save-memory" data-lat="' + ll.lat + '" data-lng="' + ll.lng + '" data-starter="' + esc(starterId || '') + '">Save memory</button>' +
       '<button class="pxbtn" type="button" data-act="close">Cancel</button>' +
@@ -2512,7 +2599,7 @@ function smallDataUrl(canvas) {
 
 function saveMemory(btn) {
   var title = (document.getElementById('m-title').value || '').trim();
-  if (!title) { document.getElementById('m-title').focus(); toast('Give it a title first.', '??'); return; }
+  if (!title) { document.getElementById('m-title').focus(); toast('Give it a title first.', '✏️'); return; }
   var rec = {
     title: title,
     note: (document.getElementById('m-note').value || '').trim(),
@@ -2521,12 +2608,12 @@ function saveMemory(btn) {
   };
   var starter = btn.dataset.starter;
   var file = document.getElementById('m-photo').files[0];
-  btn.disabled = true; btn.textContent = 'Saving.';
+  btn.disabled = true; btn.textContent = 'Saving…';
 
   function finish() {
     if (starter) { S.starterUsed[starter] = 1; try { localStorage.setItem('ow.starters', JSON.stringify(S.starterUsed)); } catch (e) {} }
     rec.id = uid();
-    /* keep it here first - this copy never depends on the network */
+    /* keep it here first — this copy never depends on the network */
     S.memories = mergeById([rec], S.memories);
     LS.write('memories', LS.read('memories').concat([rec]));
     if (S.db) S.db.collection('memories').doc(rec.id).set(rec).then(after, function (e) {
@@ -2538,16 +2625,17 @@ function saveMemory(btn) {
   function after() {
     discover(rec.lat, rec.lng, true);
     closeSheet(); draw(); if (calEl.classList.contains('open')) renderCal();
-    toast('Memory saved: ' + rec.title, '??'); sparkle();
+    toast('Memory saved: ' + rec.title, '💗'); sparkle();
+    if (window.earnHearts) earnHearts(2, 'memory');
   }
-  function fail() { btn.disabled = false; btn.textContent = 'Save memory'; toast('Could not save that - try again.', '??'); }
+  function fail() { btn.disabled = false; btn.textContent = 'Save memory'; toast('Could not save that — try again.', '⚠️'); }
 
   if (!file) { finish(); return; }
   shrinkImage(file, function (blob, canvas) {
     if (!blob) { finish(); return; }
     if (S.assets) {
       S.assets.upload(blob).then(function (a) { rec.photoUrl = a.url; rec.assetId = a.id; finish(); })
-        .catch(function () { var u = canvas && smallDataUrl(canvas); if (u) rec.photoUrl = u; else toast('Photo was too large - saved the memory without it.', '??', 5000); finish(); });
+        .catch(function () { var u = canvas && smallDataUrl(canvas); if (u) rec.photoUrl = u; else toast('Photo was too large — saved the memory without it.', '📷', 5000); finish(); });
     } else {
       var u = canvas && smallDataUrl(canvas);
       if (u) { rec.photoUrl = u; }
@@ -2582,7 +2670,7 @@ function surpriseForm(ll) {
 function saveSurprise(btn) {
   var title = (document.getElementById('s-title').value || '').trim();
   var note = (document.getElementById('s-note').value || '').trim();
-  if (!title && !note) { toast('Write something first.', '??'); return; }
+  if (!title && !note) { toast('Write something first.', '✏️'); return; }
   var rec = {
     title: title || 'A letter', note: note, by: S.who,
     forWho: document.getElementById('s-for').value,
@@ -2591,10 +2679,10 @@ function saveSurprise(btn) {
     lat: parseFloat(btn.dataset.lat), lng: parseFloat(btn.dataset.lng),
     opened: false, at: Date.now()
   };
-  btn.disabled = true; btn.textContent = 'Sealing.';
-  function after() { closeSheet(); draw(); toast(rec.unlockDate ? 'Sealed until ' + fmtDate(rec.unlockDate) + '.' : 'Sealed. It waits there until they arrive.', '??', 4200); }
+  btn.disabled = true; btn.textContent = 'Sealing…';
+  function after() { if (window.earnHearts) earnHearts(1, 'letter'); closeSheet(); draw(); toast(rec.unlockDate ? 'Sealed until ' + fmtDate(rec.unlockDate) + '.' : 'Sealed. It waits there until they arrive.', '💌', 4200); }
   if (S.db) S.db.collection('surprises').doc(uid()).set(rec).then(after, function () {
-    btn.disabled = false; btn.textContent = 'Seal it'; toast('Could not seal that - try again.', '??');
+    btn.disabled = false; btn.textContent = 'Seal it'; toast('Could not seal that — try again.', '⚠️');
   });
   else { rec.id = uid(); S.surprises.push(rec); after(); }
 }
@@ -2611,7 +2699,7 @@ function nearbyList(lat, lng, km) {
   var out = [];
   for (var i = 0; i < S.memories.length; i++) {
     var m = S.memories[i];
-    if (haversine(lat, lng, m.lat, m.lng) <= km) out.push({ t: m.title, s: whoName(m.by) + (m.date ? ' � ' + fmtDate(m.date) : ''), lat: m.lat, lng: m.lng, ic: '??' });
+    if (haversine(lat, lng, m.lat, m.lng) <= km) out.push({ t: m.title, s: whoName(m.by) + (m.date ? ' · ' + fmtDate(m.date) : ''), lat: m.lat, lng: m.lng, ic: '💗' });
   }
   return out.slice(0, 8);
 }
@@ -2625,16 +2713,17 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
+  if (item.kind === 'mail') { mailOpen(); return; }
   if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
   if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
   if (item.kind === 'plan') { openPlan(item.id); return; }
   if (item.kind === 'home') {
     var h = HOMES[item.who];
     openSheet(
-      head(h.name + (item.who === 'elena' ? ''s castle' : ''s home base'), h.label) +
+      head(h.name + (item.who === 'elena' ? '’s castle' : '’s home base'), h.label) +
       '<dl class="kv"><dt>Town</dt><dd>' + esc(h.label) + '</dd>' +
         '<dt>Cleared</dt><dd>' + h.r + ' km around it</dd></dl>' +
-      '<p class="note">Approximate town location - the map never holds a street address.</p>' +
+      '<p class="note">Approximate town location — the map never holds a street address.</p>' +
       '<h3 style="font-family:var(--fdisp);font-size:15px;color:var(--deep);margin:16px 0 6px">Nearby</h3>' +
       listHtml(nearbyList(h.lat, h.lng, 18), 'Looks like loving memories here have not been added yet!') +
       '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="goto" data-lat="' + h.lat + '" data-lng="' + h.lng + '">Centre here</button>' +
@@ -2684,7 +2773,7 @@ function openItem(item) {
     for (var j = 0; j < S.memories.length; j++) if (S.memories[j].id === item.id) m = S.memories[j];
     if (!m) return;
     openSheet(
-      head(m.title, fmtDate(m.date) + ' � ' + whoName(m.by)) +
+      head(m.title, fmtDate(m.date) + ' · ' + whoName(m.by)) +
       photoImg(m) +
       (m.note ? '<p class="note">' + esc(m.note).replace(/\n/g, '<br>') + '</p>' : '<p class="hint">No note on this one.</p>') +
       '<dl class="kv"><dt>Near</dt><dd>' + esc(nearestTown(m.lat, m.lng).name) + '</dd></dl>' +
@@ -2705,7 +2794,7 @@ function openItem(item) {
     var near = (d2 != null && d2 <= (s.unlockKm || UNLOCK_KM)) || letterDateReady(s);
     if (s.opened || (mine && !forMe)) {
       openSheet(
-        head(s.title, (s.opened ? 'Opened' : 'Sealed - yours') + ' � from ' + whoName(s.by)) +
+        head(s.title, (s.opened ? 'Opened' : 'Sealed — yours') + ' · from ' + whoName(s.by)) +
         '<p class="note">' + esc(s.note).replace(/\n/g, '<br>') + '</p>' +
         '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button>' +
         (mine ? '<button class="pxbtn" type="button" data-act="del-surprise" data-id="' + esc(s.id) + '">Remove</button>' : '') + '</div>'
@@ -2768,7 +2857,7 @@ function saveMemoryEdit(btn) {
   var moved = patch.date !== m.date;
   m.date = patch.date; m.title = patch.title; m.note = patch.note;
   LS.write('memories', S.memories);
-  btn.disabled = true; btn.textContent = 'Saving.';
+  btn.disabled = true; btn.textContent = 'Saving…';
 
   function done() {
     draw();
@@ -2813,20 +2902,20 @@ function delMemory(id) {
   S.db.collection('memories').doc(id).delete().then(function () {
     toast('Memory removed.', '\ud83d\uddd1\ufe0f');
   }, function (e) {
-    toast('Removed from your world. The shared copy refused (' + ((e && e.code) || 'error') + ') - it stays hidden anyway.', '\ud83d\uddd1\ufe0f', 6500);
+    toast('Removed from your world. The shared copy refused (' + ((e && e.code) || 'error') + ') — it stays hidden anyway.', '\ud83d\uddd1\ufe0f', 6500);
   });
 }
 function delSurprise(id) {
   if (S.db) S.db.collection('surprises').doc(id).delete().catch(function(){});
   S.surprises = S.surprises.filter(function (s) { return s.id !== id; });
   LS.write('surprises', S.surprises);
-  closeSheet(); draw(); toast('Letter removed.', '???');
+  closeSheet(); draw(); toast('Letter removed.', '🗑️');
 }
 
 /* ============================== calendar ============================== */
 var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 var DOW = ['S','M','T','W','T','F','S'];
-var CAL_MIN = { y: 2026, m: 4 };          /* May 2026 - nothing before this */
+var CAL_MIN = { y: 2026, m: 4 };          /* May 2026 — nothing before this */
 var calCur = null;
 var calEl = document.getElementById('cal');
 
@@ -2837,47 +2926,7 @@ function monthMemories(y, m) {
 }
 function beforeMin(y, m) { return y < CAL_MIN.y || (y === CAL_MIN.y && m < CAL_MIN.m); }
 
-function renderCal() {
-  var y = calCur.y, m = calCur.m;
-  document.getElementById('calMonth').innerHTML = MONTHS[m] + '<span class="yr">' + y + '</span>';
-  document.getElementById('calPrev').disabled = beforeMin(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1);
-
-  var mems = monthMemories(y, m), body = document.getElementById('calBody');
-
-  if (!mems.length) {
-    body.innerHTML =
-      '<div class="cal-empty"><div class="big">' + MONTHS[m] + '</div>' +
-      '<p>Add your favorite memories!</p></div>';
-    return;
-  }
-
-  var byDay = {};
-  mems.forEach(function (x) { var d = parseInt((x.date || '').slice(8, 10), 10); (byDay[d] = byDay[d] || []).push(x); });
-
-  var first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
-  var now = new Date(), isNow = now.getFullYear() === y && now.getMonth() === m;
-  var html = '<div class="cal-grid">';
-  for (var d = 0; d < 7; d++) html += '<div class="cal-dow">' + DOW[d] + '</div>';
-  for (var b = 0; b < first; b++) html += '<div class="cal-day blank"></div>';
-  for (var n = 1; n <= days; n++) {
-    var hit = byDay[n];
-    html += '<' + (hit ? 'button type="button" data-day="' + n + '"' : 'div') +
-      ' class="cal-day' + (hit ? ' has' : '') + (isNow && now.getDate() === n ? ' today' : '') + '">' +
-      '<span>' + n + '</span>' + (hit ? '<span class="hrt">' + (hit.length > 1 ? '\ud83d\udc97\u00d7' + hit.length : '\ud83d\udc97') + '</span>' : '') +
-      '</' + (hit ? 'button' : 'div') + '>';
-  }
-  html += '</div><div class="cal-list">';
-  mems.forEach(function (x) {
-    html += '<button class="cal-item" type="button" data-mem="' + esc(x.id) + '">' +
-(photoCandidates(x).length ? photoImg(x, '') : '<span class="ph">\ud83d\udc97</span>') +
-      '<span><span class="t">' + esc(x.title) + '</span><br><span class="s">' +
-      esc(fmtDate(x.date)) + ' \u00b7 ' + esc(whoName(x.by)) + ' \u00b7 ' + esc(nearestTown(x.lat, x.lng).name) +
-      '</span></span></button>';
-  });
-  html += '</div><div class="cal-count">' + mems.length + (mems.length === 1 ? ' memory' : ' memories') + ' this month</div>';
-  body.innerHTML = html;
-}
-
+/* renderCal() lives in features/calendar-events.js: memories, shared events and the day panel */
 function openCal() {
   if (!calCur) {
     var n = new Date();
@@ -2957,11 +3006,11 @@ function openPlaces() {
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'
   );
 }
-document.getElementById('btnPlaces').addEventListener('click', function () { openWorldHub(); });
+document.getElementById('btnPlaces').addEventListener('click', function () { openMenu(); });
 document.getElementById('btnHere').addEventListener('click', function () {
   discover(S.center.lat, S.center.lng);
 });
-document.getElementById('btnCalendar').addEventListener('click', function () { window.openWorldCalendar(); });
+document.getElementById('btnCalendar').addEventListener('click', openCal);
 document.getElementById('calClose').addEventListener('click', closeCal);
 document.getElementById('calPrev').addEventListener('click', function () { stepCal(-1); });
 document.getElementById('calNext').addEventListener('click', function () { stepCal(1); });
@@ -2973,16 +3022,6 @@ calEl.addEventListener('click', function (e) {
     closeCal();
     if (mem) { flyTo(mem.lat, mem.lng, 12.4); openItem({ kind: 'memory', id: id }); }
     return;
-  }
-  var db = e.target.closest('[data-day]');
-  if (db) {
-    var day = parseInt(db.dataset.day, 10);
-    var list = monthMemories(calCur.y, calCur.m).filter(function (x) { return parseInt((x.date || '').slice(8, 10), 10) === day; });
-    if (list.length === 1) { closeCal(); flyTo(list[0].lat, list[0].lng, 12.4); openItem({ kind: 'memory', id: list[0].id }); }
-    else if (list.length > 1) {
-      var el = calEl.querySelector('[data-mem="' + list[0].id + '"]');
-      if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
   }
 });
 
@@ -3022,7 +3061,7 @@ var QUOTES = [
   'The best thing I ever found, I was not even looking for.',
   'You make ordinary roads feel like somewhere worth going.',
   'One day this map will be too small for us. Good.',
-  'If the world ended at the water's edge, I would still have everything.',
+  'If the world ended at the water’s edge, I would still have everything.',
   'The whole map is yours, Princess. I only drew it.',
   'Some people collect places. I collect the way you look at them.',
   'There is no view I would rather see than you seeing it first.',
@@ -3034,7 +3073,7 @@ var QUOTES = [
   'I do not need the map. I just want the company.',
   'Every place we go becomes a place I love. It was never the places.',
   'Come get lost with me. I know the way back.',
-  'If you ever wonder where you are - you are exactly where I want to be.',
+  'If you ever wonder where you are — you are exactly where I want to be.',
   'The clouds are still out there. I like our odds.'
 ];
 var BIRTHDAY_QUOTES = [
@@ -3123,7 +3162,7 @@ function worldStatus() {
       '<dt>Places loaded</dt><dd>' + S.regions.length + ' from the shared world</dd>' +
       '<dt>Memories loaded</dt><dd>' + S.memories.length + '</dd>' +
       '<dt>Letters loaded</dt><dd>' + S.surprises.length + '</dd>' +
-      '<dt>Live updates</dt><dd>' + (DBS.live.memories ? ok : 'Not running - pull to refresh instead') + '</dd>' +
+      '<dt>Live updates</dt><dd>' + (DBS.live.memories ? ok : 'Not running — pull to refresh instead') + '</dd>' +
     '</dl>' +
     (function () {
       var bad = [];
@@ -3145,7 +3184,7 @@ document.getElementById('worldchip').addEventListener('click', worldStatus);
 
 function worldTest(btn) {
   var out = document.getElementById('wtest');
-  btn.disabled = true; btn.textContent = 'Testing.';
+  btn.disabled = true; btn.textContent = 'Testing…';
   var stamp = Date.now(), ref = S.db.doc('meta/handshake');
   ref.set({ at: stamp, by: S.who })
     .then(function () { return ref.get(); })
@@ -3163,7 +3202,7 @@ function worldTest(btn) {
       out.innerHTML = '<p class="note" style="border:3px solid var(--gold);background:#FFF9EC;padding:10px 12px">' +
         '<b>The write was refused.</b> Code: ' + esc((e && e.code) || 'unknown') + '. ' +
         (((e && e.code) === 'invalid_argument')
-          ? 'This view can read but not write - most likely you have been given view-only access rather than edit.'
+          ? 'This view can read but not write — most likely you have been given view-only access rather than edit.'
           : esc((e && e.message) || '')) + '</p>';
       btn.disabled = false; btn.textContent = 'Test again';
     });
@@ -3207,10 +3246,10 @@ function hydrateLocal() {
 //#include features/bucket.js
 //#include features/albums.js
 //#include features/polaroid.js
+//#include features/mail.js
+//#include features/pet.js
+//#include features/calendar-events.js
 //#include features/more.js
-//#include features/world-rooms.js
-//#include features/story-style.js
-//#include features/story-surfaces.js
 
 function boot() {
   hydrateLocal();
@@ -3266,5 +3305,3 @@ startBehindGate();
 window.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (lbEl.classList.contains('on')) closePhoto(); else if (calEl.classList.contains('open')) closeCal(); else if (S.placing) stopPlacing(); else closeSheet(); } });
 })();
 </script>
-
-

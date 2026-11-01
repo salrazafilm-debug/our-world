@@ -45,6 +45,7 @@ HOOKS.terrain.push(function () {
   if (z > 5.6 && z < 9.6) {
     GHOST_CITIES.forEach(function (c) {
       if (isRevealed(c[1], c[2], 1.1)) return;
+      if (haversine(c[1], c[2], HOMES.elena.lat, HOMES.elena.lng) < 55 || haversine(c[1], c[2], HOMES.bruce.lat, HOMES.bruce.lng) < 55) return;   /* home stays countryside */
       var p = proj(c[1], c[2]);
       if (p.x < -60 || p.y < -10 || p.x > W + 60 || p.y > H + 60) return;
       ctx.save(); ctx.globalAlpha = 0.5;
