@@ -41,8 +41,6 @@ function grove(lat, lng) {
   var t = Math.max(0, Math.min(1, (n - 0.4) / 0.28));
   var g = 0.02 + t * t * (3 - 2 * t) * 0.85;          /* open fields � 2%, deep forest � 87% */
   /* the home base itself stays open countryside, the woods gather around it */
-  var dh = haversine(lat, lng, 38.86, -76.68);
-  if (dh < 45 && S.zoom < 9.2) g *= 0.25 + 0.75 * Math.max(0, (dh - 18) / 27);
   return g;
 }
 
@@ -57,7 +55,7 @@ function focusAt(y) {
 HOOKS.terrain.push(function () {
   if (S.mode !== 'map' || !TER.on || !TER.px) return;
   var z = S.zoom;
-  if (z < 6.3) return;
+  if (z < 5.8) return;
   var tl = unproj(0, 0), br = unproj(W, H);
   var latHi = Math.max(tl.lat, br.lat), latLo = Math.min(tl.lat, br.lat), lngLo = Math.min(tl.lng, br.lng), lngHi = Math.max(tl.lng, br.lng);
   var items = [], i;
@@ -76,9 +74,9 @@ HOOKS.terrain.push(function () {
   /* Three permanent world grids. Zoom only fades finer grids in; it never
      replaces one grid with another, so forests do not pop or reshuffle. */
   var layers = [
-    { cell: 0.048, density: 0.68, alpha: 1, seed: 100 },
-    { cell: 0.024, density: 0.38, alpha: Math.max(0, Math.min(1, (z - 7.2) / 1.1)), seed: 200 },
-    { cell: 0.012, density: 0.20, alpha: Math.max(0, Math.min(1, (z - 9.0) / 1.2)), seed: 300 }
+    { cell: 0.048, density: 0.86, alpha: 1, seed: 100 },
+    { cell: 0.024, density: 0.52, alpha: Math.max(0, Math.min(1, (z - 6.8) / 1.1)), seed: 200 },
+    { cell: 0.012, density: 0.26, alpha: Math.max(0, Math.min(1, (z - 8.7) / 1.2)), seed: 300 }
   ];
   for (var lv = 0; lv < layers.length; lv++) {
     var layer = layers[lv];
