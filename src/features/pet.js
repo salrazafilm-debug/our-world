@@ -119,6 +119,12 @@ ROWHOOKS.petvisit = function (rows) { rows.forEach(function (r) { PET.visits[r.i
 
 /* ---------------- the scene ---------------- */
 var petEl = null, ROOM_W = 1280, ROOM_H = 720;
+/* two versions of the room: wide for computers, tall for phones (no dog painted in either) */
+var ROOMS = {
+  wide: { src: 'art/pets/room.jpg', w: 1280, h: 720, cx: 0.49, cy: 0.56, floor: 0.775, x0: 0.37, x1: 0.62, dogH: 0.24 },
+  tall: { src: 'art/pets/room-mobile.jpg', w: 900, h: 1198, cx: 0.5, cy: 0.62, floor: 0.735, x0: 0.25, x1: 0.75, dogH: 0.2 }
+};
+function roomNow() { return petEl && petEl.clientWidth / Math.max(1, petEl.clientHeight) < 0.9 ? ROOMS.tall : ROOMS.wide; }
 function petEnsure() {
   if (petEl) return petEl;
   var st = document.createElement('style');
@@ -217,7 +223,7 @@ function petRender() {
   if (PET.mode === 'shop') return petRenderShop();
   var sleeping = petSleeping();
   petEl.innerHTML =
-    '<div class="ps-room"><img class="ps-bg" id="psBg" alt="" src="art/pets/room.jpg"><div class="ps-dog" id="psDog"></div></div>' +
+    '<div class="ps-room"><img class="ps-bg" id="psBg" alt="" src="' + roomNow().src + '"><div class="ps-dog" id="psDog"></div></div>' +
     '<div class="ps-top"><button class="ps-btn" type="button" data-pet="back" aria-label="Back to the map">‹</button><button class="ps-name" type="button" data-pet="rename">' + esc(PET.name) + '</button>' + petHeartPill() + '</div>' +
     '<div class="ps-say" id="psSay"></div>' +
     '<div class="ps-bar">' +
@@ -242,14 +248,15 @@ function petLayout(sleeping) {
   var bg = document.getElementById('psBg'), dog = document.getElementById('psDog');
   if (!bg || !dog) return;
   var vw = petEl.clientWidth, vh = petEl.clientHeight;
-  var sc = Math.max(vw / ROOM_W, vh / ROOM_H), dw = ROOM_W * sc, dh = ROOM_H * sc;
-  var ox = Math.min(0, Math.max(vw - dw, vw / 2 - 0.49 * dw)), oy = Math.min(0, Math.max(vh - dh, vh / 2 - 0.56 * dh));
+  var R = roomNow(); if (bg.getAttribute('src') !== R.src) bg.src = R.src;
+  var sc = Math.max(vw / R.w, vh / R.h), dw = R.w * sc, dh = R.h * sc;
+  var ox = Math.min(0, Math.max(vw - dw, vw / 2 - R.cx * dw)), oy = Math.min(0, Math.max(vh - dh, vh / 2 - R.cy * dh));
   bg.style.width = dw + 'px'; bg.style.height = dh + 'px'; bg.style.left = ox + 'px'; bg.style.top = oy + 'px';
-  var h = Math.max(110, Math.min(dh * 0.24, vh * 0.27, vw * 0.62));
-  PG = { ox: ox, oy: oy, dw: dw, dh: dh, h: h, baseY: oy + dh * 0.775, vw: vw };
+  var h = Math.max(110, Math.min(dh * R.dogH, vh * 0.27, vw * 0.62));
+  PG = { ox: ox, oy: oy, dw: dw, dh: dh, h: h, baseY: oy + dh * R.floor, vw: vw };
   /* on a narrow screen he may only roam the part of the bed you can see */
   var vis0 = (-ox + vw * 0.12) / dw, vis1 = (-ox + vw * 0.88) / dw;
-  X_MIN = Math.max(0.37, vis0); X_MAX = Math.min(0.62, vis1);
+  X_MIN = Math.max(R.x0, vis0); X_MAX = Math.min(R.x1, vis1);
   PB.x = Math.max(X_MIN, Math.min(X_MAX, PB.x));
   PB.shown = '';
   if (petSleeping()) PB.act = 'sleep';
