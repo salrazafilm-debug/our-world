@@ -1,6 +1,16 @@
 # Mail: the post office between our homes
 
-Status: agreed design, not built yet. Visual rules: STYLE.md.
+Status: agreed design, artwork approved, not built yet. Visual rules: STYLE.md.
+
+## Artwork (approved as drawn)
+Source: `art-src/mail reference.png`. The artwork is final: do not recolour, restyle or add to it.
+- Map: the post office island with the glowing new-mail envelope and red dot.
+- Zoom: tapping the post office flies the camera to the building exterior.
+- Enter: the door opens into the mail room.
+- Mail room: Inbox, Compose, Our Letters and Today's Note.
+- Letter, compose and letters list screens use the same paper, wood and lamp scene.
+
+The interface is built to match the artwork, not the other way round.
 
 ## On the map
 - **Place:** midway between the two homes, so it is close to both of you.
