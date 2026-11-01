@@ -1931,108 +1931,135 @@ function drawFog() {
 }
 
 /* ============================== globe ============================== */
-function drawGlobe() {
-  var g = baseCtx, bw = baseCv.width, bh = baseCv.height, s = PIXEL;
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  var sc = S.globe.scale;
-  /* One continuous sky: daylight pink close in, deep space far out, with no
-     step anywhere between. */
-  var skyMix = Math.max(0, Math.min(1, (1.30 - sc) / 0.88));
-  skyMix = skyMix * skyMix * (3 - 2 * skyMix);              /* smoothstep */
-  var NEAR = [190, 222, 240], FAR = [31, 29, 57];
-  function mixc(k) {
-    return 'rgb(' + Math.round(NEAR[0] + (FAR[0] - NEAR[0]) * k) + ',' +
-                    Math.round(NEAR[1] + (FAR[1] - NEAR[1]) * k) + ',' +
-                    Math.round(NEAR[2] + (FAR[2] - NEAR[2]) * k) + ')';
-  }
-  /* a gentle vertical fall-off so the sky is never a flat slab */
-  var skyG = g.createLinearGradient(0, 0, 0, bh);
-  skyG.addColorStop(0, mixc(Math.min(1, skyMix * 1.08)));
-  skyG.addColorStop(1, mixc(Math.max(0, skyMix * 0.88)));
-  g.fillStyle = skyG; g.fillRect(0, 0, bw, bh);
-
-  if (skyMix > 0.01) {
-    for (var i = 0; i < 180; i++) {
-      var a = i * 2.399963;
-      var sx = (Math.sin(a * 3.1) * 0.5 + 0.5) * bw, sy = (Math.cos(a * 2.3) * 0.5 + 0.5) * bh;
-      var tw = 0.35 + (i % 5) / 9;
-      g.fillStyle = i % 9 === 0
-        ? 'rgba(245,216,142,' + (skyMix * 0.9) + ')'
-        : 'rgba(255,255,255,' + (skyMix * tw) + ')';
-      g.fillRect(Math.round(sx), Math.round(sy), 1, 1);
+/* ---------- the globe, drawn pixel by pixel ----------
+   A land map (equirectangular, 720x360) is rasterised once from the world
+   outlines. Each globe pixel then looks up its own longitude/latitude, so the
+   planet is crisp pixel art at every size: ocean with a sun glint, land with a
+   warm sunset edge, drifting pixel clouds, a night side with city lights,
+   an atmosphere ring, and a starry sky behind. */
+var GL = { map: null, cloud: null, buf: null, bufW: 0, bufH: 0, img: null };
+var GL_W = 720, GL_H = 360;
+function glLand() {
+  if (GL.map) return GL.map;
+  var c = document.createElement('canvas'); c.width = GL_W; c.height = GL_H;
+  var g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, GL_W, GL_H); g.fillStyle = '#fff';
+  function ring(r, dx) {
+    g.beginPath();
+    for (var j = 0; j < r.length; j += 2) {
+      var x = (r[j] + 180) / 360 * GL_W + dx, y = (90 - r[j + 1]) / 180 * GL_H;
+      if (j === 0) g.moveTo(x, y); else g.lineTo(x, y);
     }
-  }
-
-  var Rp = Math.min(bw, bh) * 0.40 * sc;
-  var cx = bw / 2, cy = bh / 2;
-  var l0 = rad(S.globe.lon), p0 = rad(S.globe.lat);
-  var sinp0 = Math.sin(p0), cosp0 = Math.cos(p0);
-
-  function pt(lng, lat) {
-    var dl = rad(lng) - l0, ph = rad(lat);
-    var cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
-    if (cosc < 0) return null;
-    return [ cx + Rp * Math.cos(ph) * Math.sin(dl),
-             cy - Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl)) ];
-  }
-
-  /* ocean */
-  var og = g.createRadialGradient(cx - Rp * 0.3, cy - Rp * 0.35, Rp * 0.1, cx, cy, Rp);
-  og.addColorStop(0, C.waterlite); og.addColorStop(0.75, C.water); og.addColorStop(1, '#3F8F9E');
-  g.fillStyle = og; g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.fill();
-
-  /* land — points behind the planet are pushed out to its edge, so a coastline
-     curves round the horizon instead of being sliced by a straight line */
-  g.save(); g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.clip();
-  g.fillStyle = C.landmuted;
-  for (var k = 0; k < GEO.world.length; k++) {
-    var ring = GEO.world[k], seenFront = false, pts = [];
-    for (var j = 0; j < ring.length; j += 2) {
-      var dl = rad(ring[j]) - l0, ph = rad(ring[j + 1]);
-      var cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
-      var gx = Rp * Math.cos(ph) * Math.sin(dl);
-      var gy = Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl));
-      if (cosc >= 0) seenFront = true;
-      else { var gm = Math.hypot(gx, gy) || 1; gx = gx / gm * Rp; gy = gy / gm * Rp; }
-      pts.push(cx + gx, cy - gy);
-    }
-    if (!seenFront) continue;
-    g.beginPath(); g.moveTo(pts[0], pts[1]);
-    for (var m = 2; m < pts.length; m += 2) g.lineTo(pts[m], pts[m + 1]);
     g.closePath(); g.fill();
   }
+  GEO.world.forEach(function (r) { ring(r, 0); });
+  GEO.states.forEach(function (st) { st.rings.forEach(function (r) { ring(r, 0); }); });
+  var d = g.getImageData(0, 0, GL_W, GL_H).data, m = new Uint8Array(GL_W * GL_H);
+  for (var i = 0; i < m.length; i++) m[i] = d[i * 4] > 127 ? 1 : 0;
+  GL.map = m; return m;
+}
+function glHash(x, y) { var h = (x * 374761393 + y * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function glNoise(x, y) {
+  var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  var a = glHash(x0, y0), b = glHash(x0 + 1, y0), c = glHash(x0, y0 + 1), d = glHash(x0 + 1, y0 + 1);
+  return a + (b - a) * fx + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fy;
+}
+var GLP = {
+  deep: [30, 78, 168], sea: [48, 128, 214], shallow: [104, 196, 238], glint: [226, 246, 255],
+  land: [118, 186, 98], landHi: [164, 214, 112], forest: [62, 134, 88], sand: [226, 196, 128], snow: [246, 244, 250],
+  edge: [255, 170, 120], night: [26, 24, 62]
+};
+function drawGlobe() {
+  var g = baseCtx, bw = baseCv.width, bh = baseCv.height;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  var sc = S.globe.scale;
+  var skyMix = Math.max(0, Math.min(1, (1.30 - sc) / 0.88)); skyMix = skyMix * skyMix * (3 - 2 * skyMix);
 
-  /* the part of the world that is ours */
-  /* cloud band */
-  for (var c = 0; c < 26; c++) {
-    var ang = c * 2.399963;
-    var clng = ((ang * 57.3 + cloudPhase * 0.35) % 360) - 180;
-    var clat = (Math.sin(ang * 1.9) * 62);
-    var cp = pt(clng, clat);
-    if (!cp) continue;
-    var crad = Rp * (0.06 + (c % 5) * 0.022);
-    var cg = g.createRadialGradient(cp[0], cp[1], 0, cp[0], cp[1], crad);
-    cg.addColorStop(0, 'rgba(255,255,255,.55)'); cg.addColorStop(1, 'rgba(226,221,231,0)');
-    g.fillStyle = cg; g.beginPath(); g.arc(cp[0], cp[1], crad, 0, 7); g.fill();
+  /* sky: a sunset near the ground, deep violet space far out, then stars */
+  var sg = g.createLinearGradient(0, 0, 0, bh);
+  function mix(a, b, k) { return 'rgb(' + Math.round(a[0] + (b[0] - a[0]) * k) + ',' + Math.round(a[1] + (b[1] - a[1]) * k) + ',' + Math.round(a[2] + (b[2] - a[2]) * k) + ')'; }
+  sg.addColorStop(0, mix([112, 98, 188], [24, 20, 54], skyMix));
+  sg.addColorStop(0.55, mix([236, 150, 170], [34, 26, 70], skyMix));
+  sg.addColorStop(1, mix([255, 196, 146], [46, 30, 78], skyMix));
+  g.fillStyle = sg; g.fillRect(0, 0, bw, bh);
+  var starA = 0.35 + 0.65 * skyMix;
+  for (var i = 0; i < 150; i++) {
+    var a = i * 2.399963, sx = (Math.sin(a * 3.1) * 0.5 + 0.5) * bw, sy = (Math.cos(a * 2.3) * 0.5 + 0.5) * bh, big = i % 11 === 0;
+    var tw = 0.55 + 0.45 * Math.sin(cloudPhase / 22 + i);
+    g.fillStyle = i % 7 === 0 ? 'rgba(255,226,150,' + (starA * tw) + ')' : 'rgba(255,255,255,' + (starA * 0.9 * tw) + ')';
+    g.fillRect(Math.round(sx), Math.round(sy), big ? 2 : 1, big ? 2 : 1);
+    if (big) { g.fillRect(Math.round(sx) - 1, Math.round(sy), 4, 1); g.fillRect(Math.round(sx), Math.round(sy) - 1, 1, 4); }
   }
 
-  /* shading + terminator */
-  var sg = g.createRadialGradient(cx - Rp * 0.35, cy - Rp * 0.4, Rp * 0.15, cx, cy, Rp * 1.05);
-  sg.addColorStop(0, 'rgba(255,255,255,.24)'); sg.addColorStop(0.55, 'rgba(255,255,255,0)');
-  sg.addColorStop(1, 'rgba(31,29,57,.42)');
-  g.fillStyle = sg; g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.fill();
-  g.restore();
+  var Rp = Math.min(bw, bh) * 0.40 * sc, cx = bw / 2, cy = bh / 2;
+  var l0 = rad(S.globe.lon), p0 = rad(S.globe.lat), sinp0 = Math.sin(p0), cosp0 = Math.cos(p0);
+  function pt(lng, lat) {
+    var dl = rad(lng) - l0, ph = rad(lat), cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
+    if (cosc < 0) return null;
+    return [cx + Rp * Math.cos(ph) * Math.sin(dl), cy - Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl))];
+  }
 
-  /* atmosphere: a soft shell that carries the globe into the sky */
-  var atm = g.createRadialGradient(cx, cy, Rp * 0.94, cx, cy, Rp * 1.20);
-  atm.addColorStop(0, 'rgba(165,225,229,' + (0.34 + skyMix * 0.22) + ')');
-  atm.addColorStop(0.45, 'rgba(180,200,235,' + (0.16 + skyMix * 0.14) + ')');
-  atm.addColorStop(1, 'rgba(180,200,235,0)');
-  g.fillStyle = atm; g.beginPath(); g.arc(cx, cy, Rp * 1.20, 0, 7); g.fill();
-  g.strokeStyle = 'rgba(243,169,199,' + (0.55 + skyMix * 0.3) + ')'; g.lineWidth = 1;
-  g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.stroke();
+  /* atmosphere halo behind the planet */
+  var halo = g.createRadialGradient(cx, cy, Rp * 0.94, cx, cy, Rp * 1.28);
+  halo.addColorStop(0, 'rgba(255,170,150,' + (0.55 - skyMix * 0.15) + ')'); halo.addColorStop(0.35, 'rgba(236,140,200,' + (0.28) + ')'); halo.addColorStop(1, 'rgba(160,120,230,0)');
+  g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, Rp * 1.28, 0, 7); g.fill();
 
-  /* our place in the world — drawn last so no shading or atmosphere ever dulls it */
+  /* the planet itself: one pixel at a time */
+  var x0 = Math.max(0, Math.floor(cx - Rp)), x1 = Math.min(bw, Math.ceil(cx + Rp)), y0 = Math.max(0, Math.floor(cy - Rp)), y1 = Math.min(bh, Math.ceil(cy + Rp));
+  var w = x1 - x0, h = y1 - y0;
+  if (w > 0 && h > 0) {
+    var land = glLand();
+    if (!GL.img || GL.img.width !== w || GL.img.height !== h) GL.img = g.createImageData(w, h);
+    var data = GL.img.data, R2 = Rp * Rp, drift = cloudPhase * 0.0016;
+    var lx = -0.48, ly = -0.55, lz = 0.69, ln = Math.hypot(lx, ly, lz); lx /= ln; ly /= ln; lz /= ln;     /* the sun sits up and to the left */
+    for (var py = 0; py < h; py++) {
+      var yy = (y0 + py + 0.5 - cy) / Rp;
+      for (var px = 0; px < w; px++) {
+        var xx = (x0 + px + 0.5 - cx) / Rp, r2 = xx * xx + yy * yy, o = (py * w + px) * 4;
+        if (r2 > 1) { data[o + 3] = 0; continue; }
+        var zz = Math.sqrt(1 - r2);
+        /* undo the view: screen -> latitude / longitude */
+        var sinphi = zz * sinp0 - yy * cosp0, phi = Math.asin(Math.max(-1, Math.min(1, sinphi)));
+        var lam = l0 + Math.atan2(xx, zz * cosp0 + yy * sinp0);
+        var lng = (lam * 180 / Math.PI + 540) % 360 - 180, lat = phi * 180 / Math.PI;
+        var mx = Math.min(GL_W - 1, Math.max(0, Math.floor((lng + 180) / 360 * GL_W))), my = Math.min(GL_H - 1, Math.max(0, Math.floor((90 - lat) / 180 * GL_H)));
+        var isLand = land[my * GL_W + mx] === 1, rgb;
+        var lit = xx * lx + yy * ly + zz * lz;                                     /* >0 faces the sun */
+        var n = glNoise(lng * 0.07 + 9, lat * 0.09 + 3) * 0.7 + glNoise(lng * 0.19, lat * 0.23) * 0.3;
+        if (isLand) {
+          var polar = Math.abs(lat) > 66 ? 1 : 0, dry = (Math.abs(lat) > 15 && Math.abs(lat) < 34 && n > 0.55) ? 1 : 0;
+          rgb = polar ? GLP.snow : dry ? GLP.sand : (n > 0.56 ? GLP.landHi : (n < 0.40 ? GLP.forest : GLP.land));
+        } else {
+          /* shallow water close to land, deeper further out; a sun glint */
+          var near = 0, d0 = 2;
+          for (var k = 0; k < 4 && !near; k++) { var qx = mx + (k === 0 ? d0 : k === 1 ? -d0 : 0), qy = my + (k === 2 ? d0 : k === 3 ? -d0 : 0); if (land[Math.min(GL_H - 1, Math.max(0, qy)) * GL_W + Math.min(GL_W - 1, Math.max(0, qx))]) near = 1; }
+          rgb = near ? GLP.shallow : (n > 0.46 ? GLP.sea : GLP.deep);
+          if (lit > 0.93 && n > 0.4) rgb = GLP.glint;
+        }
+        /* soft clouds drifting round the planet (blocky, pixel clouds) */
+        var cn = glNoise((lng + drift * 40) * 0.05, lat * 0.07 + 20) * 0.7 + glNoise((lng + drift * 40) * 0.13 + 5, lat * 0.17) * 0.3;
+        var cloud = cn > 0.7 ? 1 : 0;
+        var rr = rgb[0], gg = rgb[1], bb = rgb[2];
+        if (cloud) { rr = 252; gg = 242; bb = 248; }
+        /* light: lit side warm, terminator a sunset pink, night side dark with a few lights */
+        var shade;
+        if (lit > 0.18) shade = 1;
+        else if (lit > 0.02) { var k2 = (lit - 0.02) / 0.16; rr = rr * (0.62 + 0.38 * k2) + GLP.edge[0] * (1 - k2) * 0.38; gg = gg * (0.62 + 0.38 * k2) + GLP.edge[1] * (1 - k2) * 0.38; bb = bb * (0.62 + 0.38 * k2) + GLP.edge[2] * (1 - k2) * 0.38; shade = 1; }
+        else { var dk = Math.max(0.28, 0.62 + lit * 0.9); rr = rr * dk * 0.7 + GLP.night[0] * 0.5; gg = gg * dk * 0.7 + GLP.night[1] * 0.5; bb = bb * dk * 0.8 + GLP.night[2] * 0.7; shade = 1;
+          if (isLand && !cloud && glHash(mx >> 1, my >> 1) > 0.965) { rr = 255; gg = 216; bb = 128; } }
+        /* a thin rim so the edge reads as a bright atmosphere line */
+        if (r2 > 0.93) { var rim = (r2 - 0.93) / 0.07; rr = rr + (255 - rr) * rim * 0.55; gg = gg + (176 - gg) * rim * 0.45; bb = bb + (190 - bb) * rim * 0.4; }
+        data[o] = rr; data[o + 1] = gg; data[o + 2] = bb; data[o + 3] = 255;
+      }
+    }
+    if (!GL.cv) GL.cv = document.createElement('canvas');
+    if (GL.cv.width !== w || GL.cv.height !== h) { GL.cv.width = w; GL.cv.height = h; }
+    GL.cv.getContext('2d').putImageData(GL.img, 0, 0);
+    g.imageSmoothingEnabled = false; g.drawImage(GL.cv, x0, y0);
+  }
+  /* an outline so the planet pops against the sky */
+  g.strokeStyle = 'rgba(94,34,56,.55)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, Rp + 0.5, 0, 7); g.stroke();
+
+  /* our place in the world, drawn last */
   drawGlobeBeacons(g, pt, cx, cy, Rp, l0, sinp0, cosp0);
   baseDirty = false;
 }
@@ -4297,7 +4324,7 @@ var AV_COLORS = [
   { id: 'cream', name: 'Cream', c: '#F2EBDD' }, { id: 'black', name: 'Black', c: '#2B2530' }
 ];
 /* average brightness of each original garment, so shading survives a recolour */
-var AV_REF = { bruce: { top: .12, bottom: .101, shoes: .183 }, elena: { top: .102, bottom: .535, shoes: .092 } };
+var AV_REF = { bruce: { top: .279, bottom: .204, shoes: .978 }, elena: { top: .86, bottom: .666, shoes: .866 } };
 var AVIMG = {}, AVCACHE = {};
 var AV_ON = true;
 try { AV_ON = localStorage.getItem('ow.avon') !== 'off'; } catch (e) {}
@@ -4411,8 +4438,9 @@ function drawAvatar(g, who, x, y, h, outfit, opt) {
 /* both of you side by side, shoulder to shoulder, a heart above */
 function drawTogetherPair(g, x, y, h, res) {
   var wb = avWidth('bruce', h), we = avWidth('elena', h);
-  var a = drawAvatar(g, 'bruce', x - wb * .42, y, h, null, { res: res, lift: avBob(0) }),
-      b = drawAvatar(g, 'elena', x + we * .42, y, h, null, { res: res, lift: avBob(1.3) });
+  var gap = h * .03;                                   /* standing side by side, not overlapping */
+  var a = drawAvatar(g, 'bruce', x - wb / 2 - gap, y, h, null, { res: res, lift: 0 }),
+      b = drawAvatar(g, 'elena', x + we / 2 + gap, y, h, null, { res: res, lift: 0 });
   if (!a || !b) return null;
   var bob = 0;
   drawSprite(g, SP.heart, PAL.heartP, x, Math.round(y - h - 3 + bob), Math.max(1, Math.min(4, Math.round(h / 40))), '#FFFFFF');
@@ -4429,8 +4457,8 @@ function avBob() { return 0; }          /* avatars stand perfectly still */
   if (!a.ready || !b.ready) { if ((tries || 0) < 60) setTimeout(function () { gateAvatars((tries || 0) + 1); }, 150); return; }
   var dpr = Math.min(3, window.devicePixelRatio || 1), cssH = 116;
   var c = document.createElement('canvas');
-  c.width = Math.round(110 * dpr); c.height = Math.round((cssH + 30) * dpr);
-  c.style.width = '110px'; c.style.height = (cssH + 30) + 'px'; c.className = 'gate-av';
+  c.width = Math.round(180 * dpr); c.height = Math.round((cssH + 24) * dpr);
+  c.style.width = "180px"; c.style.height = (cssH + 24) + "px"; c.className = 'gate-av';
   var g = c.getContext('2d');
   drawTogetherPair(g, c.width / 2, c.height - 3 * dpr, cssH * dpr, 1);
   pair.innerHTML = ''; pair.appendChild(c);
@@ -5428,6 +5456,275 @@ function polaroidPin(m, p, z) {
   return { x: p.x - w / 2, y: p.y - lift - h, w: w, h: h + lift };
 }
 
+/* ---- features/book.js ---- */
+/* Our Memories Book: a place of its own.
+   Tap the book on the dashboard: you arrive at the book on its stand (your cover
+   scene). Tap Open and the camera moves in, the cover swings open, and you are
+   reading the book. Inside, ribbon bookmarks take you to Our Story (a chapter
+   per month), Photos (polaroids), Trips, Places and the Calendar. Pages turn.
+   Style rules: STYLE.md. */
+
+var BOOK = { open: false, stage: 'cover', section: 'story', idx: 0, turning: false, pages: [] };
+/* where things sit in art/book/cover.jpg (941 x 1672) */
+var BK = { w: 941, h: 1672, cx: 215, cy: 520, cw: 560, ch: 455, focusX: 495, focusY: 748, penY: 1278, penH: 108, penX: 272, penW: 398 };
+var bookEl = null;
+
+function bookGeom() {
+  var vw = innerWidth, vh = innerHeight, wide = vw / vh > 0.7, bh = wide ? Math.min(vh / 0.58, vw * 2.6) : vh, bw = bh * BK.w / BK.h;
+  if (!wide && bw < vw) { bw = vw; bh = bw * BK.h / BK.w; }
+  var left = (vw - bw) / 2, top = wide ? vh / 2 - 0.58 * bh : Math.min(0, vh - bh);
+  var k = bw / BK.w, bookW = BK.cw * k;
+  return { bw: bw, bh: bh, left: left, top: top, k: k, zoom: Math.min(1.9, Math.max(1.25, (0.92 * Math.min(vw, 760)) / bookW)), wide: wide };
+}
+
+function bookEnsure() {
+  if (bookEl) return bookEl;
+  var st = document.createElement('style');
+  st.textContent = [
+    '#bookScene{position:fixed;inset:0;z-index:34;display:none;overflow:hidden;color:var(--ink);font-family:var(--fbody);-webkit-user-select:none;user-select:none;background:#2E1F26}',
+    '#bookScene.on{display:block}',
+    '#lightbox{z-index:60}#cal{z-index:50}',
+    '#bookScene .b-btn,#bookScene .rb,#bookScene .mm-go,#bookScene .pol,#bookScene .pgrow{clip-path:var(--px-step)}',
+    '.b-btn{height:46px;min-width:46px;padding:0 14px;border:3px solid var(--berry);border-bottom-width:7px;background:var(--cream);color:var(--berry);font-family:var(--fdisp);font-weight:600;font-size:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:transform .08s,border-bottom-width .08s}',
+    '.b-btn:hover{transform:translateY(-1px)}.b-btn:active{transform:translateY(4px);border-bottom-width:3px}.b-btn[disabled]{opacity:.45;pointer-events:none}',
+    '.b-btn.primary{background:var(--berry);color:var(--cream);border-color:var(--berry-dk)}',
+    '.b-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;z-index:8}',
+    '.b-sign{flex:1;text-align:center}.b-sign span{display:inline-block;background:var(--wood);border:4px solid var(--wood-dk);border-bottom-width:8px;clip-path:var(--px-step);padding:6px 18px 8px;font-family:var(--ftitle);font-size:clamp(20px,5.4vw,30px);color:var(--cream);line-height:1;white-space:nowrap}',
+    /* the cover scene */
+    '.b-cover{position:absolute;inset:0}',
+    '.b-blur{position:absolute;inset:-30px;background:center/cover;filter:blur(18px) brightness(.7)}',
+    '.b-world{position:absolute;transform-origin:var(--fx) var(--fy)}',
+    '.b-world.opening{transition:transform 1.25s cubic-bezier(.55,0,.25,1);transform:scale(var(--z))}',
+    '.b-world{perspective:1600px}',
+    '.b-scene{position:absolute;inset:0;width:100%;height:100%;display:block}',
+    '.b-under{position:absolute;background:#FFF4E6;border:0;box-shadow:inset 0 0 0 3px #D9B99A,inset -14px 0 18px -10px rgba(120,70,60,.35);background-image:repeating-linear-gradient(0deg,transparent 0 17px,rgba(190,150,120,.28) 17px 18px)}',
+    '.b-leaf{position:absolute;transform-origin:0 50%;transform-style:preserve-3d;transition:transform 1.05s cubic-bezier(.5,0,.3,1) .45s}',
+    '.b-leaf.open{transform:rotateY(-171deg)}',
+    '.b-leaf>div{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}',
+    '.b-leaf .back{transform:rotateY(180deg);background:linear-gradient(90deg,#7A2F4A,#B5546E 18%,#C8647E);box-shadow:inset 0 0 0 4px #5E2238,inset 0 0 0 7px #E3B879}',
+    '.b-enter{position:absolute;border:3px solid var(--berry);border-bottom-width:8px;background:var(--cream);color:var(--berry);font-family:var(--fdisp);font-weight:600;font-size:clamp(17px,2.6vw,26px);clip-path:var(--px-step);display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .08s,border-bottom-width .08s}',
+    '.b-enter img{height:60%;image-rendering:pixelated}.b-enter:hover{transform:translateY(-1px)}.b-enter:active{transform:translateY(4px);border-bottom-width:4px}',
+    '.b-cover.go .b-enter,.b-cover.go .b-top{opacity:0;transition:opacity .25s}',
+    '.b-cover.fade{opacity:0;transition:opacity .55s}',
+    /* reading */
+    '.b-read{position:absolute;inset:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:calc(76px + env(safe-area-inset-top)) 12px calc(14px + env(safe-area-inset-bottom))}',
+    '.b-read.in,.b-desk.in{animation:bIn .6s ease-out both}@keyframes bIn{from{opacity:0}}',
+    '.b-desk{position:absolute;inset:0;background:radial-gradient(circle at 10% 6%,rgba(255,190,110,.35),transparent 30%),radial-gradient(circle at 92% 6%,rgba(255,190,110,.3),transparent 30%),repeating-linear-gradient(90deg,#573226 0 52px,#4D2C22 52px 54px)}',
+    '.b-desk:after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,transparent 45%,rgba(30,12,16,.55))}',
+    '.b-wrap{position:relative;display:flex;align-items:stretch;gap:10px;max-width:100%;max-height:100%;width:min(1120px,100%);flex:1;min-height:0;justify-content:center}',
+    '.b-book{position:relative;flex:1;min-width:0;min-height:0;display:flex;background:#5E2238;border:5px solid #4A1A2C;border-bottom-width:11px;padding:8px;perspective:1800px;box-shadow:0 18px 0 rgba(20,8,12,.35)}',
+    '.b-book:before,.b-book:after{content:"";position:absolute;width:26px;height:26px;background:#E3B879;border:3px solid #9A6F22;z-index:3;pointer-events:none}',
+    '.b-book:before{left:-8px;top:-8px;clip-path:polygon(0 0,100% 0,0 100%)}.b-book:after{right:-8px;top:-8px;clip-path:polygon(0 0,100% 0,100% 100%)}',
+    '.b-pages{position:relative;flex:1;min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);background:#FFF4E6;overflow:hidden}',
+    '.b-book.spread .b-pages{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}',
+    '.b-book.spread .b-pages:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:34px;margin-left:-17px;background:linear-gradient(90deg,transparent,rgba(120,70,60,.28) 46%,rgba(120,70,60,.34) 54%,transparent);z-index:2;pointer-events:none}',
+    '.pg{position:relative;min-width:0;min-height:0;overflow:auto;padding:22px 22px 44px;background:#FFF4E6;background-image:repeating-linear-gradient(0deg,transparent 0 31px,rgba(200,160,130,.22) 31px 32px);-webkit-overflow-scrolling:touch}',
+    '.b-book.spread .pg:first-child{box-shadow:inset -10px 0 14px -10px rgba(120,70,60,.3)}.b-book.spread .pg:last-child{box-shadow:inset 10px 0 14px -10px rgba(120,70,60,.3)}',
+    '.pg h2{margin:0 0 4px;font-family:var(--ftitle);font-weight:700;font-size:clamp(24px,5.4vw,34px);color:var(--berry);line-height:1.1}',
+    '.pg .sub{font-family:var(--fdisp);font-size:14px;color:var(--wood);margin:0 0 14px}',
+    '.pg .pgn{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:var(--fdisp);font-size:13px;color:#A8826E}',
+    '.pg.blank{display:grid;place-items:center;color:#B99A88}',
+    '.mm{padding:12px 0 14px;border-bottom:2px dashed #E2C2AE}.mm:last-of-type{border-bottom:none}',
+    '.mm-h b{display:block;font-family:var(--fdisp);font-weight:600;font-size:18px;color:var(--berry-dk)}.mm-h span{display:block;font-size:13.5px;color:#9A7A6A;margin-top:2px}',
+    '.mm p{margin:8px 0 0;font-size:15.5px;line-height:1.6;color:var(--ink);white-space:pre-wrap}',
+    '.mm .ph{display:block;width:min(190px,60%);margin:10px 0 2px;background:#fff;padding:7px 7px 24px;border:2px solid #E2C2AE;transform:rotate(-1.6deg);box-shadow:0 3px 0 rgba(120,70,60,.25);cursor:zoom-in}',
+    '.mm .ph img{display:block;width:100%;aspect-ratio:1;object-fit:cover}',
+    '.mm-go{margin-top:10px;height:38px;padding:0 12px;border:3px solid var(--berry);border-bottom-width:6px;background:var(--cream);color:var(--berry);font-family:var(--fdisp);font-weight:600;font-size:14px}',
+    '.mm-go:active{transform:translateY(3px);border-bottom-width:3px}',
+    '.pols{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 12px;margin-top:6px}',
+    '.pol{display:flex;flex-direction:column;align-items:center;background:#fff;border:2px solid #E2C2AE;padding:6px 6px 8px;box-shadow:0 3px 0 rgba(120,70,60,.25);transform:rotate(var(--r,0deg));cursor:zoom-in;min-width:0}',
+    '.pol img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.pol span{margin-top:6px;font-family:var(--fdisp);font-size:12.5px;color:var(--berry-dk);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.pgrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:0 0 8px;padding:9px 12px 8px;background:var(--cream);border:3px solid #E2C2AE;border-bottom-width:6px;color:var(--berry-dk);font-family:var(--fdisp);font-weight:600;font-size:15px}',
+    '.pgrow small{display:block;font-family:var(--fbody);font-weight:500;font-size:13px;color:#9A7A6A}.pgrow .n{width:26px;height:26px;flex:none;background:var(--berry);color:var(--cream);display:grid;place-items:center;font-size:13px}',
+    '.pgrow:active{transform:translateY(3px);border-bottom-width:3px}',
+    '.cv{text-align:center;padding-top:8%}.cv .big{font-family:var(--ftitle);font-weight:700;font-size:clamp(28px,6.4vw,44px);color:var(--berry);line-height:1.05}.cv p{font-size:15.5px;line-height:1.6;color:var(--ink-70);margin:14px auto 0;max-width:30ch}.cv .hrt{width:46px;image-rendering:pixelated;margin:14px auto 0;display:block}',
+    /* ribbons */
+    '.b-rib{display:flex;flex-direction:column;gap:8px;padding-top:14px;flex:none}',
+    '.rb{position:relative;width:96px;padding:9px 6px 17px;border:3px solid #4A1A2C;background:#B5546E;color:var(--cream);font-family:var(--fdisp);font-weight:600;font-size:14px;line-height:1.1;text-align:center;clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%);transition:transform .12s;cursor:pointer}',
+    '.rb.on{transform:translateX(10px);background:var(--berry);border-color:#E3B879;color:#FFF2DF}.rb:hover{transform:translateX(5px)}.rb.on:hover{transform:translateX(10px)}',
+    '.rb img{display:block;height:22px;margin:0 auto 3px;image-rendering:pixelated}',
+    '.b-nav{display:flex;align-items:center;justify-content:center;gap:14px;flex:none;color:var(--cream);font-family:var(--fdisp)}',
+    '.b-nav .cnt{min-width:90px;text-align:center;font-size:15px}',
+    '@media (max-width:820px){.b-wrap{flex-direction:column;gap:8px}.b-rib{flex-direction:row;padding:0;gap:6px;justify-content:center;order:-1}.rb{width:auto;flex:1;min-width:0;padding:6px 4px 14px;font-size:12.5px}.rb img{display:none}.rb.on{transform:translateY(5px)}.rb:hover{transform:translateY(3px)}.rb.on:hover{transform:translateY(5px)}}',
+    /* page turning */
+    '.pg.turn-out-f{animation:bOutF .24s ease-in forwards;transform-origin:0 50%}.pg.turn-in-f{animation:bInF .26s ease-out both;transform-origin:0 50%}',
+    '.pg.turn-out-b{animation:bOutB .24s ease-in forwards;transform-origin:100% 50%}.pg.turn-in-b{animation:bInB .26s ease-out both;transform-origin:100% 50%}',
+    '@keyframes bOutF{to{transform:perspective(1600px) rotateY(-88deg);filter:brightness(.8)}}@keyframes bInF{from{transform:perspective(1600px) rotateY(88deg);filter:brightness(.8)}}',
+    '@keyframes bOutB{to{transform:perspective(1600px) rotateY(88deg);filter:brightness(.8)}}@keyframes bInB{from{transform:perspective(1600px) rotateY(-88deg);filter:brightness(.8)}}'
+  ].join('');
+  document.head.appendChild(st);
+  bookEl = document.createElement('section'); bookEl.id = 'bookScene'; bookEl.setAttribute('aria-label', 'Our Memories Book');
+  document.body.appendChild(bookEl);
+  bookEl.addEventListener('click', bookClick);
+  var sx = null;
+  bookEl.addEventListener('pointerdown', function (e) { sx = e.target.closest('.b-pages') ? e.clientX : null; });
+  bookEl.addEventListener('pointerup', function (e) { if (sx == null) return; var dx = e.clientX - sx; sx = null; if (Math.abs(dx) > 70) bookTurn(dx < 0 ? 1 : -1); });
+  window.addEventListener('keydown', function (e) {
+    if (!BOOK.open) return;
+    if (e.key === 'Escape') { if (typeof calEl !== 'undefined' && calEl.classList.contains('open')) return; bookClose(); }
+    else if (BOOK.stage === 'read') { if (e.key === 'ArrowRight') bookTurn(1); else if (e.key === 'ArrowLeft') bookTurn(-1); }
+  });
+  window.addEventListener('resize', function () { if (BOOK.open && BOOK.stage === 'read') bookRenderRead(); else if (BOOK.open && BOOK.stage === 'cover') bookRenderCover(); });
+  return bookEl;
+}
+
+function bookOpen() {
+  bookEnsure(); closeSheet();
+  if (typeof dashClose === 'function') dashClose();
+  BOOK.open = true; BOOK.stage = 'cover'; BOOK.idx = 0;
+  bookRenderCover(); bookEl.classList.add('on');
+}
+function bookClose() { BOOK.open = false; if (bookEl) bookEl.classList.remove('on'); }
+window.bookOpen = bookOpen;
+
+/* ---------------- the cover scene and the opening ---------------- */
+function bookRenderCover() {
+  var g = bookGeom(), k = g.k, px = function (v) { return (v * k).toFixed(1) + 'px'; };
+  var url = 'art/book/cover.jpg';
+  bookEl.innerHTML = '<div class="b-cover" id="bCover"><div class="b-blur" style="background-image:url(' + url + ')"></div>' +
+    '<div class="b-world" id="bWorld" style="left:' + g.left.toFixed(1) + 'px;top:' + g.top.toFixed(1) + 'px;width:' + g.bw.toFixed(1) + 'px;height:' + g.bh.toFixed(1) + 'px;--fx:' + px(BK.focusX) + ';--fy:' + px(BK.focusY) + ';--z:' + g.zoom.toFixed(2) + '">' +
+      '<img class="b-scene" alt="Our Memories Book on its stand" src="' + url + '">' +
+      '<div class="b-under" style="left:' + px(BK.cx - 4) + ';top:' + px(BK.cy - 12) + ';width:' + px(BK.cw + 34) + ';height:' + px(BK.ch + 24) + '"></div>' +
+      '<div class="b-leaf" id="bLeaf" style="left:' + px(BK.cx) + ';top:' + px(BK.cy) + ';width:' + px(BK.cw) + ';height:' + px(BK.ch) + '">' +
+        '<div class="front" style="background:url(' + url + ') no-repeat;background-size:' + g.bw.toFixed(1) + 'px ' + g.bh.toFixed(1) + 'px;background-position:-' + px(BK.cx) + ' -' + px(BK.cy) + '"></div><div class="back"></div></div>' +
+      '<button class="b-enter" type="button" data-b="enter" style="left:' + px(BK.penX - 10) + ';top:' + px(BK.penY - 8) + ';width:' + px(BK.penW + 20) + ';height:' + px(BK.penH + 16) + '"><img alt="" src="art/heart.png">Open<img alt="" src="art/heart.png"></button>' +
+    '</div><div class="b-top"><button class="b-btn" type="button" data-b="close">‹ Back</button></div></div>';
+}
+function bookEnter() {
+  var cover = document.getElementById('bCover'), world = document.getElementById('bWorld'), leaf = document.getElementById('bLeaf');
+  if (!cover || BOOK.stage !== 'cover') return;
+  BOOK.stage = 'opening';
+  if (reduceMotion) { BOOK.stage = 'read'; BOOK.section = 'story'; BOOK.idx = 0; return bookRenderRead(); }
+  cover.classList.add('go'); world.classList.add('opening'); leaf.classList.add('open');
+  if (typeof playSound === 'function') playSound('chime');
+  BOOK.section = 'story'; BOOK.idx = 0;
+  setTimeout(function () { var u = document.createElement('div'); u.id = 'bUnder'; u.innerHTML = bookReadHtml(true); bookEl.insertBefore(u, bookEl.firstChild); u.style.cssText = 'position:absolute;inset:0'; cover.style.zIndex = 5; }, 1350);
+  setTimeout(function () { cover.classList.add('fade'); }, 1500);
+  setTimeout(function () { BOOK.stage = 'read'; bookRenderRead(); }, 2250);
+}
+
+/* ---------------- the pages ---------------- */
+var BOOK_SECTIONS = [['story', 'Our Story', 'art/ui/book.png'], ['photos', 'Photos', 'art/heart.png'], ['trips', 'Trips', 'art/pin.png'], ['places', 'Places', 'art/house-i.png'], ['cal', 'Calendar', 'art/ui/calendar.png']];
+var BOOK_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function pgWrap(inner, n, cls) { return '<div class="pg' + (cls ? ' ' + cls : '') + '">' + inner + (n ? '<div class="pgn">' + n + '</div>' : '') + '</div>'; }
+function bkEmpty(title, msg, addBtn) {
+  return [pgWrap('<div class="cv"><div class="big">' + esc(title) + '</div><p>' + esc(msg) + '</p>' + (addBtn ? '<button class="b-btn primary" type="button" data-b="add" style="margin-top:18px">Add a memory</button>' : '') + '</div>', '')];
+}
+function memEntry(m) {
+  var src = photoCandidates(m)[0];
+  return '<article class="mm"><div class="mm-h"><b>' + esc(m.title || 'A memory') + '</b><span>' + esc(fmtDate(m.date)) + ' · ' + esc(nearestTown(m.lat, m.lng).name) + ' · ' + esc(whoName(m.by)) + '</span></div>' +
+    (src ? '<button class="ph" type="button" data-b="photo" data-src="' + esc(src) + '" data-cap="' + esc(m.title || '') + '"><img alt="" src="' + esc(src) + '"></button>' : '') +
+    (m.note ? '<p>' + esc(m.note) + '</p>' : '') +
+    '<button class="mm-go" type="button" data-b="map" data-id="' + esc(m.id) + '">Show on the map</button></article>';
+}
+function storyPages() {
+  var mems = S.memories.slice().sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.at || 0) - (b.at || 0); });
+  var a = typeof annInfo === 'function' ? annInfo() : null;
+  var pages = [pgWrap('<div class="cv"><div class="big">Our<br>Memories<br>Book</div><img class="hrt" alt="" src="art/heart.png"><p>' + (a && a.days > 0 ? 'Together ' + a.days.toLocaleString() + ' days. ' : '') +
+    mems.length + (mems.length === 1 ? ' memory' : ' memories') + ' so far, and many more to come.</p></div>', '')];
+  if (!mems.length) return bkEmpty('The first page is waiting', 'Pin your first memory and it will be written here.', true);
+  var groups = {}, order = [];
+  mems.forEach(function (m) { var k = (m.date || '').slice(0, 7) || 'undated'; if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(m); });
+  order.forEach(function (k) {
+    var title = k === 'undated' ? 'Undated' : BOOK_MONTHS[parseInt(k.slice(5, 7), 10) - 1] + ' ' + k.slice(0, 4), list = groups[k];
+    for (var i = 0; i < list.length; i += 3) pages.push(pgWrap('<h2>' + esc(title) + '</h2><div class="sub">' + (i === 0 ? list.length + (list.length === 1 ? ' memory' : ' memories') : 'continued') + '</div>' + list.slice(i, i + 3).map(memEntry).join(''), ''));
+  });
+  return pages;
+}
+function photoPages() {
+  var ph = S.memories.filter(function (m) { return photoCandidates(m).length; }).sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
+  if (!ph.length) return bkEmpty('No photos yet', 'Add a memory with a photo and it will be kept here, like a polaroid.', true);
+  var pages = [];
+  for (var i = 0; i < ph.length; i += 6) pages.push(pgWrap('<h2>Photos</h2><div class="sub">' + (i / 6 + 1) + ' of ' + Math.ceil(ph.length / 6) + '</div><div class="pols">' + ph.slice(i, i + 6).map(function (m, j) {
+    var src = photoCandidates(m)[0];
+    return '<button class="pol" type="button" data-b="photo" data-src="' + esc(src) + '" data-cap="' + esc((m.title || '') + ' · ' + fmtDate(m.date)) + '" style="--r:' + (((polHash(m.id) % 7) - 3) * 0.7) + 'deg"><img alt="" src="' + esc(src) + '"><span>' + esc(m.title || '') + '</span></button>';
+  }).join('') + '</div>', ''));
+  return pages;
+}
+function tripPages() {
+  if (!S.trips.length) return bkEmpty('No trips yet', 'A trip threads memories together with a gold line across the map. Add one from the map menu.', false);
+  return S.trips.map(function (t) {
+    var st = tripStops(t);
+    return pgWrap('<h2>' + esc(t.name) + '</h2><div class="sub">' + st.length + ' stops</div>' + st.map(function (m, i) {
+      return '<div class="pgrow" style="pointer-events:none"><span class="n">' + (i + 1) + '</span><span>' + esc(m.title) + '<small>' + esc(fmtDate(m.date)) + '</small></span></div>';
+    }).join('') + '<button class="mm-go" type="button" data-b="trip" data-id="' + esc(t.id) + '">Show the trip on the map</button>', '');
+  });
+}
+function placePages() {
+  var rows = placesList();
+  if (!rows.length) return bkEmpty('No places yet', 'Everywhere the clouds lift is kept here.', false);
+  var pages = [];
+  for (var i = 0; i < rows.length; i += 7) pages.push(pgWrap('<h2>Our places</h2><div class="sub">' + rows.length + ' on the map</div>' + rows.slice(i, i + 7).map(function (r) {
+    return '<button class="pgrow" type="button" data-b="goto" data-lat="' + r.lat + '" data-lng="' + r.lng + '" data-z="' + r.z + '"><span>' + esc(r.t) + '<small>' + esc(r.s) + '</small></span></button>';
+  }).join(''), ''));
+  return pages;
+}
+function bookBuild() {
+  var s = BOOK.section, p = s === 'photos' ? photoPages() : s === 'trips' ? tripPages() : s === 'places' ? placePages() : storyPages();
+  p.forEach(function (h, i) { p[i] = h.replace(/<div class="pgn"><\/div>|<\/div>$/, function (m) { return m; }); });
+  BOOK.pages = p;
+}
+function bookPerView() { return innerWidth >= 820 && innerWidth / innerHeight > 1.05 ? 2 : 1; }
+
+function bookReadHtml(fresh) {
+  var per = bookPerView(); bookBuild();
+  if (BOOK.idx >= BOOK.pages.length) BOOK.idx = Math.max(0, BOOK.pages.length - 1);
+  if (per === 2) BOOK.idx -= BOOK.idx % 2;
+  var left = BOOK.pages[BOOK.idx] || '', right = per === 2 ? (BOOK.pages[BOOK.idx + 1] || pgWrap('', '', 'blank')) : '';
+  var total = BOOK.pages.length, atStart = BOOK.idx <= 0, atEnd = BOOK.idx + per >= total;
+  return '<div class="b-desk"></div><div class="b-read' + (fresh ? ' in' : '') + '" id="bRead">' +
+    '<div class="b-top"><button class="b-btn" type="button" data-b="close">\u2039 Map</button><div class="b-sign"><span>Our Memories Book</span></div><span style="width:46px"></span></div>' +
+    '<div class="b-wrap"><div class="b-rib">' + BOOK_SECTIONS.map(function (s) {
+      return '<button class="rb' + (BOOK.section === s[0] ? ' on' : '') + '" type="button" data-b="sec" data-id="' + s[0] + '"><img alt="" src="' + s[2] + '">' + s[1] + '</button>';
+    }).join('') + '</div><div class="b-book' + (per === 2 ? ' spread' : '') + '"><div class="b-pages" id="bPages">' + left + right + '</div></div></div>' +
+    '<div class="b-nav"><button class="b-btn" type="button" data-b="prev"' + (atStart ? ' disabled' : '') + ' aria-label="Previous page">\u2039</button><span class="cnt">Page ' + (Math.min(total, BOOK.idx + 1)) + (per === 2 && BOOK.idx + 2 <= total ? '\u2013' + (BOOK.idx + 2) : '') + ' of ' + total + '</span>' +
+    '<button class="b-btn" type="button" data-b="next"' + (atEnd ? ' disabled' : '') + ' aria-label="Next page">\u203a</button></div></div>';
+}
+function bookNumber() {
+  [].forEach.call(bookEl.querySelectorAll('.pg'), function (pg, i) { if (!pg.classList.contains('blank') && !pg.querySelector('.pgn')) { var n = document.createElement('div'); n.className = 'pgn'; n.textContent = BOOK.idx + i + 1; pg.appendChild(n); } });
+}
+function bookRenderRead() { bookEl.innerHTML = bookReadHtml(false); bookNumber(); }
+
+function bookTurn(dir) {
+  if (BOOK.stage !== 'read' || BOOK.turning) return;
+  var per = bookPerView(), next = BOOK.idx + dir * per;
+  if (next < 0 || next >= BOOK.pages.length) return;
+  var pagesEl = document.getElementById('bPages'); if (!pagesEl) return;
+  if (reduceMotion) { BOOK.idx = next; return bookRenderRead(); }
+  BOOK.turning = true;
+  var pgs = pagesEl.querySelectorAll('.pg'), leaf = dir > 0 ? pgs[pgs.length - 1] : pgs[0];
+  leaf.classList.add(dir > 0 ? 'turn-out-f' : 'turn-out-b');
+  setTimeout(function () {
+    BOOK.idx = next; bookRenderRead();
+    var np = document.getElementById('bPages').querySelectorAll('.pg'), nl = dir > 0 ? np[0] : np[np.length - 1];
+    if (per === 1) nl = np[0];
+    nl.classList.add(dir > 0 ? 'turn-in-f' : 'turn-in-b');
+    setTimeout(function () { BOOK.turning = false; }, 280);
+  }, 240);
+  if (typeof playSound === 'function') playSound('save');
+}
+
+function bookClick(e) {
+  var b = e.target.closest('[data-b]'); if (!b) return;
+  var a = b.dataset.b;
+  if (a === 'close') return bookClose();
+  if (a === 'enter') return bookEnter();
+  if (a === 'prev') return bookTurn(-1);
+  if (a === 'next') return bookTurn(1);
+  if (a === 'sec') {
+    if (b.dataset.id === 'cal') { return openCal(); }
+    BOOK.section = b.dataset.id; BOOK.idx = 0; return bookRenderRead();
+  }
+  if (a === 'photo') return openPhoto(b.dataset.src, b.dataset.cap || '');
+  if (a === 'add') { bookClose(); return startPlacing('memory'); }
+  if (a === 'goto') { bookClose(); return flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), parseFloat(b.dataset.z) || 12.2); }
+  if (a === 'map') {
+    var id = b.dataset.id, m = null; S.memories.forEach(function (x) { if (x.id === id) m = x; });
+    bookClose(); if (m) { flyTo(m.lat, m.lng, 12.4); openItem({ kind: 'memory', id: id }); } return;
+  }
+  if (a === 'trip') { var t = tripById(b.dataset.id); if (t) { bookClose(); fitStops(tripStops(t)); } }
+}
+
 /* ---- features/mail.js ---- */
 /* Mail: the post office between our homes (design: docs/MAIL.md, style: STYLE.md).
    On the map it is a little island; with mail waiting it glows and an envelope
@@ -6417,7 +6714,7 @@ function dashEnsure() {
     if (d === 'baby') petOpen();
     else if (d === 'shop') { petOpen(); PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; petRender(); }
     else if (d === 'cal') openCal();
-    else if (d === 'mem') ACTIONS['mn-mem']();
+    else if (d === 'mem') bookOpen();
     else if (d === 'letters') mailOpen({ room: true });
     else if (d === 'avatars') ACTIONS['mn-us']();
     else if (d === 'dreams') ACTIONS['mn-dream']();

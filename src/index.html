@@ -1457,108 +1457,135 @@ function drawFog() {
 }
 
 /* ============================== globe ============================== */
-function drawGlobe() {
-  var g = baseCtx, bw = baseCv.width, bh = baseCv.height, s = PIXEL;
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  var sc = S.globe.scale;
-  /* One continuous sky: daylight pink close in, deep space far out, with no
-     step anywhere between. */
-  var skyMix = Math.max(0, Math.min(1, (1.30 - sc) / 0.88));
-  skyMix = skyMix * skyMix * (3 - 2 * skyMix);              /* smoothstep */
-  var NEAR = [190, 222, 240], FAR = [31, 29, 57];
-  function mixc(k) {
-    return 'rgb(' + Math.round(NEAR[0] + (FAR[0] - NEAR[0]) * k) + ',' +
-                    Math.round(NEAR[1] + (FAR[1] - NEAR[1]) * k) + ',' +
-                    Math.round(NEAR[2] + (FAR[2] - NEAR[2]) * k) + ')';
-  }
-  /* a gentle vertical fall-off so the sky is never a flat slab */
-  var skyG = g.createLinearGradient(0, 0, 0, bh);
-  skyG.addColorStop(0, mixc(Math.min(1, skyMix * 1.08)));
-  skyG.addColorStop(1, mixc(Math.max(0, skyMix * 0.88)));
-  g.fillStyle = skyG; g.fillRect(0, 0, bw, bh);
-
-  if (skyMix > 0.01) {
-    for (var i = 0; i < 180; i++) {
-      var a = i * 2.399963;
-      var sx = (Math.sin(a * 3.1) * 0.5 + 0.5) * bw, sy = (Math.cos(a * 2.3) * 0.5 + 0.5) * bh;
-      var tw = 0.35 + (i % 5) / 9;
-      g.fillStyle = i % 9 === 0
-        ? 'rgba(245,216,142,' + (skyMix * 0.9) + ')'
-        : 'rgba(255,255,255,' + (skyMix * tw) + ')';
-      g.fillRect(Math.round(sx), Math.round(sy), 1, 1);
+/* ---------- the globe, drawn pixel by pixel ----------
+   A land map (equirectangular, 720x360) is rasterised once from the world
+   outlines. Each globe pixel then looks up its own longitude/latitude, so the
+   planet is crisp pixel art at every size: ocean with a sun glint, land with a
+   warm sunset edge, drifting pixel clouds, a night side with city lights,
+   an atmosphere ring, and a starry sky behind. */
+var GL = { map: null, cloud: null, buf: null, bufW: 0, bufH: 0, img: null };
+var GL_W = 720, GL_H = 360;
+function glLand() {
+  if (GL.map) return GL.map;
+  var c = document.createElement('canvas'); c.width = GL_W; c.height = GL_H;
+  var g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, GL_W, GL_H); g.fillStyle = '#fff';
+  function ring(r, dx) {
+    g.beginPath();
+    for (var j = 0; j < r.length; j += 2) {
+      var x = (r[j] + 180) / 360 * GL_W + dx, y = (90 - r[j + 1]) / 180 * GL_H;
+      if (j === 0) g.moveTo(x, y); else g.lineTo(x, y);
     }
-  }
-
-  var Rp = Math.min(bw, bh) * 0.40 * sc;
-  var cx = bw / 2, cy = bh / 2;
-  var l0 = rad(S.globe.lon), p0 = rad(S.globe.lat);
-  var sinp0 = Math.sin(p0), cosp0 = Math.cos(p0);
-
-  function pt(lng, lat) {
-    var dl = rad(lng) - l0, ph = rad(lat);
-    var cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
-    if (cosc < 0) return null;
-    return [ cx + Rp * Math.cos(ph) * Math.sin(dl),
-             cy - Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl)) ];
-  }
-
-  /* ocean */
-  var og = g.createRadialGradient(cx - Rp * 0.3, cy - Rp * 0.35, Rp * 0.1, cx, cy, Rp);
-  og.addColorStop(0, C.waterlite); og.addColorStop(0.75, C.water); og.addColorStop(1, '#3F8F9E');
-  g.fillStyle = og; g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.fill();
-
-  /* land — points behind the planet are pushed out to its edge, so a coastline
-     curves round the horizon instead of being sliced by a straight line */
-  g.save(); g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.clip();
-  g.fillStyle = C.landmuted;
-  for (var k = 0; k < GEO.world.length; k++) {
-    var ring = GEO.world[k], seenFront = false, pts = [];
-    for (var j = 0; j < ring.length; j += 2) {
-      var dl = rad(ring[j]) - l0, ph = rad(ring[j + 1]);
-      var cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
-      var gx = Rp * Math.cos(ph) * Math.sin(dl);
-      var gy = Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl));
-      if (cosc >= 0) seenFront = true;
-      else { var gm = Math.hypot(gx, gy) || 1; gx = gx / gm * Rp; gy = gy / gm * Rp; }
-      pts.push(cx + gx, cy - gy);
-    }
-    if (!seenFront) continue;
-    g.beginPath(); g.moveTo(pts[0], pts[1]);
-    for (var m = 2; m < pts.length; m += 2) g.lineTo(pts[m], pts[m + 1]);
     g.closePath(); g.fill();
   }
+  GEO.world.forEach(function (r) { ring(r, 0); });
+  GEO.states.forEach(function (st) { st.rings.forEach(function (r) { ring(r, 0); }); });
+  var d = g.getImageData(0, 0, GL_W, GL_H).data, m = new Uint8Array(GL_W * GL_H);
+  for (var i = 0; i < m.length; i++) m[i] = d[i * 4] > 127 ? 1 : 0;
+  GL.map = m; return m;
+}
+function glHash(x, y) { var h = (x * 374761393 + y * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function glNoise(x, y) {
+  var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  var a = glHash(x0, y0), b = glHash(x0 + 1, y0), c = glHash(x0, y0 + 1), d = glHash(x0 + 1, y0 + 1);
+  return a + (b - a) * fx + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fy;
+}
+var GLP = {
+  deep: [30, 78, 168], sea: [48, 128, 214], shallow: [104, 196, 238], glint: [226, 246, 255],
+  land: [118, 186, 98], landHi: [164, 214, 112], forest: [62, 134, 88], sand: [226, 196, 128], snow: [246, 244, 250],
+  edge: [255, 170, 120], night: [26, 24, 62]
+};
+function drawGlobe() {
+  var g = baseCtx, bw = baseCv.width, bh = baseCv.height;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  var sc = S.globe.scale;
+  var skyMix = Math.max(0, Math.min(1, (1.30 - sc) / 0.88)); skyMix = skyMix * skyMix * (3 - 2 * skyMix);
 
-  /* the part of the world that is ours */
-  /* cloud band */
-  for (var c = 0; c < 26; c++) {
-    var ang = c * 2.399963;
-    var clng = ((ang * 57.3 + cloudPhase * 0.35) % 360) - 180;
-    var clat = (Math.sin(ang * 1.9) * 62);
-    var cp = pt(clng, clat);
-    if (!cp) continue;
-    var crad = Rp * (0.06 + (c % 5) * 0.022);
-    var cg = g.createRadialGradient(cp[0], cp[1], 0, cp[0], cp[1], crad);
-    cg.addColorStop(0, 'rgba(255,255,255,.55)'); cg.addColorStop(1, 'rgba(226,221,231,0)');
-    g.fillStyle = cg; g.beginPath(); g.arc(cp[0], cp[1], crad, 0, 7); g.fill();
+  /* sky: a sunset near the ground, deep violet space far out, then stars */
+  var sg = g.createLinearGradient(0, 0, 0, bh);
+  function mix(a, b, k) { return 'rgb(' + Math.round(a[0] + (b[0] - a[0]) * k) + ',' + Math.round(a[1] + (b[1] - a[1]) * k) + ',' + Math.round(a[2] + (b[2] - a[2]) * k) + ')'; }
+  sg.addColorStop(0, mix([112, 98, 188], [24, 20, 54], skyMix));
+  sg.addColorStop(0.55, mix([236, 150, 170], [34, 26, 70], skyMix));
+  sg.addColorStop(1, mix([255, 196, 146], [46, 30, 78], skyMix));
+  g.fillStyle = sg; g.fillRect(0, 0, bw, bh);
+  var starA = 0.35 + 0.65 * skyMix;
+  for (var i = 0; i < 150; i++) {
+    var a = i * 2.399963, sx = (Math.sin(a * 3.1) * 0.5 + 0.5) * bw, sy = (Math.cos(a * 2.3) * 0.5 + 0.5) * bh, big = i % 11 === 0;
+    var tw = 0.55 + 0.45 * Math.sin(cloudPhase / 22 + i);
+    g.fillStyle = i % 7 === 0 ? 'rgba(255,226,150,' + (starA * tw) + ')' : 'rgba(255,255,255,' + (starA * 0.9 * tw) + ')';
+    g.fillRect(Math.round(sx), Math.round(sy), big ? 2 : 1, big ? 2 : 1);
+    if (big) { g.fillRect(Math.round(sx) - 1, Math.round(sy), 4, 1); g.fillRect(Math.round(sx), Math.round(sy) - 1, 1, 4); }
   }
 
-  /* shading + terminator */
-  var sg = g.createRadialGradient(cx - Rp * 0.35, cy - Rp * 0.4, Rp * 0.15, cx, cy, Rp * 1.05);
-  sg.addColorStop(0, 'rgba(255,255,255,.24)'); sg.addColorStop(0.55, 'rgba(255,255,255,0)');
-  sg.addColorStop(1, 'rgba(31,29,57,.42)');
-  g.fillStyle = sg; g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.fill();
-  g.restore();
+  var Rp = Math.min(bw, bh) * 0.40 * sc, cx = bw / 2, cy = bh / 2;
+  var l0 = rad(S.globe.lon), p0 = rad(S.globe.lat), sinp0 = Math.sin(p0), cosp0 = Math.cos(p0);
+  function pt(lng, lat) {
+    var dl = rad(lng) - l0, ph = rad(lat), cosc = sinp0 * Math.sin(ph) + cosp0 * Math.cos(ph) * Math.cos(dl);
+    if (cosc < 0) return null;
+    return [cx + Rp * Math.cos(ph) * Math.sin(dl), cy - Rp * (cosp0 * Math.sin(ph) - sinp0 * Math.cos(ph) * Math.cos(dl))];
+  }
 
-  /* atmosphere: a soft shell that carries the globe into the sky */
-  var atm = g.createRadialGradient(cx, cy, Rp * 0.94, cx, cy, Rp * 1.20);
-  atm.addColorStop(0, 'rgba(165,225,229,' + (0.34 + skyMix * 0.22) + ')');
-  atm.addColorStop(0.45, 'rgba(180,200,235,' + (0.16 + skyMix * 0.14) + ')');
-  atm.addColorStop(1, 'rgba(180,200,235,0)');
-  g.fillStyle = atm; g.beginPath(); g.arc(cx, cy, Rp * 1.20, 0, 7); g.fill();
-  g.strokeStyle = 'rgba(243,169,199,' + (0.55 + skyMix * 0.3) + ')'; g.lineWidth = 1;
-  g.beginPath(); g.arc(cx, cy, Rp, 0, 7); g.stroke();
+  /* atmosphere halo behind the planet */
+  var halo = g.createRadialGradient(cx, cy, Rp * 0.94, cx, cy, Rp * 1.28);
+  halo.addColorStop(0, 'rgba(255,170,150,' + (0.55 - skyMix * 0.15) + ')'); halo.addColorStop(0.35, 'rgba(236,140,200,' + (0.28) + ')'); halo.addColorStop(1, 'rgba(160,120,230,0)');
+  g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, Rp * 1.28, 0, 7); g.fill();
 
-  /* our place in the world — drawn last so no shading or atmosphere ever dulls it */
+  /* the planet itself: one pixel at a time */
+  var x0 = Math.max(0, Math.floor(cx - Rp)), x1 = Math.min(bw, Math.ceil(cx + Rp)), y0 = Math.max(0, Math.floor(cy - Rp)), y1 = Math.min(bh, Math.ceil(cy + Rp));
+  var w = x1 - x0, h = y1 - y0;
+  if (w > 0 && h > 0) {
+    var land = glLand();
+    if (!GL.img || GL.img.width !== w || GL.img.height !== h) GL.img = g.createImageData(w, h);
+    var data = GL.img.data, R2 = Rp * Rp, drift = cloudPhase * 0.0016;
+    var lx = -0.48, ly = -0.55, lz = 0.69, ln = Math.hypot(lx, ly, lz); lx /= ln; ly /= ln; lz /= ln;     /* the sun sits up and to the left */
+    for (var py = 0; py < h; py++) {
+      var yy = (y0 + py + 0.5 - cy) / Rp;
+      for (var px = 0; px < w; px++) {
+        var xx = (x0 + px + 0.5 - cx) / Rp, r2 = xx * xx + yy * yy, o = (py * w + px) * 4;
+        if (r2 > 1) { data[o + 3] = 0; continue; }
+        var zz = Math.sqrt(1 - r2);
+        /* undo the view: screen -> latitude / longitude */
+        var sinphi = zz * sinp0 - yy * cosp0, phi = Math.asin(Math.max(-1, Math.min(1, sinphi)));
+        var lam = l0 + Math.atan2(xx, zz * cosp0 + yy * sinp0);
+        var lng = (lam * 180 / Math.PI + 540) % 360 - 180, lat = phi * 180 / Math.PI;
+        var mx = Math.min(GL_W - 1, Math.max(0, Math.floor((lng + 180) / 360 * GL_W))), my = Math.min(GL_H - 1, Math.max(0, Math.floor((90 - lat) / 180 * GL_H)));
+        var isLand = land[my * GL_W + mx] === 1, rgb;
+        var lit = xx * lx + yy * ly + zz * lz;                                     /* >0 faces the sun */
+        var n = glNoise(lng * 0.07 + 9, lat * 0.09 + 3) * 0.7 + glNoise(lng * 0.19, lat * 0.23) * 0.3;
+        if (isLand) {
+          var polar = Math.abs(lat) > 66 ? 1 : 0, dry = (Math.abs(lat) > 15 && Math.abs(lat) < 34 && n > 0.55) ? 1 : 0;
+          rgb = polar ? GLP.snow : dry ? GLP.sand : (n > 0.56 ? GLP.landHi : (n < 0.40 ? GLP.forest : GLP.land));
+        } else {
+          /* shallow water close to land, deeper further out; a sun glint */
+          var near = 0, d0 = 2;
+          for (var k = 0; k < 4 && !near; k++) { var qx = mx + (k === 0 ? d0 : k === 1 ? -d0 : 0), qy = my + (k === 2 ? d0 : k === 3 ? -d0 : 0); if (land[Math.min(GL_H - 1, Math.max(0, qy)) * GL_W + Math.min(GL_W - 1, Math.max(0, qx))]) near = 1; }
+          rgb = near ? GLP.shallow : (n > 0.46 ? GLP.sea : GLP.deep);
+          if (lit > 0.93 && n > 0.4) rgb = GLP.glint;
+        }
+        /* soft clouds drifting round the planet (blocky, pixel clouds) */
+        var cn = glNoise((lng + drift * 40) * 0.05, lat * 0.07 + 20) * 0.7 + glNoise((lng + drift * 40) * 0.13 + 5, lat * 0.17) * 0.3;
+        var cloud = cn > 0.7 ? 1 : 0;
+        var rr = rgb[0], gg = rgb[1], bb = rgb[2];
+        if (cloud) { rr = 252; gg = 242; bb = 248; }
+        /* light: lit side warm, terminator a sunset pink, night side dark with a few lights */
+        var shade;
+        if (lit > 0.18) shade = 1;
+        else if (lit > 0.02) { var k2 = (lit - 0.02) / 0.16; rr = rr * (0.62 + 0.38 * k2) + GLP.edge[0] * (1 - k2) * 0.38; gg = gg * (0.62 + 0.38 * k2) + GLP.edge[1] * (1 - k2) * 0.38; bb = bb * (0.62 + 0.38 * k2) + GLP.edge[2] * (1 - k2) * 0.38; shade = 1; }
+        else { var dk = Math.max(0.28, 0.62 + lit * 0.9); rr = rr * dk * 0.7 + GLP.night[0] * 0.5; gg = gg * dk * 0.7 + GLP.night[1] * 0.5; bb = bb * dk * 0.8 + GLP.night[2] * 0.7; shade = 1;
+          if (isLand && !cloud && glHash(mx >> 1, my >> 1) > 0.965) { rr = 255; gg = 216; bb = 128; } }
+        /* a thin rim so the edge reads as a bright atmosphere line */
+        if (r2 > 0.93) { var rim = (r2 - 0.93) / 0.07; rr = rr + (255 - rr) * rim * 0.55; gg = gg + (176 - gg) * rim * 0.45; bb = bb + (190 - bb) * rim * 0.4; }
+        data[o] = rr; data[o + 1] = gg; data[o + 2] = bb; data[o + 3] = 255;
+      }
+    }
+    if (!GL.cv) GL.cv = document.createElement('canvas');
+    if (GL.cv.width !== w || GL.cv.height !== h) { GL.cv.width = w; GL.cv.height = h; }
+    GL.cv.getContext('2d').putImageData(GL.img, 0, 0);
+    g.imageSmoothingEnabled = false; g.drawImage(GL.cv, x0, y0);
+  }
+  /* an outline so the planet pops against the sky */
+  g.strokeStyle = 'rgba(94,34,56,.55)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, Rp + 0.5, 0, 7); g.stroke();
+
+  /* our place in the world, drawn last */
   drawGlobeBeacons(g, pt, cx, cy, Rp, l0, sinp0, cosp0);
   baseDirty = false;
 }
@@ -3246,6 +3273,7 @@ function hydrateLocal() {
 //#include features/bucket.js
 //#include features/albums.js
 //#include features/polaroid.js
+//#include features/book.js
 //#include features/mail.js
 //#include features/pet.js
 //#include features/calendar-events.js
