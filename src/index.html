@@ -5,8 +5,8 @@
 <style>
 :root{
   --bg:#FFF8FB; --pink:#D85A92; --deep:#9F3D6D; --princess:#F3A9C7;
-  --gold:#FFD56A; --softgold:#FFE8A4; --land:#8FCA68; --landdeep:#3F7D58;
-  --water:#36A9E8; --waterlite:#86D5F5; --fog:#E9D8F2; --cloud:#F7E6F5;
+  --gold:#FFD56A; --softgold:#FFF0B2; --land:#9AD66F; --landdeep:#397E55;
+  --water:#31AFE9; --waterlite:#91DDF8; --fog:#E9D8F2; --cloud:#F9EAF7;
   --ink:#3D2838; --space:#1F1D39;
   --ink-70:rgba(61,40,56,.70); --ink-45:rgba(61,40,56,.45);
   --panel:#FFF7FB; --panel-edge:#F2D3E2;
@@ -670,10 +670,10 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 /* ============================== constants ============================== */
 var C = {
   bg:'#FFF8FB', pink:'#D85A92', deep:'#9F3D6D', princess:'#F3A9C7',
-  gold:'#FFD56A', softgold:'#FFE8A4', land:'#8FCA68', landdeep:'#3F7D58',
-  water:'#36A9E8', waterlite:'#86D5F5', fog:'#E9D8F2', cloud:'#F7E6F5',
+  gold:'#FFD56A', softgold:'#FFF0B2', land:'#9AD66F', landdeep:'#397E55',
+  water:'#31AFE9', waterlite:'#91DDF8', fog:'#E9D8F2', cloud:'#F9EAF7',
   ink:'#3D2838', space:'#1F1D39',
-  landmuted:'#79B765', landmutededge:'#5A965A'
+  landmuted:'#87C96D', landmutededge:'#579B60'
 };
 var HOMES = {
   bruce: { who:'bruce', name:'Bruce', label:'Chesapeake Beach', lat:38.6935, lng:-76.5333, r:24 },
@@ -1290,8 +1290,7 @@ function drawFog() {
 
   /* The milky veil over unexplored ground fades away as you zoom out, so the
      far views stay crisp and colourful; only the drifting clouds remain. */
-  var haze = Math.max(0, Math.min(1, (S.zoom - 8.4) / 2.2));
-  if (haze > 0.005) { g.fillStyle = 'rgba(235,215,242,' + (haze * 0.12).toFixed(3) + ')'; g.fillRect(0, 0, bw, bh); }
+  var haze = 0;
   /* A single pixel-cloud layer, clipped by the discovery mask below. */
   g.save(); g.scale(1 / s, 1 / s);
   drawSkyClouds(S.zoom, g);
