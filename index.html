@@ -5521,12 +5521,23 @@ function petOpen() {
     PET.visits[S.who] = Date.now();
     if (S.db) S.db.collection('petvisit').doc(S.who).set({ at: Date.now(), by: S.who }).catch(function () {});
   }
+  if (location.hash !== '#baby') { history.pushState(null, '', '#baby'); PET.pushed = true; }
   petEl.classList.add('on'); petRender();            /* show first: the layout needs the real size */
   var other_ = other(S.who), t = PET.visits[other_];
   var recent = t && Date.now() - t < 6 * 3600000 ? jrShortName(other_) + ' was just here. ' : '';
   setTimeout(function () { petSay(petSleeping() ? 'Zzz…' : (recent ? recent + 'Hi, ' + jrShortName(S.who) + '!' : 'You’re here! 💗'), 3200); }, 450);
 }
-function petClose() { PET.open = false; if (petEl) petEl.classList.remove('on'); }
+function petClose() {
+  PET.open = false; if (petEl) petEl.classList.remove('on');
+  if (location.hash === '#baby') {
+    if (PET.pushed) { PET.pushed = false; history.back(); }            /* undo our own history step */
+    else history.replaceState(null, '', location.pathname + location.search);
+  }
+}
+/* Your Baby has its own page: our-world/#baby opens straight into the room */
+function petFromHash() { if (location.hash === '#baby' && !PET.open && S.who) petOpen(); else if (location.hash !== '#baby' && PET.open) { PET.pushed = false; petClose(); } }
+window.addEventListener('hashchange', petFromHash);
+(function waitForWho(n) { if (S.who) return petFromHash(); if (n < 80) setTimeout(function () { waitForWho(n + 1); }, 250); })(0);
 ACTIONS['pet-open'] = petOpen;
 
 function petRender() {
@@ -5545,21 +5556,86 @@ function petRender() {
     '</div>';
   petLayout(sleeping);
 }
+/* ---------------- he lives in the room ----------------
+   A small brain walks him around the bed, sits, wags his tail, lies down for a
+   nap and sleeps at night. Sitting facing you is when you see his outfit. */
+var PG = null;                                     /* room geometry on screen */
+var PB = { x: 0.49, dir: 1, act: 'sit', until: 0, tx: 0.49, f: 0, raf: 0, last: 0, shown: '' };
+var PF = {};                                       /* frame images, by name */
+['walk1', 'walk2', 'walk3', 'walk4', 'wag1', 'wag2', 'wag3', 'bow', 'sitdown', 'lay', 'sleep', 'jump1', 'jump2', 'jump3', 'jump4', 'idle1'].forEach(function (n) {
+  var im = new Image(); im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im;
+});
+var X_MIN = 0.37, X_MAX = 0.62;
 function petLayout(sleeping) {
   var bg = document.getElementById('psBg'), dog = document.getElementById('psDog');
   if (!bg || !dog) return;
-  if (sleeping === undefined) sleeping = petSleeping();
   var vw = petEl.clientWidth, vh = petEl.clientHeight;
   var sc = Math.max(vw / ROOM_W, vh / ROOM_H), dw = ROOM_W * sc, dh = ROOM_H * sc;
   var ox = Math.min(0, Math.max(vw - dw, vw / 2 - 0.49 * dw)), oy = Math.min(0, Math.max(vh - dh, vh / 2 - 0.56 * dh));
   bg.style.width = dw + 'px'; bg.style.height = dh + 'px'; bg.style.left = ox + 'px'; bg.style.top = oy + 'px';
-  var h = Math.max(110, Math.min(dh * 0.24, vh * 0.27, vw * 0.62)), baseY = oy + dh * (sleeping ? 0.7 : 0.775), x = ox + dw * 0.49;
-  dog.style.left = x + 'px'; dog.style.top = (baseY - h) + 'px'; dog.style.height = h + 'px';
-  dog.innerHTML = petFigure(h, sleeping ? {} : PET.equipped, sleeping);
-  if (sleeping) dog.style.top = (baseY - h * 0.3) + 'px';
-  petLearnSizes(dog);
-  var say = document.getElementById('psSay'); if (say) say.style.top = Math.max(70, baseY - h - 62) + 'px';
+  var h = Math.max(110, Math.min(dh * 0.24, vh * 0.27, vw * 0.62));
+  PG = { ox: ox, oy: oy, dw: dw, dh: dh, h: h, baseY: oy + dh * 0.775, vw: vw };
+  /* on a narrow screen he may only roam the part of the bed you can see */
+  var vis0 = (-ox + vw * 0.12) / dw, vis1 = (-ox + vw * 0.88) / dw;
+  X_MIN = Math.max(0.37, vis0); X_MAX = Math.min(0.62, vis1);
+  PB.x = Math.max(X_MIN, Math.min(X_MAX, PB.x));
+  PB.shown = '';
+  if (petSleeping()) PB.act = 'sleep';
+  else if (PB.act === 'sleep') { PB.act = 'sit'; PB.until = 0; }
+  petPose();
+  var say = document.getElementById('psSay'); if (say) say.style.top = Math.max(70, PG.baseY - h - 62) + 'px';
+  if (!PB.raf) { PB.last = performance.now(); PB.raf = requestAnimationFrame(petTick); }
 }
+/* the small sheet frames are drawn at the same scale as the big front sprite */
+function frameScale() { return PG.h / 236 * 2.05; }
+function petPose() {
+  var dog = document.getElementById('psDog'); if (!dog || !PG) return;
+  var x = PG.ox + PG.dw * PB.x, key, html;
+  if (PB.act === 'sit') {
+    key = 'sit|' + JSON.stringify(PET.equipped) + '|' + PG.h;
+    if (PB.shown !== key) { dog.innerHTML = petFigure(PG.h, PET.equipped, false); petLearnSizes(dog); PB.shown = key; }
+    dog.style.left = x + 'px'; dog.style.top = (PG.baseY - PG.h) + 'px';
+    return;
+  }
+  var name = PB.frame || 'idle1', im = PF[name], s = frameScale();
+  var w = (im.naturalWidth || 100) * s, hh = (im.naturalHeight || 100) * s;
+  key = 'f|' + name + '|' + PB.dir + '|' + Math.round(hh);
+  if (PB.shown !== key) {
+    dog.innerHTML = '<div class="pf pf-frame" style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px"><img alt="" draggable="false" src="' + im.src + '" style="width:100%;height:100%;' + (PB.dir < 0 ? 'transform:scaleX(-1)' : '') + '"></div>';
+    PB.shown = key;
+  }
+  dog.style.left = x + 'px'; dog.style.top = (PG.baseY - hh + (PB.act === 'sleep' || PB.act === 'lay' ? hh * 0.08 : 0)) + 'px';
+}
+function petNext(now) {
+  if (petSleeping()) { PB.act = 'sleep'; PB.frame = 'sleep'; PB.until = now + 60000; return; }
+  var r = Math.random();
+  if (PB.act !== 'sit') { PB.act = 'sit'; PB.until = now + 4000 + Math.random() * 5000; return; }
+  if (r < 0.55) { PB.act = 'walk'; PB.tx = X_MIN + Math.random() * (X_MAX - X_MIN); PB.dir = PB.tx > PB.x ? 1 : -1; PB.until = now + 20000; }
+  else if (r < 0.78) { PB.act = 'wag'; PB.until = now + 2600; }
+  else { PB.act = 'lay'; PB.t0 = now; PB.until = now + 7000 + Math.random() * 5000; }
+}
+function petTick(now) {
+  if (!PET.open || PET.mode !== 'room') { PB.raf = 0; return; }
+  PB.raf = requestAnimationFrame(petTick);
+  var dt = Math.min(0.1, (now - PB.last) / 1000); PB.last = now;
+  if (reduceMotion && PB.act !== 'sleep') { if (PB.act !== 'sit') { PB.act = 'sit'; petPose(); } return; }
+  if (now > PB.until) petNext(now);
+  var f = Math.floor(now / 140);
+  if (PB.act === 'walk') {
+    var step = 0.045 * dt * PB.dir; PB.x += step;
+    if ((PB.dir > 0 && PB.x >= PB.tx) || (PB.dir < 0 && PB.x <= PB.tx)) { PB.x = PB.tx; PB.until = 0; }
+    PB.frame = 'walk' + (f % 4 + 1);
+  } else if (PB.act === 'wag') PB.frame = 'wag' + ([1, 2, 3, 2][Math.floor(now / 180) % 4]);
+  else if (PB.act === 'lay') PB.frame = now - PB.t0 < 700 ? 'sitdown' : 'lay';
+  else if (PB.act === 'sleep') PB.frame = 'sleep';
+  else if (PB.act === 'play') {
+    var t = now - PB.t0;
+    PB.frame = t < 800 ? 'bow' : ('jump' + Math.min(4, Math.floor((t - 800) / 160) + 1));
+    if (t > 1600) PB.until = 0;
+  }
+  petPose();
+}
+function petSitFront() { PB.act = 'sit'; PB.until = performance.now() + 5000; petPose(); }
 
 var petSayT = null;
 function petSay(text, ms) {
@@ -5582,6 +5658,7 @@ function petHearts_fx() {
   }
 }
 function petHop() {
+  petSitFront();
   var d = document.getElementById('psDog'); if (!d) return;
   d.classList.remove('happy'); void d.offsetWidth; d.classList.add('happy'); petHearts_fx();
 }
@@ -5601,13 +5678,13 @@ function petAct(a) {
     if (nm && nm.trim()) { PET.name = nm.trim().slice(0, 18); petSavePet(); petRender(); }
     return;
   }
-  if (petSleeping()) { PET.woke = Date.now(); petRender(); petSay('*yawn* Oh! Hi! 💗', 2600); setTimeout(petHop, 350); return; }
+  if (petSleeping()) { PET.woke = Date.now(); PB.act = 'sit'; PB.until = 0; petRender(); petSay('*yawn* Oh! Hi! 💗', 2600); setTimeout(petHop, 350); return; }
   if (a === 'cuddle') {
     petHop(); petSay(PET_LINES[Math.floor(Math.random() * PET_LINES.length)], 2600);
     if (typeof playSound === 'function') playSound('heart');
     if (Date.now() - PET.lastPet > 15 * 60000) { PET.lastPet = Date.now(); setTimeout(function () { earnHearts(1, 'cuddle'); }, 500); }
   } else if (a === 'play') {
-    petHop(); setTimeout(petHop, 650); petSay('Again! Again! 🎾', 2400);
+    PB.act = 'play'; PB.t0 = performance.now(); PB.until = PB.t0 + 5000; petHearts_fx(); petSay('Again! Again! 🎾', 2400);
   } else if (a === 'treat') {
     petGiveTreat(PET_TREATS[0]);
   }
@@ -5858,48 +5935,91 @@ ACTIONS['grp'] = function (b) {
   if (el) el.classList.toggle('open', !!MENU.open[id]);
 };
 
+/* The menu: six big, friendly tiles. Each opens a short page of its own, so
+   no screen ever shows more than a handful of choices. Adding things lives on
+   the pink heart button, not here. */
+var MENU_TILES = [
+  ['baby',  'art/pets/dog-face-happy.png', 'Our Baby',   '#FFE6CC', '#E9B089'],
+  ['notes', 'art/heart.png',               'Love notes', '#FFE0EC', '#EBA3C1'],
+  ['mem',   'art/calendar.png',            'Memories',   '#E6F1FF', '#9DBCE6'],
+  ['dream', 'art/star.png',                'Dreams',     '#FFF4CC', '#E6C766'],
+  ['us',    'art/house-i.png',             'Us',         '#E8F6E6', '#9CCB94'],
+  ['set',   'art/moon.png',                'Settings',   '#EFE8FA', '#B8A6DC']
+];
+function menuBadge(id) {
+  if (id === 'notes') { var n = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length; return n ? n : ''; }
+  if (id === 'baby') return petHearts() + ' ♥';
+  return '';
+}
 function openMenu() {
-  var td = thisDayList(), html = head('Menu', 'everything in one place') + petCardHtml() + annCardHtml();
-  if (td.length) {
-    html += '<div class="list" style="margin-bottom:10px">' + td.map(function (it) {
-      return '<button type="button" data-act="goto" data-lat="' + it.m.lat + '" data-lng="' + it.m.lng + '" data-z="13">' +
-        '<span class="ico">💗</span><span><span class="t">' + esc(it.m.title) + '</span><br><span class="s">' + esc(yearsAgo(it.years)) + '</span></span></button>';
-    }).join('') + '</div>';
-  }
-  var them = whoName(other(S.who)).replace('Princess ', ''), online = PR.partner ? 'online now' : 'offline';
-  var unopened = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length;
-  html +=
-    grp('add', '➕', 'Add', '', 
-      moreRow('add-memory', '💗', 'A memory', 'Pin where something happened') +
-      moreRow('add-letter', '💌', 'A sealed letter', 'Opens at a place, or on a day') +
-      moreRow('plan-new', '⭐', 'A place we want to go', 'Waits on the map, counts down') +
-      moreRow('walk', '👣', WALK.rec ? 'Stop recording our walk' : 'Record a walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : 'Adds the route to our heat trail')) +
-    grp('explore', '🗺️', 'Explore', '',
-      moreRow('places', '🏡', 'Our places', 'Everywhere the clouds have lifted') +
-      moreRow('calendar', '📅', 'Calendar', 'Memories by day') +
-      moreRow('albums', '🖼️', 'Photo albums', 'Polaroid stacks, by place') +
-      moreRow('trips-list', '🧵', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') : 'Thread memories into a journey') +
-      moreRow('together-map', '🏘️', 'Show us together', 'Both homes on one map') +
-      moreRow('discover-here', '✨', 'Clear the ground here', 'Lift the clouds where the map is centred') +
-      moreRow('poster', '🖼️', 'Save the map as a poster', 'Frame it, or send it to them')) +
-    grp('us', '💞', 'Us', unopened ? unopened + ' letter' + (unopened > 1 ? 's' : '') : '',
-      moreRow('note-edit', '💌', 'My daily love note', S.notes[S.who] && S.notes[S.who].text ? S.notes[S.who].text.slice(0, 40) + (S.notes[S.who].text.length > 40 ? '…' : '') : 'Waits for ' + them + ' every time they open the map') +
-      moreRow('journal', '📓', 'Our journal', 'How today felt · you both read it') +
-      moreRow('letters', '💌', 'Letters', unopened ? unopened + ' sealed for you' : 'Sealed for each other') +
-      moreRow('bucket', '🌠', 'Bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' to do together' : 'Things we want to do together') +
-      moreRow('plans-list', '⭐', 'Places we want to go', S.plans.length ? S.plans.length + ' on the list' : 'Plan the next adventure') +
-      moreRow('ann-edit', '📅', 'Our anniversary', S.us && S.us.anniversary ? fmtDate(S.us.anniversary) : 'Set the day it started')) +
-    grp('me', '🧍', 'Avatars & location', '',
-      moreRow('av-toggle', '🧍', AV_ON ? 'Avatars on the map: ON' : 'Avatars on the map: OFF', AV_ON ? 'Tap to hide them' : 'Tap to show them') +
-      moreRow('avatars', '👗', 'Change outfit', 'Top, ' + (S.who === 'elena' ? 'skirt' : 'trousers') + ' and shoes') +
-      moreRow('share-loc', '📍', PR.mine.sharing ? 'Live location: ON' : 'Share my live location', PR.mine.sharing ? 'Tap to stop · ' + them + ' is ' + online : 'Appear on the map when we are both here')) +
-    grp('set', '⚙️', 'Settings', '',
-      moreRow('atmos', '🌙', 'Atmosphere & sound', (AMB.tod === 'live' ? 'Real clock' : AMB.tod === 'day' ? 'Always day' : 'Always night') + (AMB.weather ? ' · weather on' : ' · weather off')) +
-      moreRow('trees-toggle', '🌳', TER.on ? 'Trees & boats: ON' : 'Trees & boats: OFF', TER.on ? 'Tap to hide' : 'Tap to show') +
-      moreRow('install', '📱', 'Add to your home screen', 'Opens full-screen like an app') +
-      moreRow('sign-out', '🚪', 'Sign out', 'Locks this device'));
+  var td = thisDayList(), a = annInfo(), html = '<div class="mn-hd"><div><h2>Our World</h2><div class="mn-sub">' +
+    (a && a.days > 0 ? 'Together ' + a.days.toLocaleString() + ' days 💗' : 'Hi, ' + esc(whoName(S.who).replace('Princess ', '')) + ' 💗') +
+    '</div></div><button class="closex" type="button" data-act="close" aria-label="Close">✕</button></div>';
+  if (td.length) html += '<button type="button" class="mn-look" data-act="goto" data-lat="' + td[0].m.lat + '" data-lng="' + td[0].m.lng + '" data-z="13">📸 ' + esc(yearsAgo(td[0].years)) + ': <b>' + esc(td[0].m.title) + '</b></button>';
+  html += '<div class="mn-grid">' + MENU_TILES.map(function (t) {
+    var badge = menuBadge(t[0]);
+    return '<button type="button" class="mn-tile" data-act="mn-' + t[0] + '" style="--bg:' + t[3] + ';--bd:' + t[4] + '"><img src="' + t[1] + '" alt=""><span>' + t[2] + '</span>' + (badge !== '' ? '<i>' + badge + '</i>' : '') + '</button>';
+  }).join('') + '</div>';
   openSheet(html);
 }
+function subPage(title, sub, rows) {
+  openSheet('<div class="mn-hd"><button class="mn-back" type="button" data-act="more" aria-label="Back">‹</button><div style="flex:1"><h2>' + esc(title) + '</h2>' + (sub ? '<div class="mn-sub">' + esc(sub) + '</div>' : '') + '</div>' +
+    '<button class="closex" type="button" data-act="close" aria-label="Close">✕</button></div><div class="list mn-list">' + rows + '</div>');
+}
+ACTIONS['mn-baby'] = function () { petOpen(); };
+ACTIONS['mn-notes'] = function () {
+  var them = whoName(other(S.who)).replace('Princess ', ''), un = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length;
+  subPage('Love notes', 'words for each other',
+    moreRow('note-edit', '💌', 'Today’s note', S.notes[S.who] && S.notes[S.who].text ? '“' + S.notes[S.who].text.slice(0, 36) + (S.notes[S.who].text.length > 36 ? '…' : '') + '”' : 'Greets ' + them + ' when they open the map') +
+    moreRow('journal', '📓', 'Our journal', 'How today felt · you both read it') +
+    moreRow('letters', '✉️', 'Sealed letters', un ? un + ' waiting for you' : 'Open at a place, or on a day'));
+};
+ACTIONS['mn-mem'] = function () {
+  subPage('Memories', 'everywhere we have been',
+    moreRow('calendar', '📅', 'Calendar', 'Memories and plans, day by day') +
+    moreRow('albums', '🖼️', 'Photo albums', 'Polaroid stacks, by place') +
+    moreRow('places', '🏡', 'Our places', 'Everywhere the clouds have lifted') +
+    moreRow('trips-list', '🧵', 'Our trips', S.trips.length ? S.trips.length + (S.trips.length === 1 ? ' trip' : ' trips') : 'Thread memories into a journey') +
+    moreRow('poster', '🎞️', 'Map poster', 'Save our world as a picture'));
+};
+ACTIONS['mn-dream'] = function () {
+  subPage('Dreams', 'what comes next',
+    moreRow('bucket', '🌠', 'Bucket list', S.bucket.length ? S.bucket.filter(function (b) { return !b.done; }).length + ' to do together' : 'Things we want to do together') +
+    moreRow('plans-list', '⭐', 'Places to go', S.plans.length ? S.plans.length + ' on the map' : 'Stars on the map, with countdowns') +
+    moreRow('ann-edit', '💞', 'Our anniversary', S.us && S.us.anniversary ? fmtDate(S.us.anniversary) : 'Set the day it started'));
+};
+ACTIONS['mn-us'] = function () {
+  var them = whoName(other(S.who)).replace('Princess ', '');
+  subPage('Us', them + (PR.partner ? ' is online now' : ' is offline'),
+    moreRow('together-map', '🏘️', 'Show us together', 'Both homes on one map') +
+    moreRow('share-loc', '📍', PR.mine.sharing ? 'Live location is on' : 'Share live location', PR.mine.sharing ? 'Tap to stop' : 'Meet on the map when you are both out') +
+    moreRow('walk', '👣', WALK.rec ? 'Stop recording the walk' : 'Record a walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : 'Warms up our heat trail') +
+    moreRow('avatars', '👗', 'Outfits', 'Change what you are wearing') +
+    moreRow('av-toggle', '🧍', AV_ON ? 'Avatars on the map: on' : 'Avatars on the map: off', 'Tap to ' + (AV_ON ? 'hide' : 'show') + ' them'));
+};
+ACTIONS['mn-set'] = function () {
+  subPage('Settings', '',
+    moreRow('atmos', '🌙', 'Atmosphere & sound', (AMB.tod === 'live' ? 'Real clock' : AMB.tod === 'day' ? 'Always day' : 'Always night') + (AMB.weather ? ' · weather on' : ' · weather off')) +
+    moreRow('trees-toggle', '🌳', TER.on ? 'Trees & boats: on' : 'Trees & boats: off', 'Tap to ' + (TER.on ? 'hide' : 'show')) +
+    moreRow('install', '📱', 'Add to home screen', 'Opens like an app') +
+    moreRow('sign-out', '🚪', 'Sign out', 'Locks this phone'));
+};
+(function () {
+  var st = document.createElement('style');
+  st.textContent =
+    '.mn-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}.mn-hd h2{margin:0;font-family:var(--fdisp);font-size:24px;color:var(--deep)}' +
+    '.mn-sub{font-size:13px;font-weight:700;color:var(--ink-45);margin-top:2px}.mn-hd .closex{margin-left:auto}' +
+    '.mn-back{width:40px;height:40px;flex:none;border:3px solid var(--panel-edge);background:#fff;color:var(--deep);font-size:24px;line-height:1;padding:0}' +
+    '.mn-look{display:block;width:100%;text-align:left;margin:0 0 12px;padding:10px 12px;background:#FFF6E6;border:2.5px dashed #E6C08A;font-size:13.5px;color:var(--ink-70)}' +
+    '.mn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
+    '.mn-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;aspect-ratio:1.55;background:var(--bg);border:3px solid var(--bd);box-shadow:0 5px 0 var(--bd);padding:10px;transition:transform .12s}' +
+    '.mn-tile:active{transform:translateY(4px);box-shadow:0 1px 0 var(--bd)}' +
+    '.mn-tile img{width:46px;height:46px;object-fit:contain;image-rendering:pixelated}' +
+    '.mn-tile span{font-family:var(--fdisp);font-size:17px;color:var(--deep)}' +
+    '.mn-tile i{position:absolute;top:7px;right:8px;font-style:normal;font-size:11.5px;font-weight:800;color:#fff;background:var(--pink);padding:2px 7px;border:2px solid #fff;box-shadow:0 2px 0 rgba(0,0,0,.12)}' +
+    '.mn-list button{padding-top:12px;padding-bottom:12px}';
+  document.head.appendChild(st);
+})();
 var openMore = openMenu;
 document.getElementById('btnMore').addEventListener('click', openMenu);
 ACTIONS['more'] = openMenu;

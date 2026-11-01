@@ -193,12 +193,23 @@ function petOpen() {
     PET.visits[S.who] = Date.now();
     if (S.db) S.db.collection('petvisit').doc(S.who).set({ at: Date.now(), by: S.who }).catch(function () {});
   }
+  if (location.hash !== '#baby') { history.pushState(null, '', '#baby'); PET.pushed = true; }
   petEl.classList.add('on'); petRender();            /* show first: the layout needs the real size */
   var other_ = other(S.who), t = PET.visits[other_];
   var recent = t && Date.now() - t < 6 * 3600000 ? jrShortName(other_) + ' was just here. ' : '';
   setTimeout(function () { petSay(petSleeping() ? 'Zzz…' : (recent ? recent + 'Hi, ' + jrShortName(S.who) + '!' : 'You’re here! 💗'), 3200); }, 450);
 }
-function petClose() { PET.open = false; if (petEl) petEl.classList.remove('on'); }
+function petClose() {
+  PET.open = false; if (petEl) petEl.classList.remove('on');
+  if (location.hash === '#baby') {
+    if (PET.pushed) { PET.pushed = false; history.back(); }            /* undo our own history step */
+    else history.replaceState(null, '', location.pathname + location.search);
+  }
+}
+/* Your Baby has its own page: our-world/#baby opens straight into the room */
+function petFromHash() { if (location.hash === '#baby' && !PET.open && S.who) petOpen(); else if (location.hash !== '#baby' && PET.open) { PET.pushed = false; petClose(); } }
+window.addEventListener('hashchange', petFromHash);
+(function waitForWho(n) { if (S.who) return petFromHash(); if (n < 80) setTimeout(function () { waitForWho(n + 1); }, 250); })(0);
 ACTIONS['pet-open'] = petOpen;
 
 function petRender() {
@@ -217,21 +228,86 @@ function petRender() {
     '</div>';
   petLayout(sleeping);
 }
+/* ---------------- he lives in the room ----------------
+   A small brain walks him around the bed, sits, wags his tail, lies down for a
+   nap and sleeps at night. Sitting facing you is when you see his outfit. */
+var PG = null;                                     /* room geometry on screen */
+var PB = { x: 0.49, dir: 1, act: 'sit', until: 0, tx: 0.49, f: 0, raf: 0, last: 0, shown: '' };
+var PF = {};                                       /* frame images, by name */
+['walk1', 'walk2', 'walk3', 'walk4', 'wag1', 'wag2', 'wag3', 'bow', 'sitdown', 'lay', 'sleep', 'jump1', 'jump2', 'jump3', 'jump4', 'idle1'].forEach(function (n) {
+  var im = new Image(); im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im;
+});
+var X_MIN = 0.37, X_MAX = 0.62;
 function petLayout(sleeping) {
   var bg = document.getElementById('psBg'), dog = document.getElementById('psDog');
   if (!bg || !dog) return;
-  if (sleeping === undefined) sleeping = petSleeping();
   var vw = petEl.clientWidth, vh = petEl.clientHeight;
   var sc = Math.max(vw / ROOM_W, vh / ROOM_H), dw = ROOM_W * sc, dh = ROOM_H * sc;
   var ox = Math.min(0, Math.max(vw - dw, vw / 2 - 0.49 * dw)), oy = Math.min(0, Math.max(vh - dh, vh / 2 - 0.56 * dh));
   bg.style.width = dw + 'px'; bg.style.height = dh + 'px'; bg.style.left = ox + 'px'; bg.style.top = oy + 'px';
-  var h = Math.max(110, Math.min(dh * 0.24, vh * 0.27, vw * 0.62)), baseY = oy + dh * (sleeping ? 0.7 : 0.775), x = ox + dw * 0.49;
-  dog.style.left = x + 'px'; dog.style.top = (baseY - h) + 'px'; dog.style.height = h + 'px';
-  dog.innerHTML = petFigure(h, sleeping ? {} : PET.equipped, sleeping);
-  if (sleeping) dog.style.top = (baseY - h * 0.3) + 'px';
-  petLearnSizes(dog);
-  var say = document.getElementById('psSay'); if (say) say.style.top = Math.max(70, baseY - h - 62) + 'px';
+  var h = Math.max(110, Math.min(dh * 0.24, vh * 0.27, vw * 0.62));
+  PG = { ox: ox, oy: oy, dw: dw, dh: dh, h: h, baseY: oy + dh * 0.775, vw: vw };
+  /* on a narrow screen he may only roam the part of the bed you can see */
+  var vis0 = (-ox + vw * 0.12) / dw, vis1 = (-ox + vw * 0.88) / dw;
+  X_MIN = Math.max(0.37, vis0); X_MAX = Math.min(0.62, vis1);
+  PB.x = Math.max(X_MIN, Math.min(X_MAX, PB.x));
+  PB.shown = '';
+  if (petSleeping()) PB.act = 'sleep';
+  else if (PB.act === 'sleep') { PB.act = 'sit'; PB.until = 0; }
+  petPose();
+  var say = document.getElementById('psSay'); if (say) say.style.top = Math.max(70, PG.baseY - h - 62) + 'px';
+  if (!PB.raf) { PB.last = performance.now(); PB.raf = requestAnimationFrame(petTick); }
 }
+/* the small sheet frames are drawn at the same scale as the big front sprite */
+function frameScale() { return PG.h / 236 * 2.05; }
+function petPose() {
+  var dog = document.getElementById('psDog'); if (!dog || !PG) return;
+  var x = PG.ox + PG.dw * PB.x, key, html;
+  if (PB.act === 'sit') {
+    key = 'sit|' + JSON.stringify(PET.equipped) + '|' + PG.h;
+    if (PB.shown !== key) { dog.innerHTML = petFigure(PG.h, PET.equipped, false); petLearnSizes(dog); PB.shown = key; }
+    dog.style.left = x + 'px'; dog.style.top = (PG.baseY - PG.h) + 'px';
+    return;
+  }
+  var name = PB.frame || 'idle1', im = PF[name], s = frameScale();
+  var w = (im.naturalWidth || 100) * s, hh = (im.naturalHeight || 100) * s;
+  key = 'f|' + name + '|' + PB.dir + '|' + Math.round(hh);
+  if (PB.shown !== key) {
+    dog.innerHTML = '<div class="pf pf-frame" style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px"><img alt="" draggable="false" src="' + im.src + '" style="width:100%;height:100%;' + (PB.dir < 0 ? 'transform:scaleX(-1)' : '') + '"></div>';
+    PB.shown = key;
+  }
+  dog.style.left = x + 'px'; dog.style.top = (PG.baseY - hh + (PB.act === 'sleep' || PB.act === 'lay' ? hh * 0.08 : 0)) + 'px';
+}
+function petNext(now) {
+  if (petSleeping()) { PB.act = 'sleep'; PB.frame = 'sleep'; PB.until = now + 60000; return; }
+  var r = Math.random();
+  if (PB.act !== 'sit') { PB.act = 'sit'; PB.until = now + 4000 + Math.random() * 5000; return; }
+  if (r < 0.55) { PB.act = 'walk'; PB.tx = X_MIN + Math.random() * (X_MAX - X_MIN); PB.dir = PB.tx > PB.x ? 1 : -1; PB.until = now + 20000; }
+  else if (r < 0.78) { PB.act = 'wag'; PB.until = now + 2600; }
+  else { PB.act = 'lay'; PB.t0 = now; PB.until = now + 7000 + Math.random() * 5000; }
+}
+function petTick(now) {
+  if (!PET.open || PET.mode !== 'room') { PB.raf = 0; return; }
+  PB.raf = requestAnimationFrame(petTick);
+  var dt = Math.min(0.1, (now - PB.last) / 1000); PB.last = now;
+  if (reduceMotion && PB.act !== 'sleep') { if (PB.act !== 'sit') { PB.act = 'sit'; petPose(); } return; }
+  if (now > PB.until) petNext(now);
+  var f = Math.floor(now / 140);
+  if (PB.act === 'walk') {
+    var step = 0.045 * dt * PB.dir; PB.x += step;
+    if ((PB.dir > 0 && PB.x >= PB.tx) || (PB.dir < 0 && PB.x <= PB.tx)) { PB.x = PB.tx; PB.until = 0; }
+    PB.frame = 'walk' + (f % 4 + 1);
+  } else if (PB.act === 'wag') PB.frame = 'wag' + ([1, 2, 3, 2][Math.floor(now / 180) % 4]);
+  else if (PB.act === 'lay') PB.frame = now - PB.t0 < 700 ? 'sitdown' : 'lay';
+  else if (PB.act === 'sleep') PB.frame = 'sleep';
+  else if (PB.act === 'play') {
+    var t = now - PB.t0;
+    PB.frame = t < 800 ? 'bow' : ('jump' + Math.min(4, Math.floor((t - 800) / 160) + 1));
+    if (t > 1600) PB.until = 0;
+  }
+  petPose();
+}
+function petSitFront() { PB.act = 'sit'; PB.until = performance.now() + 5000; petPose(); }
 
 var petSayT = null;
 function petSay(text, ms) {
@@ -254,6 +330,7 @@ function petHearts_fx() {
   }
 }
 function petHop() {
+  petSitFront();
   var d = document.getElementById('psDog'); if (!d) return;
   d.classList.remove('happy'); void d.offsetWidth; d.classList.add('happy'); petHearts_fx();
 }
@@ -273,13 +350,13 @@ function petAct(a) {
     if (nm && nm.trim()) { PET.name = nm.trim().slice(0, 18); petSavePet(); petRender(); }
     return;
   }
-  if (petSleeping()) { PET.woke = Date.now(); petRender(); petSay('*yawn* Oh! Hi! 💗', 2600); setTimeout(petHop, 350); return; }
+  if (petSleeping()) { PET.woke = Date.now(); PB.act = 'sit'; PB.until = 0; petRender(); petSay('*yawn* Oh! Hi! 💗', 2600); setTimeout(petHop, 350); return; }
   if (a === 'cuddle') {
     petHop(); petSay(PET_LINES[Math.floor(Math.random() * PET_LINES.length)], 2600);
     if (typeof playSound === 'function') playSound('heart');
     if (Date.now() - PET.lastPet > 15 * 60000) { PET.lastPet = Date.now(); setTimeout(function () { earnHearts(1, 'cuddle'); }, 500); }
   } else if (a === 'play') {
-    petHop(); setTimeout(petHop, 650); petSay('Again! Again! 🎾', 2400);
+    PB.act = 'play'; PB.t0 = performance.now(); PB.until = PB.t0 + 5000; petHearts_fx(); petSay('Again! Again! 🎾', 2400);
   } else if (a === 'treat') {
     petGiveTreat(PET_TREATS[0]);
   }
