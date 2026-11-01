@@ -66,7 +66,7 @@ function dashEnsure() {
     if (d === 'baby') petOpen();
     else if (d === 'shop') { petOpen(); PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; petRender(); }
     else if (d === 'cal') openCal();
-    else if (d === 'mem') ACTIONS['mn-mem']();
+    else if (d === 'mem') bookOpen();
     else if (d === 'letters') mailOpen({ room: true });
     else if (d === 'avatars') ACTIONS['mn-us']();
     else if (d === 'dreams') ACTIONS['mn-dream']();

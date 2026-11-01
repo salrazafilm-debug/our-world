@@ -13,7 +13,7 @@ var AV_COLORS = [
   { id: 'cream', name: 'Cream', c: '#F2EBDD' }, { id: 'black', name: 'Black', c: '#2B2530' }
 ];
 /* average brightness of each original garment, so shading survives a recolour */
-var AV_REF = { bruce: { top: .12, bottom: .101, shoes: .183 }, elena: { top: .102, bottom: .535, shoes: .092 } };
+var AV_REF = { bruce: { top: .279, bottom: .204, shoes: .978 }, elena: { top: .86, bottom: .666, shoes: .866 } };
 var AVIMG = {}, AVCACHE = {};
 var AV_ON = true;
 try { AV_ON = localStorage.getItem('ow.avon') !== 'off'; } catch (e) {}
@@ -127,8 +127,9 @@ function drawAvatar(g, who, x, y, h, outfit, opt) {
 /* both of you side by side, shoulder to shoulder, a heart above */
 function drawTogetherPair(g, x, y, h, res) {
   var wb = avWidth('bruce', h), we = avWidth('elena', h);
-  var a = drawAvatar(g, 'bruce', x - wb * .42, y, h, null, { res: res, lift: avBob(0) }),
-      b = drawAvatar(g, 'elena', x + we * .42, y, h, null, { res: res, lift: avBob(1.3) });
+  var gap = h * .03;                                   /* standing side by side, not overlapping */
+  var a = drawAvatar(g, 'bruce', x - wb / 2 - gap, y, h, null, { res: res, lift: 0 }),
+      b = drawAvatar(g, 'elena', x + we / 2 + gap, y, h, null, { res: res, lift: 0 });
   if (!a || !b) return null;
   var bob = 0;
   drawSprite(g, SP.heart, PAL.heartP, x, Math.round(y - h - 3 + bob), Math.max(1, Math.min(4, Math.round(h / 40))), '#FFFFFF');
@@ -145,8 +146,8 @@ function avBob() { return 0; }          /* avatars stand perfectly still */
   if (!a.ready || !b.ready) { if ((tries || 0) < 60) setTimeout(function () { gateAvatars((tries || 0) + 1); }, 150); return; }
   var dpr = Math.min(3, window.devicePixelRatio || 1), cssH = 116;
   var c = document.createElement('canvas');
-  c.width = Math.round(110 * dpr); c.height = Math.round((cssH + 30) * dpr);
-  c.style.width = '110px'; c.style.height = (cssH + 30) + 'px'; c.className = 'gate-av';
+  c.width = Math.round(180 * dpr); c.height = Math.round((cssH + 24) * dpr);
+  c.style.width = "180px"; c.style.height = (cssH + 24) + "px"; c.className = 'gate-av';
   var g = c.getContext('2d');
   drawTogetherPair(g, c.width / 2, c.height - 3 * dpr, cssH * dpr, 1);
   pair.innerHTML = ''; pair.appendChild(c);

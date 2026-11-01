@@ -244,6 +244,7 @@ and check.
 | `bucket.js` | shared bucket list with each person's own vote |
 | `albums.js` | polaroid-stack photo albums by place |
 | `polaroid.js` | photo memories shown as pixel polaroids on the map |
+| `book.js` | **Our Memories Book**: the book on its stand (your cover art), a real cover-swing opening, then a readable book with page turns, ribbon bookmarks (Our Story by month, Photos, Trips, Places, Calendar) |
 | `mail.js` | **The post office** between our homes: glowing island on the map, zoom to the outside, then the mail room (inbox, compose, our letters, today's note). Design: `docs/MAIL.md` |
 | `pet.js` | **Your Baby**: a shared golden-doodle puppy in a cozy room; Love Hearts (earned by using the app, shared between you) buy hats, scarves, collars, boots, extras and treats in the Pup Shop |
 | `calendar-events.js` | the calendar: memories and shared events (work, dates, plans) on one month grid, tap a day to add |
