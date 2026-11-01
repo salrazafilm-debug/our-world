@@ -642,7 +642,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
       <div class="cal-wrap">
         <div class="cal-top">
           <div class="grow"><h2 style="font-family:var(--fdisp);font-size:20px;margin:0;color:var(--deep);letter-spacing:.4px">Our calendar</h2>
-          <div class="sheet-sub">Every memory, by the day it happened</div></div>
+          <div class="sheet-sub">Memories and plans, day by day</div></div>
           <button class="closex" type="button" id="calClose" aria-label="Close calendar">&#10005;</button>
         </div>
         <div class="cal-nav">
@@ -2723,6 +2723,7 @@ function discover(lat, lng, quiet) {
   }
   baseDirty = true; renderHop(); draw();
   fxDiscover(lat, lng);
+  if (!quiet) { if (window.earnHearts) earnHearts(1, 'discover'); }
   toast('New area discovered: ' + name, '🌟', 4200);
   sparkle();
   return true;
@@ -3009,6 +3010,7 @@ function saveMemory(btn) {
     discover(rec.lat, rec.lng, true);
     closeSheet(); draw(); if (calEl.classList.contains('open')) renderCal();
     toast('Memory saved: ' + rec.title, '💗'); sparkle();
+    if (window.earnHearts) earnHearts(2, 'memory');
   }
   function fail() { btn.disabled = false; btn.textContent = 'Save memory'; toast('Could not save that — try again.', '⚠️'); }
 
@@ -3062,7 +3064,7 @@ function saveSurprise(btn) {
     opened: false, at: Date.now()
   };
   btn.disabled = true; btn.textContent = 'Sealing…';
-  function after() { closeSheet(); draw(); toast(rec.unlockDate ? 'Sealed until ' + fmtDate(rec.unlockDate) + '.' : 'Sealed. It waits there until they arrive.', '💌', 4200); }
+  function after() { if (window.earnHearts) earnHearts(1, 'letter'); closeSheet(); draw(); toast(rec.unlockDate ? 'Sealed until ' + fmtDate(rec.unlockDate) + '.' : 'Sealed. It waits there until they arrive.', '💌', 4200); }
   if (S.db) S.db.collection('surprises').doc(uid()).set(rec).then(after, function () {
     btn.disabled = false; btn.textContent = 'Seal it'; toast('Could not seal that — try again.', '⚠️');
   });
@@ -3307,47 +3309,7 @@ function monthMemories(y, m) {
 }
 function beforeMin(y, m) { return y < CAL_MIN.y || (y === CAL_MIN.y && m < CAL_MIN.m); }
 
-function renderCal() {
-  var y = calCur.y, m = calCur.m;
-  document.getElementById('calMonth').innerHTML = MONTHS[m] + '<span class="yr">' + y + '</span>';
-  document.getElementById('calPrev').disabled = beforeMin(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1);
-
-  var mems = monthMemories(y, m), body = document.getElementById('calBody');
-
-  if (!mems.length) {
-    body.innerHTML =
-      '<div class="cal-empty"><div class="big">' + MONTHS[m] + '</div>' +
-      '<p>Add your favorite memories!</p></div>';
-    return;
-  }
-
-  var byDay = {};
-  mems.forEach(function (x) { var d = parseInt((x.date || '').slice(8, 10), 10); (byDay[d] = byDay[d] || []).push(x); });
-
-  var first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
-  var now = new Date(), isNow = now.getFullYear() === y && now.getMonth() === m;
-  var html = '<div class="cal-grid">';
-  for (var d = 0; d < 7; d++) html += '<div class="cal-dow">' + DOW[d] + '</div>';
-  for (var b = 0; b < first; b++) html += '<div class="cal-day blank"></div>';
-  for (var n = 1; n <= days; n++) {
-    var hit = byDay[n];
-    html += '<' + (hit ? 'button type="button" data-day="' + n + '"' : 'div') +
-      ' class="cal-day' + (hit ? ' has' : '') + (isNow && now.getDate() === n ? ' today' : '') + '">' +
-      '<span>' + n + '</span>' + (hit ? '<span class="hrt">' + (hit.length > 1 ? '\ud83d\udc97\u00d7' + hit.length : '\ud83d\udc97') + '</span>' : '') +
-      '</' + (hit ? 'button' : 'div') + '>';
-  }
-  html += '</div><div class="cal-list">';
-  mems.forEach(function (x) {
-    html += '<button class="cal-item" type="button" data-mem="' + esc(x.id) + '">' +
-(photoCandidates(x).length ? photoImg(x, '') : '<span class="ph">\ud83d\udc97</span>') +
-      '<span><span class="t">' + esc(x.title) + '</span><br><span class="s">' +
-      esc(fmtDate(x.date)) + ' \u00b7 ' + esc(whoName(x.by)) + ' \u00b7 ' + esc(nearestTown(x.lat, x.lng).name) +
-      '</span></span></button>';
-  });
-  html += '</div><div class="cal-count">' + mems.length + (mems.length === 1 ? ' memory' : ' memories') + ' this month</div>';
-  body.innerHTML = html;
-}
-
+/* renderCal() lives in features/calendar-events.js: memories, shared events and the day panel */
 function openCal() {
   if (!calCur) {
     var n = new Date();
@@ -3443,16 +3405,6 @@ calEl.addEventListener('click', function (e) {
     closeCal();
     if (mem) { flyTo(mem.lat, mem.lng, 12.4); openItem({ kind: 'memory', id: id }); }
     return;
-  }
-  var db = e.target.closest('[data-day]');
-  if (db) {
-    var day = parseInt(db.dataset.day, 10);
-    var list = monthMemories(calCur.y, calCur.m).filter(function (x) { return parseInt((x.date || '').slice(8, 10), 10) === day; });
-    if (list.length === 1) { closeCal(); flyTo(list[0].lat, list[0].lng, 12.4); openItem({ kind: 'memory', id: list[0].id }); }
-    else if (list.length > 1) {
-      var el = calEl.querySelector('[data-mem="' + list[0].id + '"]');
-      if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
   }
 });
 
@@ -4564,7 +4516,7 @@ function celebrateTogether() {
   var mid = midpoint(), town = nearestTown(mid.lat, mid.lng).name;
   discover(mid.lat, mid.lng, false);
   logMoment(mid);
-  playSound('heart');
+  playSound('heart'); if (window.earnHearts) earnHearts(3, 'together');
   flyTo(mid.lat, mid.lng, Math.max(S.zoom, 12.4));
   sparkle();
   openSheet(head('Together, right now', town) +
@@ -4723,7 +4675,7 @@ ACTIONS['note-save'] = function () {
   S.notes[S.who] = rec;
   try { localStorage.setItem('ow.notes', JSON.stringify(S.notes)); } catch (e) {}
   if (S.db) S.db.collection('notes').doc(S.who).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 4500); });
-  closeSheet(); sparkle();
+  closeSheet(); sparkle(); if (window.earnHearts) earnHearts(1, 'note');
   toast('Note sent — it will be waiting for them.', '💌', 3600);
 };
 
@@ -4837,7 +4789,7 @@ ACTIONS['jr-save'] = function (b) {
   }
   done.then(function () {
     toast(JR.edit ? 'Entry updated.' : 'Shared with ' + jrShort(other(S.who)) + '.', '📓', 3200);
-    playSound('save');
+    playSound('save'); if (!JR.edit) { if (window.earnHearts) earnHearts(2, 'journal'); }
     ACTIONS['journal']();
   }).catch(function (e) {
     b.disabled = false; b.textContent = 'Try again';
@@ -5098,7 +5050,7 @@ function stopWalk(save) {
     S.walks.push(rec);
     try { localStorage.setItem('ow.walks', JSON.stringify(S.walks)); } catch (e) {}
     if (S.db) S.db.collection('walks').doc(rec.id).set(rec).catch(function () {});
-    toast('Walk saved · ' + rec.km + ' km', '👣', 3600); sparkle();
+    toast('Walk saved · ' + rec.km + ' km', '👣', 3600); sparkle(); if (window.earnHearts) earnHearts(2, 'walk');
   } else if (save) toast('Too short to save — walk a little further next time.', '👣', 3600);
   WALK.pts = []; WALK.started = 0;
   try { localStorage.removeItem('ow.walk.draft'); } catch (e) {}
@@ -5241,7 +5193,7 @@ ACTIONS['bk-done'] = function (b) {
   var it = bucketById(b.dataset.id); if (!it) return;
   it.done = !it.done; it.doneAt = it.done ? Date.now() : null;
   bucketWrite(it); ACTIONS['bucket']();
-  if (it.done) { sparkle(); toast('Done together: ' + it.title, '🎉', 4200); }
+  if (it.done) { sparkle(); if (window.earnHearts) earnHearts(2, 'bucket'); toast('Done together: ' + it.title, '🎉', 4200); }
 };
 ACTIONS['bk-del'] = function (b) {
   var id = b.dataset.id;
@@ -5373,6 +5325,494 @@ function polaroidPin(m, p, z) {
   return { x: p.x - w / 2, y: p.y - lift - h, w: w, h: h + lift };
 }
 
+/* ---- features/pet.js ---- */
+/* Your Baby: a shared puppy who lives in a cozy room.
+   - The room, the puppy and the accessories come from art/pets/ (cut from the art sheets
+     in art-src/pets/).
+   - Love Hearts are the currency. Each of you earns them just by using Our World
+     (memories, notes, journal entries, plans, walks, being together...). They are shared:
+     the total is what you have both earned, minus what has been spent.
+   - Spend them in the Pup Shop on hats, scarves, collars, boots, extras and treats.
+   Storage (all in the shared `docs` table, so no database change is needed):
+     love/<who>   { n }                    hearts earned by that person
+     pet/main     { name, owned[], equipped{}, spent, treats }
+     petvisit/<who> { at }                 when each of you last visited */
+
+var PET_STARTER = 20;                        /* a welcome gift of hearts */
+var PET = { open: false, name: 'Baby', owned: [], equipped: {}, spent: 0, treats: 0, mode: 'room', tab: 'mine', sel: null, woke: 0, lastPet: 0, bubble: '', visits: {} };
+S.love = { bruce: 0, elena: 0 };
+try {
+  var pl = JSON.parse(localStorage.getItem('ow.pet') || 'null'); if (pl) { PET.name = pl.name || PET.name; PET.owned = pl.owned || []; PET.equipped = pl.equipped || {}; PET.spent = pl.spent || 0; PET.treats = pl.treats || 0; }
+  var ll = JSON.parse(localStorage.getItem('ow.love') || 'null'); if (ll) S.love = { bruce: ll.bruce || 0, elena: ll.elena || 0 };
+} catch (e) {}
+
+/* ---------------- the catalogue ---------------- */
+var PET_SLOTS = ['hat', 'scarf', 'collar', 'boots', 'extra'];
+var PET_TABS = [['mine', 'Mine'], ['hat', 'Hats'], ['scarf', 'Scarves'], ['collar', 'Collars'], ['boots', 'Boots'], ['extra', 'Extras'], ['treat', 'Treats']];
+function petItems(slot, list) { return list.map(function (r) { return { id: slot + '-' + r[0], slot: slot, file: (slot === 'extra' ? 'extra-' : slot + '-') + r[0], name: r[1], price: r[2] }; }); }
+var PET_CATALOG = [].concat(
+  petItems('hat', [['cap-red', 'Red cap', 12], ['cap-black', 'Camera cap', 12], ['beanie-cream', 'Cream beanie', 15], ['beanie-grey', 'Grey beanie', 15], ['straw', 'Straw hat', 18],
+    ['aviator', 'Aviator cap', 22], ['hardhat', 'Hard hat', 18], ['cowboy', 'Cowboy hat', 25], ['crown', 'Royal crown', 40], ['wizard', 'Wizard hat', 30]]),
+  petItems('scarf', [['bandana-plaid', 'Plaid bandana', 8], ['scarf-blue', 'Blue scarf', 12], ['scarf-cream', 'Cream scarf', 12], ['scarf-red', 'Red scarf', 12], ['scarf-green', 'Green scarf', 12],
+    ['bandana-moon', 'Moon bandana', 20], ['scarf-purple', 'Purple scarf', 14], ['scarf-yellow', 'Striped scarf', 14], ['scarf-checker', 'Checker scarf', 14], ['scarf-snow', 'Snowflake scarf', 18]]),
+  petItems('collar', [['red-paw', 'Paw collar', 8], ['blue-bone', 'Bone collar', 8], ['brown-paw', 'Brown collar', 8], ['black-bone', 'Black collar', 8], ['green-clover', 'Lucky collar', 12],
+    ['purple-star', 'Star collar', 12], ['gold-bell', 'Bell collar', 12], ['blue-camera', 'Camera collar', 14], ['red-heart', 'Heart collar', 20], ['spike', 'Spiky collar', 18]]),
+  petItems('boots', [['tan', 'Hiking boots', 15], ['black', 'Black boots', 15], ['red-sneaker', 'Red sneakers', 20], ['white', 'White boots', 18], ['purple-paw', 'Paw boots', 22],
+    ['yellow-rain', 'Rain boots', 20], ['black-buckle', 'Buckle boots', 20], ['fur-brown', 'Cozy boots', 25], ['blue-snow', 'Snow boots', 25], ['red-fur', 'Winter boots', 25]]),
+  petItems('extra', [['sunglasses', 'Sunglasses', 18], ['goggles', 'Goggles', 18], ['headphones', 'Headphones', 25], ['camera', 'Camera', 22], ['backpack', 'Backpack', 25],
+    ['cape', 'Hero cape', 30], ['wings', 'Angel wings', 40], ['bat-wings', 'Bat wings', 35], ['halo', 'Halo', 45]])
+);
+var PET_TREATS = [{ id: 'bone', name: 'Bone', icon: '🦴', price: 3 }, { id: 'cookie', name: 'Heart cookie', icon: '🍪', price: 5 }, { id: 'ball', name: 'Squeaky ball', icon: '🎾', price: 2 }];
+function petItem(id) { for (var i = 0; i < PET_CATALOG.length; i++) if (PET_CATALOG[i].id === id) return PET_CATALOG[i]; return null; }
+
+/* where each item sits on the puppy (the puppy sprite is 195 x 236) */
+var PET_DOG_W = 195, PET_DOG_H = 236;
+var PET_ANCHOR = {
+  hat: { cx: 112, y: 30, sc: 0.9, a: 'b', z: 6 }, scarf: { cx: 120, y: 100, sc: 0.72, a: 't', z: 4 }, collar: { cx: 120, y: 103, sc: 0.5, a: 't', z: 3 }, boots: { cx: 130, y: 238, sc: 0.7, a: 'b', z: 5 },
+  'extra-sunglasses': { cx: 118, y: 58, sc: 0.72, a: 'c', z: 7 }, 'extra-goggles': { cx: 116, y: 38, sc: 0.72, a: 'c', z: 7 }, 'extra-headphones': { cx: 112, y: 55, sc: 1.35, a: 'c', z: 7 },
+  'extra-halo': { cx: 112, y: -2, sc: 0.65, a: 'c', z: 8 }, 'extra-camera': { cx: 150, y: 170, sc: 0.45, a: 'c', z: 6 },
+  'extra-backpack': { cx: 112, y: 150, sc: 1.1, a: 'c', z: 0 }, 'extra-cape': { cx: 112, y: 108, sc: 1.4, a: 't', z: 0 }, 'extra-wings': { cx: 112, y: 110, sc: 1.5, a: 'c', z: 0 }, 'extra-bat-wings': { cx: 112, y: 110, sc: 1.4, a: 'c', z: 0 }
+};
+var PET_SIZE = {};                           /* natural size of each accessory, learned as images load */
+
+function petLayer(item, s) {
+  var an = PET_ANCHOR[item.slot === 'extra' ? item.file : item.slot], nat = PET_SIZE[item.file];
+  var url = 'art/pets/acc/' + item.file + '.png';
+  var w = (nat ? nat[0] : 130) * an.sc * s, h = (nat ? nat[1] : 100) * an.sc * s;
+  var left = an.cx * s - w / 2, top = an.a === 'b' ? an.y * s - h : (an.a === 'c' ? an.y * s - h / 2 : an.y * s);
+  return '<img class="pf-l" alt="" draggable="false" src="' + url + '" data-file="' + item.file + '" style="left:' + left.toFixed(1) + 'px;top:' + top.toFixed(1) + 'px;width:' + w.toFixed(1) + 'px;z-index:' + an.z + '">';
+}
+/* the puppy plus what it is wearing; `h` is its height in css px, `eq` the outfit to show */
+function petFigure(h, eq, sleeping) {
+  var s = h / PET_DOG_H, w = PET_DOG_W * s;
+  if (sleeping) return '<div class="pf" style="width:' + (163 * s).toFixed(0) + 'px;height:' + (71 * s).toFixed(0) + 'px"><img class="pf-dog" alt="" draggable="false" src="art/pets/dog-sleep.png" style="width:100%;z-index:1"></div>';
+  var html = '<div class="pf" style="width:' + w.toFixed(0) + 'px;height:' + h.toFixed(0) + 'px">';
+  var layers = [];
+  PET_SLOTS.forEach(function (sl) { var it = petItem(eq[sl]); if (it) layers.push(petLayer(it, s)); });
+  html += layers.join('') + '<img class="pf-dog" alt="" draggable="false" src="art/pets/dog-front.png" style="width:100%;height:100%;z-index:1"></div>';
+  return html;
+}
+/* a sprite's natural size is needed to place it: read each once, then lay out again (once) */
+var petLearnT = null;
+function petLearnSizes(root) {
+  var need = [].filter.call(root.querySelectorAll('img.pf-l[data-file]'), function (im) { return !PET_SIZE[im.dataset.file]; });
+  if (!need.length) return;
+  var left = need.length;
+  need.forEach(function (im) {
+    var t = new Image();
+    function done() { if (--left === 0) { clearTimeout(petLearnT); petLearnT = setTimeout(function () { if (PET.open) petRender(); }, 30); } }
+    t.onload = function () { PET_SIZE[im.dataset.file] = [t.naturalWidth, t.naturalHeight]; done(); };
+    t.onerror = function () { PET_SIZE[im.dataset.file] = [130, 100]; done(); };
+    t.src = im.src;
+  });
+}
+
+/* ---------------- hearts ---------------- */
+function petHearts() { return Math.max(0, (S.love.bruce || 0) + (S.love.elena || 0) + PET_STARTER - (PET.spent || 0)); }
+function petPersistLocal() {
+  try { localStorage.setItem('ow.pet', JSON.stringify({ name: PET.name, owned: PET.owned, equipped: PET.equipped, spent: PET.spent, treats: PET.treats })); localStorage.setItem('ow.love', JSON.stringify(S.love)); } catch (e) {}
+}
+function petSavePet() {
+  petPersistLocal();
+  if (S.db) S.db.collection('pet').doc('main').set({ name: PET.name, owned: PET.owned, equipped: PET.equipped, spent: PET.spent, treats: PET.treats, by: S.who, at: Date.now() }).catch(function () {});
+}
+window.earnHearts = function (n, why) {
+  if (!S.who || !n) return;
+  S.love[S.who] = (S.love[S.who] || 0) + n;
+  petPersistLocal();
+  if (S.db) S.db.collection('love').doc(S.who).set({ n: S.love[S.who], at: Date.now(), why: why || '' }).catch(function () {});
+  petPill(); petBump();
+  toast('+' + n + ' Love Heart' + (n > 1 ? 's' : ''), '💗', 2200);
+};
+function petDaily() {
+  if (!S.who) return;
+  var today = todayISO(), key = 'ow.hday.' + S.who, last = '';
+  try { last = localStorage.getItem(key) || ''; } catch (e) {}
+  if (last === today) return;
+  try { localStorage.setItem(key, today); } catch (e) {}
+  setTimeout(function () { earnHearts(1, 'daily'); }, 2500);
+}
+ROWHOOKS.love = function (rows) {
+  rows.forEach(function (r) { if (r.id === 'bruce' || r.id === 'elena') S.love[r.id] = Math.max(S.love[r.id] || 0, Number(r.n) || 0); });
+  petPersistLocal(); petPill();
+};
+ROWHOOKS.pet = function (rows) {
+  rows.forEach(function (r) {
+    if (r.id !== 'main') return;
+    PET.name = r.name || PET.name; PET.owned = r.owned || []; PET.equipped = r.equipped || {}; PET.spent = r.spent || 0; PET.treats = r.treats || 0;
+  });
+  petPersistLocal(); if (PET.open) petRender();
+};
+ROWHOOKS.petvisit = function (rows) { rows.forEach(function (r) { PET.visits[r.id] = r.at; }); };
+
+/* ---------------- the scene ---------------- */
+var petEl = null, ROOM_W = 1280, ROOM_H = 720;
+function petEnsure() {
+  if (petEl) return petEl;
+  var st = document.createElement('style');
+  st.textContent = [
+    '#petScene{position:fixed;inset:0;z-index:32;display:none;background:#2a1b22;color:#4a2a2f;font-family:var(--fbody);overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none}',
+    '#petScene.on{display:block;animation:psIn .25s ease-out}@keyframes psIn{from{opacity:0}}',
+    '#petScene .ps-room{position:absolute;inset:0;overflow:hidden}',
+    '#petScene .ps-bg{position:absolute;max-width:none;image-rendering:auto}',
+    '#petScene .ps-dog{position:absolute;transform:translateX(-50%);cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '#petScene .ps-dog .pf{position:relative;transform-origin:50% 100%;animation:psBreathe 3.4s ease-in-out infinite}',
+    '#petScene .ps-dog.happy .pf{animation:psHop .9s cubic-bezier(.3,.7,.4,1)}',
+    '@keyframes psBreathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.012,.988)}}',
+    '@keyframes psHop{0%{transform:translateY(0)}25%{transform:translateY(-34px) rotate(-3deg)}50%{transform:translateY(0)}70%{transform:translateY(-14px) rotate(2deg)}100%{transform:translateY(0)}}',
+    '.pf{position:relative}.pf-dog{position:absolute;left:0;top:0;pointer-events:none;filter:drop-shadow(0 3px 0 rgba(60,30,30,.18))}.pf-l{position:absolute;pointer-events:none;height:auto}',
+    '.ps-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;z-index:5}',
+    '.ps-btn{width:46px;height:46px;border:3px solid #7a4a3a;background:linear-gradient(#fff1d9,#f6dcb4);color:#7a3d2e;font-size:24px;line-height:1;padding:0;box-shadow:0 4px 0 #a9744f;display:grid;place-items:center}',
+    '.ps-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #a9744f}',
+    '.ps-name{flex:1;min-width:0;text-align:center;font-family:var(--fdisp);font-size:19px;color:#fff3e0;text-shadow:0 2px 0 rgba(90,40,30,.6),0 0 14px rgba(0,0,0,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:none;padding:0}',
+    '.ps-hearts{display:flex;align-items:center;gap:7px;height:46px;padding:0 13px;border:3px solid #7a4a3a;background:linear-gradient(#fff1d9,#f6dcb4);box-shadow:0 4px 0 #a9744f;font-family:var(--fdisp);font-size:18px;color:#8a2f3f}',
+    '.ps-hearts img{width:22px;height:22px;image-rendering:pixelated}.ps-hearts.bump{animation:psBump .5s}@keyframes psBump{40%{transform:scale(1.15)}}',
+    '.ps-say{position:absolute;left:50%;transform:translateX(-50%);max-width:78%;background:#fffaf0;border:3px solid #7a4a3a;padding:8px 13px;font-weight:700;font-size:14px;line-height:1.35;text-align:center;box-shadow:0 4px 0 rgba(90,40,30,.25);z-index:4;opacity:0;transition:opacity .25s;pointer-events:none}',
+    '.ps-say.on{opacity:1}.ps-say:after{content:"";position:absolute;left:50%;bottom:-11px;margin-left:-8px;border:8px solid transparent;border-top-color:#7a4a3a;border-bottom:0}',
+    '.ps-bar{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:12px 12px calc(14px + env(safe-area-inset-bottom));z-index:5;background:linear-gradient(0deg,rgba(60,28,30,.55),rgba(60,28,30,0))}',
+    '.ps-act{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 4px 8px;border:3px solid #7a4a3a;background:linear-gradient(#fff1d9,#f6dcb4);box-shadow:0 4px 0 #a9744f;color:#7a3d2e;font-weight:700;font-size:12.5px}',
+    '.ps-act .ic{font-size:25px;line-height:1}.ps-act small{font-size:10.5px;color:#a0604a;font-weight:700}.ps-act:active{transform:translateY(3px);box-shadow:0 1px 0 #a9744f}',
+    '.ps-fly{position:absolute;z-index:6;pointer-events:none;font-size:30px;animation:psFly 1s ease-in forwards}@keyframes psFly{to{transform:translate(var(--dx),var(--dy)) scale(.6);opacity:0}}',
+    '.ps-heart{position:absolute;z-index:6;pointer-events:none;width:26px;height:26px;image-rendering:pixelated;animation:psRise 1.5s ease-out forwards}@keyframes psRise{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translateY(-90px) scale(1.2)}}',
+    /* the shop */
+    '#petScene .shop{position:absolute;inset:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#3b2420,#2a1b22);z-index:7}',
+    '.shop-hd{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 12px 8px;background:linear-gradient(#5b2f2a,#3b2420)}',
+    '.shop-sign{flex:1;text-align:center;font-family:var(--fdisp);font-size:22px;color:#ffe9c4;text-shadow:0 2px 0 #3b1a14;position:relative;padding:5px 0 6px;background:linear-gradient(#a8473c,#8b362f);border:3px solid #5b2f2a;box-shadow:0 4px 0 #3b1a14;letter-spacing:.5px}',
+    '.shop-sign small{display:block;font-family:var(--fbody);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#ffd9a1;margin-top:1px}',
+    '.shop-stage{display:flex;align-items:flex-end;justify-content:center;gap:14px;padding:46px 14px 0;min-height:230px;position:relative}',
+    '.shop-ped{position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px}',
+    '.shop-ped:after{content:"";position:absolute;left:-14px;right:-14px;bottom:-2px;height:34px;background:linear-gradient(#e9c58f,#b98a5a);border:3px solid #6b4330;border-radius:50%/60%;z-index:0;box-shadow:0 6px 0 #4a2c20}',
+    '.shop-ped .pf{z-index:1;margin-bottom:12px}',
+    '.shop-card{align-self:center;max-width:150px;background:#fff6e4;border:3px solid #7a4a3a;padding:8px 10px;box-shadow:0 4px 0 rgba(0,0,0,.25);font-size:12.5px;line-height:1.35}',
+    '.shop-card b{display:block;font-family:var(--fdisp);font-size:15px;color:#8a2f3f}',
+    '.shop-tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px 8px;scrollbar-width:none;background:#3b2420}.shop-tabs::-webkit-scrollbar{display:none}',
+    '.shop-tab{flex:none;padding:7px 13px;border:3px solid #7a4a3a;background:#f6dcb4;color:#7a3d2e;font-weight:700;font-size:13px;border-radius:0}',
+    '.shop-tab.on{background:#e9a23b;color:#4a1f10;border-color:#8a4a1c;box-shadow:0 3px 0 #8a4a1c}',
+    '.shop-grid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:6px 12px 12px;align-content:start;background:linear-gradient(180deg,#7b4a36,#5b3427);border-top:4px solid #4a2c20}',
+    '@media (min-width:600px){.shop-grid{grid-template-columns:repeat(6,1fr)}}',
+    '.it{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:1;background:#fbeed2;border:3px solid #c79a6b;padding:4px;min-width:0}',
+    '.it img{max-width:78%;max-height:56%;object-fit:contain}.it .ic{font-size:30px}.it .pr{font-size:11px;font-weight:700;color:#8a2f3f;display:flex;align-items:center;gap:3px}.it .pr img{width:12px;height:12px;image-rendering:pixelated}',
+    '.it.sel{border-color:#d4457a;box-shadow:0 0 0 2px #fff,0 0 0 5px #d4457a}.it.worn{background:#ffe3ee}.it .tick{position:absolute;top:2px;right:4px;font-size:12px;color:#2e7d5b}',
+    '.shop-bar{display:flex;align-items:center;gap:10px;padding:10px 12px calc(12px + env(safe-area-inset-bottom));background:#3b2420;border-top:4px solid #4a2c20;color:#ffe9c4}',
+    '.shop-bar .nm{flex:1;min-width:0;font-weight:700;font-size:14px;line-height:1.25}.shop-bar .nm small{display:block;color:#ffd9a1;font-weight:600}',
+    '.shop-go{padding:11px 18px;border:3px solid #8a4a1c;background:#e9a23b;color:#4a1f10;font-family:var(--fdisp);font-size:16px;box-shadow:0 4px 0 #8a4a1c}',
+    '.shop-go[disabled]{opacity:.45;box-shadow:none}.shop-empty{grid-column:1/-1;text-align:center;color:#ffe9c4;padding:26px 10px;line-height:1.5}'
+  ].join('');
+  document.head.appendChild(st);
+  petEl = document.createElement('section'); petEl.id = 'petScene'; petEl.setAttribute('aria-label', 'Your Baby'); document.body.appendChild(petEl);
+  petEl.addEventListener('click', petClick);
+  window.addEventListener('resize', function () { if (PET.open && PET.mode === 'room') petLayout(); });
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && PET.open) { if (PET.mode === 'shop') { PET.mode = 'room'; petRender(); } else petClose(); } });
+  return petEl;
+}
+function petSleeping() {
+  if (Date.now() - PET.woke < 10 * 60000) return false;
+  var h = new Date().getHours();
+  return h >= 22 || h < 6;
+}
+function petHeartPill() { return '<div class="ps-hearts" id="psHearts"><img src="art/heart.png" alt="">' + petHearts() + '</div>'; }
+function petPill() { var p = document.getElementById('psHearts'); if (p) p.innerHTML = '<img src="art/heart.png" alt="">' + petHearts(); }
+function petBump() { var p = document.getElementById('psHearts'); if (p) { p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); } }
+
+function petOpen() {
+  petEnsure(); closeSheet();
+  PET.open = true; PET.mode = 'room'; PET.sel = null;
+  if (S.who) {
+    PET.visits[S.who] = Date.now();
+    if (S.db) S.db.collection('petvisit').doc(S.who).set({ at: Date.now(), by: S.who }).catch(function () {});
+  }
+  petEl.classList.add('on'); petRender();            /* show first: the layout needs the real size */
+  var other_ = other(S.who), t = PET.visits[other_];
+  var recent = t && Date.now() - t < 6 * 3600000 ? jrShortName(other_) + ' was just here. ' : '';
+  setTimeout(function () { petSay(petSleeping() ? 'Zzz…' : (recent ? recent + 'Hi, ' + jrShortName(S.who) + '!' : 'You’re here! 💗'), 3200); }, 450);
+}
+function petClose() { PET.open = false; if (petEl) petEl.classList.remove('on'); }
+ACTIONS['pet-open'] = petOpen;
+
+function petRender() {
+  petEnsure();
+  if (PET.mode === 'shop') return petRenderShop();
+  var sleeping = petSleeping();
+  petEl.innerHTML =
+    '<div class="ps-room"><img class="ps-bg" id="psBg" alt="" src="art/pets/room.jpg"><div class="ps-dog" id="psDog"></div></div>' +
+    '<div class="ps-top"><button class="ps-btn" type="button" data-pet="back" aria-label="Back to the map">‹</button><button class="ps-name" type="button" data-pet="rename">' + esc(PET.name) + '</button>' + petHeartPill() + '</div>' +
+    '<div class="ps-say" id="psSay"></div>' +
+    '<div class="ps-bar">' +
+      '<button class="ps-act" type="button" data-pet="cuddle"><span class="ic">🤗</span>Cuddle</button>' +
+      '<button class="ps-act" type="button" data-pet="treat"><span class="ic">🦴</span>Treat<small>3 hearts</small></button>' +
+      '<button class="ps-act" type="button" data-pet="play"><span class="ic">🎾</span>Play</button>' +
+      '<button class="ps-act" type="button" data-pet="shop"><span class="ic">🛍️</span>Shop<small>& dress up</small></button>' +
+    '</div>';
+  petLayout(sleeping);
+}
+function petLayout(sleeping) {
+  var bg = document.getElementById('psBg'), dog = document.getElementById('psDog');
+  if (!bg || !dog) return;
+  if (sleeping === undefined) sleeping = petSleeping();
+  var vw = petEl.clientWidth, vh = petEl.clientHeight;
+  var sc = Math.max(vw / ROOM_W, vh / ROOM_H), dw = ROOM_W * sc, dh = ROOM_H * sc;
+  var ox = Math.min(0, Math.max(vw - dw, vw / 2 - 0.49 * dw)), oy = Math.min(0, Math.max(vh - dh, vh / 2 - 0.56 * dh));
+  bg.style.width = dw + 'px'; bg.style.height = dh + 'px'; bg.style.left = ox + 'px'; bg.style.top = oy + 'px';
+  var h = Math.max(110, Math.min(dh * 0.24, vh * 0.27, vw * 0.62)), baseY = oy + dh * (sleeping ? 0.7 : 0.775), x = ox + dw * 0.49;
+  dog.style.left = x + 'px'; dog.style.top = (baseY - h) + 'px'; dog.style.height = h + 'px';
+  dog.innerHTML = petFigure(h, sleeping ? {} : PET.equipped, sleeping);
+  if (sleeping) dog.style.top = (baseY - h * 0.3) + 'px';
+  petLearnSizes(dog);
+  var say = document.getElementById('psSay'); if (say) say.style.top = Math.max(70, baseY - h - 62) + 'px';
+}
+
+var petSayT = null;
+function petSay(text, ms) {
+  var el = document.getElementById('psSay'); if (!el) return;
+  el.textContent = text; el.classList.add('on');
+  clearTimeout(petSayT); petSayT = setTimeout(function () { el.classList.remove('on'); }, ms || 2600);
+}
+function petHearts_fx() {
+  var room = petEl.querySelector('.ps-room'), dog = document.getElementById('psDog'); if (!room || !dog) return;
+  var r = dog.getBoundingClientRect(), pr = petEl.getBoundingClientRect();
+  for (var i = 0; i < 5; i++) {
+    (function (i) {
+      setTimeout(function () {
+        var h = document.createElement('img'); h.className = 'ps-heart'; h.src = 'art/heart.png'; h.alt = '';
+        h.style.left = (r.left - pr.left + r.width / 2 - 13 + (Math.random() - 0.5) * r.width * 0.7) + 'px';
+        h.style.top = (r.top - pr.top + r.height * 0.15 + Math.random() * 30) + 'px';
+        petEl.appendChild(h); setTimeout(function () { h.remove(); }, 1600);
+      }, i * 110);
+    })(i);
+  }
+}
+function petHop() {
+  var d = document.getElementById('psDog'); if (!d) return;
+  d.classList.remove('happy'); void d.offsetWidth; d.classList.add('happy'); petHearts_fx();
+}
+var PET_LINES = ['Woof! 💗', 'I love you both!', 'Best day ever!', 'Pet me again!', 'Where are we going next?', '*tail wags*', 'Did you bring treats?', 'I missed you!', 'You two are my favourite people.'];
+
+function petClick(e) {
+  var b = e.target.closest('[data-pet],[data-shop]');
+  if (!b) { if (e.target.closest('#psDog') && PET.mode === 'room') petAct('cuddle'); return; }
+  if (b.dataset.shop) return shopClick(b);
+  petAct(b.dataset.pet);
+}
+function petAct(a) {
+  if (a === 'back') return petClose();
+  if (a === 'shop') { PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; return petRender(); }
+  if (a === 'rename') {
+    var nm = window.prompt('What is our baby called?', PET.name);
+    if (nm && nm.trim()) { PET.name = nm.trim().slice(0, 18); petSavePet(); petRender(); }
+    return;
+  }
+  if (petSleeping()) { PET.woke = Date.now(); petRender(); petSay('*yawn* Oh! Hi! 💗', 2600); setTimeout(petHop, 350); return; }
+  if (a === 'cuddle') {
+    petHop(); petSay(PET_LINES[Math.floor(Math.random() * PET_LINES.length)], 2600);
+    if (typeof playSound === 'function') playSound('heart');
+    if (Date.now() - PET.lastPet > 15 * 60000) { PET.lastPet = Date.now(); setTimeout(function () { earnHearts(1, 'cuddle'); }, 500); }
+  } else if (a === 'play') {
+    petHop(); setTimeout(petHop, 650); petSay('Again! Again! 🎾', 2400);
+  } else if (a === 'treat') {
+    petGiveTreat(PET_TREATS[0]);
+  }
+}
+function petGiveTreat(t) {
+  if (petHearts() < t.price) { toast('Not enough Love Hearts yet — earn some by adding memories, notes and more.', '💗', 3600); return false; }
+  PET.spent += t.price; PET.treats = (PET.treats || 0) + 1; petSavePet(); petPill();
+  var dog = document.getElementById('psDog');
+  if (dog && PET.mode === 'room') {
+    var f = document.createElement('div'); f.className = 'ps-fly'; f.textContent = t.icon;
+    var r = dog.getBoundingClientRect(), pr = petEl.getBoundingClientRect();
+    f.style.left = (r.left - pr.left + r.width * 0.2) + 'px'; f.style.top = (pr.height - 130) + 'px';
+    f.style.setProperty('--dx', (r.width * 0.3) + 'px'); f.style.setProperty('--dy', -(pr.height - 130 - (r.top - pr.top) - r.height * 0.4) + 'px');
+    petEl.appendChild(f); setTimeout(function () { f.remove(); }, 1000);
+    setTimeout(function () { petHop(); petSay('Yum! Thank you! 💗', 2800); }, 800);
+  }
+  if (typeof playSound === 'function') playSound('save');
+  return true;
+}
+
+/* ---------------- the Pup Shop ---------------- */
+function shopOutfit() {
+  var eq = {}; PET_SLOTS.forEach(function (s) { eq[s] = PET.equipped[s]; });
+  if (PET.sel) { var it = petItem(PET.sel); if (it) eq[it.slot] = it.id; }      /* previewing an item: show it on the puppy */
+  return eq;
+}
+function shopCards() {
+  var tab = PET.tab, html = '', list;
+  if (tab === 'treat') {
+    return PET_TREATS.map(function (t) { return '<button class="it' + (PET.sel === 'treat:' + t.id ? ' sel' : '') + '" type="button" data-shop="pick" data-id="treat:' + t.id + '"><span class="ic">' + t.icon + '</span><span class="pr"><img src="art/heart.png" alt="">' + t.price + '</span></button>'; }).join('');
+  }
+  list = tab === 'mine' ? PET_CATALOG.filter(function (i) { return PET.owned.indexOf(i.id) >= 0; }) : PET_CATALOG.filter(function (i) { return i.slot === tab; });
+  if (!list.length) return '<div class="shop-empty">' + (tab === 'mine' ? 'Nothing in the wardrobe yet.<br>Open a shelf above and treat ' + esc(PET.name) + ' to something.' : 'Nothing here.') + '</div>';
+  list.forEach(function (i) {
+    var own = PET.owned.indexOf(i.id) >= 0, worn = PET.equipped[i.slot] === i.id;
+    html += '<button class="it' + (PET.sel === i.id ? ' sel' : '') + (worn ? ' worn' : '') + '" type="button" data-shop="pick" data-id="' + i.id + '"><img alt="" src="art/pets/acc/' + i.file + '.png">' +
+      (own ? '<span class="tick">' + (worn ? '✔' : '●') + '</span><span class="pr">' + (worn ? 'Wearing' : 'Owned') + '</span>' : '<span class="pr"><img src="art/heart.png" alt="">' + i.price + '</span>') + '</button>';
+  });
+  return html;
+}
+function shopBarInfo() {
+  var id = PET.sel, h = petHearts();
+  if (!id) return { name: 'Pick something', sub: 'Tap an item to try it on ' + esc(PET.name), btn: '', dis: true };
+  if (id.indexOf('treat:') === 0) {
+    var t = PET_TREATS.filter(function (x) { return 'treat:' + x.id === id; })[0];
+    return { name: t.name, sub: 'A treat for ' + esc(PET.name), btn: 'Give ♥' + t.price, act: 'treat', dis: h < t.price };
+  }
+  var it = petItem(id), own = PET.owned.indexOf(id) >= 0, worn = PET.equipped[it.slot] === id;
+  if (!own) return { name: it.name, sub: 'Costs ♥' + it.price + (h < it.price ? ' · you have ♥' + h : ''), btn: 'Buy ♥' + it.price, act: 'buy', dis: h < it.price };
+  return { name: it.name, sub: worn ? 'Wearing it now' : 'In the wardrobe', btn: worn ? 'Take off' : 'Wear', act: worn ? 'off' : 'on', dis: false };
+}
+function petRenderShop() {
+  var info = shopBarInfo(), eq = shopOutfit();
+  petEl.innerHTML =
+    '<div class="shop">' +
+      '<div class="shop-hd"><button class="ps-btn" type="button" data-shop="back" aria-label="Back to the room">‹</button><div class="shop-sign">\ud83d\udc3e Pup Shop \ud83d\udc3e<small>Accessories · Treats · Love</small></div>' + petHeartPill() + '</div>' +
+      '<div class="shop-stage"><div class="shop-ped">' + petFigure(160, eq) + '</div>' +
+        '<div class="shop-card"><b>' + esc(PET.name) + '</b>' + (PET.owned.length ? PET.owned.length + ' item' + (PET.owned.length > 1 ? 's' : '') + ' owned' : 'Just a puppy in a bandana') + '<br>' + (PET.treats || 0) + ' treat' + ((PET.treats || 0) === 1 ? '' : 's') + ' eaten</div></div>' +
+      '<div class="shop-tabs">' + PET_TABS.map(function (t) { return '<button class="shop-tab' + (PET.tab === t[0] ? ' on' : '') + '" type="button" data-shop="tab" data-id="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>' +
+      '<div class="shop-grid">' + shopCards() + '</div>' +
+      '<div class="shop-bar"><div class="nm">' + info.name + '<small>' + info.sub + '</small></div>' + (info.btn ? '<button class="shop-go" type="button" data-shop="' + info.act + '"' + (info.dis ? ' disabled' : '') + '>' + info.btn + '</button>' : '') + '</div>' +
+    '</div>';
+  petLearnSizes(petEl);
+}
+function shopClick(b) {
+  var a = b.dataset.shop, id = b.dataset.id;
+  if (a === 'back') { PET.mode = 'room'; PET.sel = null; return petRender(); }
+  if (a === 'tab') { PET.tab = id; PET.sel = null; return petRenderShop(); }
+  if (a === 'pick') { PET.sel = PET.sel === id ? null : id; return petRenderShop(); }
+  var sel = PET.sel; if (!sel) return;
+  if (a === 'treat') {
+    var t = PET_TREATS.filter(function (x) { return 'treat:' + x.id === sel; })[0];
+    if (t && petGiveTreat(t)) { toast(esc(PET.name) + ' loved it!', t.icon, 2400); }
+    return petRenderShop();
+  }
+  var it = petItem(sel); if (!it) return;
+  if (a === 'buy') {
+    if (petHearts() < it.price) return;
+    PET.spent += it.price; PET.owned.push(it.id); PET.equipped[it.slot] = it.id;
+    petSavePet(); toast('New: ' + it.name + ' — now wearing it', '🎀', 3000); sparkle();
+    if (typeof playSound === 'function') playSound('chime');
+    PET.sel = null; return petRenderShop();
+  }
+  if (a === 'on') { PET.equipped[it.slot] = it.id; }
+  else if (a === 'off') { delete PET.equipped[it.slot]; }
+  petSavePet(); PET.sel = null; petRenderShop();
+}
+
+/* the card at the top of the menu */
+function petCardHtml() {
+  return '<button type="button" class="pet-card" data-act="pet-open"><img src="art/pets/dog-face-happy.png" alt=""><span><b>' + esc(PET.name) + '</b><small>Our baby · <img class="hh" src="art/heart.png" alt=""> ' + petHearts() + ' Love Hearts</small></span><span class="go">›</span></button>';
+}
+(function () {
+  var st = document.createElement('style');
+  st.textContent = '.pet-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;margin:2px 0 8px;background:linear-gradient(135deg,#FFEBD2,#FFE0EC);border:3px solid #E9B089;box-shadow:0 4px 0 rgba(169,116,79,.25)}' +
+    '.pet-card>img{width:54px;height:46px;object-fit:contain;flex:none}.pet-card b{display:block;font-family:var(--fdisp);font-size:18px;color:#8a2f3f}.pet-card small{display:flex;align-items:center;gap:5px;font-size:12px;color:#8a5a4a;font-weight:700;margin-top:2px}' +
+    '.pet-card .hh{width:14px;height:14px;image-rendering:pixelated}.pet-card .go{margin-left:auto;font-size:26px;color:#c0786a}';
+  document.head.appendChild(st);
+})();
+setInterval(petDaily, 60000); setTimeout(petDaily, 5000);
+
+/* ---- features/calendar-events.js ---- */
+/* The calendar: memories (pink hearts) and shared events (gold dots) on one month
+   grid. Tap any day for its panel: what happened, what is planned, and a quick form
+   to add something to the shared calendar (work days, dates, appointments...).
+   Events live in the shared `calendar` collection, so you both see them. */
+
+S.calendarEvents = [];
+try { S.calendarEvents = JSON.parse(localStorage.getItem('ow.calendar') || '[]') || []; } catch (e) {}
+var CALSEL = null;                                   /* the selected day, as YYYY-MM-DD */
+ROWHOOKS.calendar = function (rows) {
+  S.calendarEvents = rows || [];
+  try { localStorage.setItem('ow.calendar', JSON.stringify(S.calendarEvents)); } catch (e) {}
+  if (calEl.classList.contains('open')) renderCal();
+};
+function calIso(y, m, d) { return y + '-' + pad2(m + 1) + '-' + pad2(d); }
+function monthEvents(y, m) { var k = y + '-' + pad2(m + 1); return S.calendarEvents.filter(function (x) { return x.date && x.date.slice(0, 7) === k; }); }
+function evSort(a, b) { return (a.time || '99') .localeCompare(b.time || '99') || (a.at || 0) - (b.at || 0); }
+function evTime(t) { if (!t) return ''; var p = t.split(':'), h = parseInt(p[0], 10); return ((h + 11) % 12 + 1) + ':' + p[1] + (h < 12 ? ' am' : ' pm'); }
+
+function renderCal() {
+  var y = calCur.y, m = calCur.m;
+  document.getElementById('calMonth').innerHTML = MONTHS[m] + '<span class="yr">' + y + '</span>';
+  document.getElementById('calPrev').disabled = beforeMin(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1);
+  var body = document.getElementById('calBody'), mems = monthMemories(y, m), evs = monthEvents(y, m);
+  var memBy = {}, evBy = {};
+  mems.forEach(function (x) { var d = parseInt((x.date || '').slice(8, 10), 10); (memBy[d] = memBy[d] || []).push(x); });
+  evs.forEach(function (x) { var d = parseInt(x.date.slice(8, 10), 10); (evBy[d] = evBy[d] || []).push(x); });
+
+  var first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+  var now = new Date(), isNow = now.getFullYear() === y && now.getMonth() === m;
+  var html = '<div class="cal-grid">';
+  for (var d = 0; d < 7; d++) html += '<div class="cal-dow">' + DOW[d] + '</div>';
+  for (var b = 0; b < first; b++) html += '<div class="cal-day blank"></div>';
+  for (var n = 1; n <= days; n++) {
+    var iso = calIso(y, m, n), hm = memBy[n], he = evBy[n];
+    html += '<button type="button" data-cday="' + iso + '" class="cal-day' + (hm ? ' has' : '') + (isNow && now.getDate() === n ? ' today' : '') + (CALSEL === iso ? ' picked' : '') + '">' +
+      '<span>' + n + '</span><span class="hrt">' + (hm ? '💗' + (hm.length > 1 ? '×' + hm.length : '') : '') + (he ? '<i class="evdot">●' + (he.length > 1 ? he.length : '') + '</i>' : '') + '</span></button>';
+  }
+  html += '</div>';
+
+  if (CALSEL && CALSEL.slice(0, 7) === y + '-' + pad2(m + 1)) html += dayPanel(CALSEL, memBy, evBy);
+  else {
+    var rows = [];
+    mems.forEach(function (x) { rows.push({ day: parseInt(x.date.slice(8, 10), 10), t: '', html: memRowHtml(x) }); });
+    evs.sort(evSort).forEach(function (x) { rows.push({ day: parseInt(x.date.slice(8, 10), 10), t: x.time || '', html: evRowHtml(x, false) }); });
+    rows.sort(function (a, b) { return a.day - b.day || a.t.localeCompare(b.t); });
+    html += rows.length ? '<div class="cal-list">' + rows.map(function (r) { return r.html; }).join('') + '</div>' +
+        '<div class="cal-count">' + mems.length + (mems.length === 1 ? ' memory' : ' memories') + (evs.length ? ' · ' + evs.length + (evs.length === 1 ? ' event' : ' events') : '') + ' this month</div>'
+      : '<div class="cal-empty"><div class="big">' + MONTHS[m] + '</div><p>Nothing here yet. Tap a day to add something to our calendar, or add a memory.</p></div>';
+  }
+  body.innerHTML = html;
+}
+function memRowHtml(x) {
+  return '<button class="cal-item" type="button" data-mem="' + esc(x.id) + '">' + (photoCandidates(x).length ? photoImg(x, '') : '<span class="ph">💗</span>') +
+    '<span><span class="t">' + esc(x.title) + '</span><br><span class="s">' + esc(fmtDate(x.date)) + ' · ' + esc(whoName(x.by)) + ' · ' + esc(nearestTown(x.lat, x.lng).name) + '</span></span></button>';
+}
+function evRowHtml(x, withDel) {
+  return '<div class="cal-item cal-ev"><span class="ph ev">●</span><span class="grow"><span class="t">' + esc(x.title) + '</span><br><span class="s">' + esc(fmtDate(x.date)) + (x.time ? ' · ' + esc(evTime(x.time)) : '') + ' · ' + esc(whoName(x.by)) +
+    (x.note ? '<br>' + esc(x.note) : '') + '</span></span>' + (withDel && x.by === S.who ? '<button class="ev-del" type="button" data-evdel="' + esc(x.id) + '" aria-label="Remove">✕</button>' : '') + '</div>';
+}
+function dayPanel(iso, memBy, evBy) {
+  var d = parseInt(iso.slice(8, 10), 10), mems = memBy[d] || [], evs = (evBy[d] || []).slice().sort(evSort);
+  return '<div class="day-panel"><div class="dp-h"><b>' + esc(fmtDate(iso)) + '</b><button type="button" class="chipb" data-cday="">Close</button></div>' +
+    (evs.length ? '<div class="cal-list" style="margin-top:8px">' + evs.map(function (x) { return evRowHtml(x, true); }).join('') + '</div>' : '') +
+    (mems.length ? '<div class="cal-list" style="margin-top:8px">' + mems.map(memRowHtml).join('') + '</div>' : '') +
+    (!evs.length && !mems.length ? '<p class="hint" style="margin:10px 0 0">Nothing on this day yet.</p>' : '') +
+    '<div class="dp-form"><b>Add to our calendar</b>' +
+      '<input id="ev-title" type="text" maxlength="70" placeholder="Work, date night, appointment…">' +
+      '<div class="dp-row"><input id="ev-time" type="time"><input id="ev-note" type="text" maxlength="120" placeholder="Note (optional)"></div>' +
+      '<button class="pxbtn primary" type="button" data-evadd="' + iso + '">Add for both of us</button></div></div>';
+}
+calEl.addEventListener('click', function (e) {
+  var dd = e.target.closest('[data-cday]');
+  if (dd) { CALSEL = dd.dataset.cday || null; renderCal(); var p = calEl.querySelector('.day-panel'); if (p) p.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); return; }
+  var add = e.target.closest('[data-evadd]');
+  if (add) {
+    var t = (document.getElementById('ev-title').value || '').trim();
+    if (!t) { toast('Give it a name first.', '🗓️', 2600); return; }
+    var rec = { id: uid(), title: t, date: add.dataset.evadd, time: document.getElementById('ev-time').value || '', note: (document.getElementById('ev-note').value || '').trim(), by: S.who, at: Date.now() };
+    S.calendarEvents = S.calendarEvents.concat([rec]);
+    try { localStorage.setItem('ow.calendar', JSON.stringify(S.calendarEvents)); } catch (er) {}
+    if (S.db) S.db.collection('calendar').doc(rec.id).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 4500); });
+    if (window.earnHearts) earnHearts(1, 'calendar');
+    toast('Added for both of you.', '🗓️', 2600); renderCal(); return;
+  }
+  var del = e.target.closest('[data-evdel]');
+  if (del) {
+    var id = del.dataset.evdel;
+    S.calendarEvents = S.calendarEvents.filter(function (x) { return x.id !== id; });
+    try { localStorage.setItem('ow.calendar', JSON.stringify(S.calendarEvents)); } catch (er) {}
+    if (S.db) S.db.collection('calendar').doc(id).delete().catch(function () {});
+    renderCal();
+  }
+});
+(function () {
+  var st = document.createElement('style');
+  st.textContent = '.cal-day{cursor:pointer}.cal-day.picked{outline:3px solid var(--deep); outline-offset:-1px}.cal-day .evdot{font-style:normal; color:#C98A1E; font-size:9px; margin-left:2px}' +
+    '.cal-ev .ph.ev{background:#FFF1D4; color:#C98A1E; font-size:14px}.cal-ev .grow{flex:1; min-width:0}.ev-del{border:none; background:none; color:var(--ink-45); font-size:14px; padding:6px}' +
+    '.day-panel{margin-top:18px; border:3px solid var(--princess); background:#FFF9FC; padding:12px}.dp-h{display:flex; align-items:center; justify-content:space-between; gap:10px; font-family:var(--fdisp); color:var(--deep); font-size:17px}' +
+    '.dp-form{margin-top:14px; display:flex; flex-direction:column; gap:8px}.dp-form b{font-family:var(--fdisp); color:var(--deep); font-size:15px}.dp-row{display:flex; gap:8px}' +
+    '.dp-form input{font:inherit; font-size:16px; padding:9px 11px; border:2.5px solid var(--panel-edge); background:#fff; min-width:0}.dp-row input[type=text]{flex:1}.dp-form input:focus{outline:none; border-color:var(--pink)}';
+  document.head.appendChild(st);
+})();
+
 /* ---- features/more.js ---- */
 /* The "More of us" sheet: trips, plans, a look back at this day, a poster of the
    map, and the atmosphere settings. */
@@ -5419,7 +5859,7 @@ ACTIONS['grp'] = function (b) {
 };
 
 function openMenu() {
-  var td = thisDayList(), html = head('Menu', 'everything in one place') + annCardHtml();
+  var td = thisDayList(), html = head('Menu', 'everything in one place') + petCardHtml() + annCardHtml();
   if (td.length) {
     html += '<div class="list" style="margin-bottom:10px">' + td.map(function (it) {
       return '<button type="button" data-act="goto" data-lat="' + it.m.lat + '" data-lng="' + it.m.lng + '" data-z="13">' +
@@ -5712,7 +6152,7 @@ ACTIONS['plan-save'] = function (b) {
   S.plans = [rec].concat(S.plans); LS.write('plans', S.plans);
   if (S.db) S.db.collection('plans').doc(rec.id).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 5000); });
   closeSheet(); draw();
-  toast('On the list: ' + title, '⭐', 3600); sparkle();
+  toast('On the list: ' + title, '⭐', 3600); sparkle(); if (window.earnHearts) earnHearts(1, 'plan');
 };
 function openPlan(id) {
   var p = planById(id); if (!p) return;
@@ -5753,186 +6193,6 @@ HOOKS.beforePins.push(function () {
     tryLabel(p.x, p.y - 32, pl.title + (pl.date ? ' · ' + countdownText(pl.date) : ''), { size: 11, border: C.gold });
   });
 });
-
-/* ---- features/world-foundation.js ---- */
-/* Our World foundation pages.
-   Small, shared, and intentionally easy to extend. The map remains home;
-   these pages give the new relationship systems a clear place to live. */
-
-(function () {
-  var root, page, state = { section: 'hub', month: new Date().getMonth(), year: new Date().getFullYear() };
-  S.calendarEvents = S.calendarEvents || [];
-  S.plans = S.plans || [];
-  S.loveHearts = S.loveHearts || 0;
-  var baby = { name: 'Your Baby', body: '#f3a9c7', scarf: 'none', bow: 'none', animation: 'idle', room: 'cozy' };
-  try { baby = Object.assign(baby, JSON.parse(localStorage.getItem('ow.baby') || '{}')); } catch (e) {}
-  try { S.loveHearts = parseInt(localStorage.getItem('ow.hearts') || '0', 10) || 0; } catch (e) {}
-
-  function putLocal(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
-  function nowId(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7); }
-  function saveShared(collection, item) {
-    putLocal('ow.' + collection, collection === 'calendar' ? S.calendarEvents : S.plans);
-    if (S.db) S.db.collection(collection).doc(item.id).set(item).catch(function () {
-      toast('Saved on this device — shared sync will retry.', '⚠️', 4000);
-    });
-  }
-  function saveBaby() { putLocal('ow.baby', baby); }
-  function addHearts(n, reason) {
-    S.loveHearts = Math.max(0, (S.loveHearts || 0) + n);
-    putLocal('ow.hearts', S.loveHearts);
-    if (S.db) S.db.collection('love').doc('shared').set({ hearts: S.loveHearts, reason: reason || '', at: Date.now() }).catch(function () {});
-    toast('+' + n + ' Love Hearts', '💗', 2600);
-  }
-  function dailyHeart() {
-    var key = 'ow.heartday', today = todayISO(), old = '';
-    try { old = localStorage.getItem(key) || ''; } catch (e) {}
-    if (old !== today) { try { localStorage.setItem(key, today); } catch (e) {} addHearts(1, 'daily'); }
-  }
-  dailyHeart();
-
-  ROWHOOKS.calendar = function (rows) {
-    S.calendarEvents = rows || [];
-    putLocal('ow.calendar', S.calendarEvents);
-    if (page && state.section === 'calendar') renderPage();
-  };
-  ROWHOOKS.love = function (rows) {
-    if (rows && rows[0] && rows[0].hearts != null) {
-      S.loveHearts = Math.max(S.loveHearts || 0, Number(rows[0].hearts) || 0);
-      putLocal('ow.hearts', S.loveHearts);
-    }
-    if (page && state.section === 'baby') renderPage();
-  };
-  try {
-    S.calendarEvents = JSON.parse(localStorage.getItem('ow.calendar') || '[]') || [];
-    S.plans = JSON.parse(localStorage.getItem('ow.plans') || '[]') || S.plans;
-  } catch (e) {}
-
-  function inject() {
-    if (document.getElementById('owWorldPage')) return;
-    var style = document.createElement('style');
-    style.textContent = [
-      '#owWorldPage{position:fixed;inset:0;z-index:30;background:linear-gradient(180deg,#fff8fb,#f8e9f2);overflow:auto;display:none;color:var(--ink);font-family:var(--fbody)}',
-      '#owWorldPage.on{display:block;animation:owIn .22s ease-out}', '@keyframes owIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}',
-      '.ow-shell{max-width:900px;margin:0 auto;padding:18px 16px 50px}', '.ow-head{display:flex;align-items:center;gap:12px;margin-bottom:20px}',
-      '.ow-back{width:42px;height:42px;font-size:22px;padding:0}', '.ow-title{font-family:var(--fdisp);font-size:clamp(24px,6vw,36px);color:var(--deep);margin:0}',
-      '.ow-sub{font-size:12px;color:var(--ink-45);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:3px}',
-      '.ow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}', '.ow-card{border:3px solid var(--panel-edge);background:rgba(255,255,255,.72);padding:17px;text-align:left;box-shadow:0 5px 0 rgba(159,61,109,.1);min-height:116px}',
-      '.ow-card:hover{border-color:var(--pink);transform:translateY(-1px)}', '.ow-card .ow-ico{font-size:28px;display:block;margin-bottom:8px}', '.ow-card b{font-family:var(--fdisp);font-size:18px;color:var(--deep)}', '.ow-card small{display:block;color:var(--ink-70);line-height:1.45;margin-top:5px}',
-      '.ow-panel{border:3px solid var(--panel-edge);background:#fffafd;padding:16px;box-shadow:0 5px 0 rgba(159,61,109,.1);margin-bottom:13px}', '.ow-panel h3{font-family:var(--fdisp);color:var(--deep);margin:0 0 10px;font-size:20px}',
-      '.ow-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}', '.ow-form .wide{grid-column:1/-1}', '.ow-form input,.ow-form textarea,.ow-form select{width:100%;padding:10px;border:2px solid var(--panel-edge);background:#fff;font:inherit;color:var(--ink)}', '.ow-form textarea{min-height:74px;resize:vertical}',
-      '.ow-list{display:flex;flex-direction:column;gap:8px}', '.ow-row{display:flex;gap:11px;align-items:flex-start;border:2px solid var(--panel-edge);padding:11px;background:#fff}', '.ow-row b{color:var(--deep)}', '.ow-row small{display:block;color:var(--ink-45);margin-top:3px}', '.ow-row .ow-grow{flex:1}',
-      '.ow-book{background:#c78d5a;border:8px solid #7e4f34;padding:10px;box-shadow:0 8px 0 rgba(70,38,28,.22)}', '.ow-page{background:#fff4d8;min-height:210px;padding:20px;color:#5e4736;border:2px solid #e1bf87;margin-bottom:12px}', '.ow-page h3{font-family:var(--fdisp);font-size:26px;margin:0 0 10px;color:#7c4e37}', '.ow-page img{width:100%;max-height:230px;object-fit:cover;border:3px solid #d4aa72;margin:7px 0}', '.ow-stamp{color:#a96d55;font-size:12px;letter-spacing:.1em;text-transform:uppercase}',
-      '.ow-pet{display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:center}', '.ow-pet-preview{min-height:180px;display:grid;place-items:center;background:linear-gradient(180deg,#e7d7f3,#fff1f7);border:3px solid var(--panel-edge);font-size:70px}', '.ow-heart{font-family:var(--fdisp);color:var(--deep);font-size:18px}', '.ow-pill{display:inline-block;border:2px solid var(--panel-edge);background:#fff;padding:6px 9px;margin:3px;font-size:12px}', '@media(max-width:600px){.ow-form{grid-template-columns:1fr}.ow-pet{grid-template-columns:1fr}.ow-pet-preview{min-height:150px}}'
-    ].join('');
-    document.head.appendChild(style);
-    root = document.createElement('section'); root.id = 'owWorldPage'; root.setAttribute('aria-label', 'Our World pages');
-    document.body.appendChild(root);
-    root.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-world]'); if (!b) return;
-      var act = b.dataset.world;
-      if (act === 'back') { if (state.section === 'hub') closePage(); else { state.section = 'hub'; renderPage(); } }
-      else if (act === 'map') closePage();
-      else if (act === 'calendar') { state.section = 'calendar'; renderPage(); }
-      else if (act === 'remember') { state.section = 'remember'; renderPage(); }
-      else if (act === 'plan') { state.section = 'plan'; renderPage(); }
-      else if (act === 'together') { state.section = 'together'; renderPage(); }
-      else if (act === 'baby') { state.section = 'baby'; renderPage(); }
-      else if (act === 'explore') closePage();
-      else if (act === 'prev-month') { stepMonth(-1); }
-      else if (act === 'next-month') { stepMonth(1); }
-      else if (act === 'add-calendar') { addCalendar(); }
-      else if (act === 'add-plan') { addPlan(); }
-      else if (act === 'save-baby') { saveBabyForm(); }
-      else if (act === 'heart') { addHearts(Number(b.dataset.n || 1), 'manual'); renderPage(); }
-      else if (act === 'buy') { buyItem(b.dataset.item); }
-    });
-    root.addEventListener('input', function (e) { if (e.target.dataset.baby) baby[e.target.dataset.baby] = e.target.value; });
-  }
-  function top(title, sub) {
-    return '<div class="ow-head"><button class="pxbtn ow-back" type="button" data-world="back" aria-label="Back">‹</button><div><h1 class="ow-title">' + esc(title) + '</h1><div class="ow-sub">' + esc(sub || '') + '</div></div></div>';
-  }
-  function card(act, icon, title, sub) {
-    return '<button class="ow-card" type="button" data-world="' + act + '"><span class="ow-ico">' + icon + '</span><b>' + esc(title) + '</b><small>' + esc(sub) + '</small></button>';
-  }
-  function hub() {
-    return top('Our World', 'A place made for both of you') + '<div class="ow-grid">' +
-      card('explore', '🗺️', 'Explore', 'Move through the map, discover places, and find each other.') +
-      card('remember', '📖', 'Remember', 'Open Our Story, memories, letters, journal, and albums.') +
-      card('plan', '✦', 'Plan', 'Shared calendar, trips, places to go, and bucket list.') +
-      card('together', '💗', 'Together', 'Presence, avatars, walks, anniversaries, and shared moments.') +
-      card('baby', '🧸', 'Your Baby', 'Visit your companion, change accessories, and spend Love Hearts.') +
-      card('calendar', '🗓️', 'Shared Calendar', 'Work days, dates, plans, and reminders you both see.') +
-      '</div><div class="ow-panel" style="margin-top:15px"><h3>Keep it simple</h3><p style="margin:0;line-height:1.55;color:var(--ink-70)">The map is still home. These pages are just the quiet rooms around it.</p></div>';
-  }
-  function renderRemember() {
-    var groups = {}, order = [];
-    (S.memories || []).forEach(function (m) {
-      var key = (m.date || todayISO()).slice(0, 7); if (!groups[key]) { groups[key] = []; order.push(key); } groups[key].push(m);
-    });
-    order.sort().reverse();
-    var pages = order.length ? order.map(function (key) {
-      var title = new Date(key + '-01T12:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-      return '<article class="ow-page"><div class="ow-stamp">Our story · ' + esc(title) + '</div>' + groups[key].map(function (m) {
-        var src = m.photoUrl || (window.OWCloud && OWCloud.photoUrl ? OWCloud.photoUrl(m.assetId) : '');
-        return '<div style="margin-top:13px"><h3>' + esc(m.title || 'A memory') + '</h3>' + (src ? '<img src="' + esc(src) + '" alt="">' : '') + '<div>' + esc(nearestTown(m.lat, m.lng).name) + ' · ' + esc(fmtDate(m.date)) + '</div>' + (m.note ? '<p>' + esc(m.note) + '</p>' : '') + '</div>';
-      }).join('') + '</article>';
-    }).join('') : '<div class="ow-page"><h3>The first page is waiting</h3><p>Add a memory and it will live here.</p></div>';
-    return top('Our Story', 'A scrapbook of the places and days you share') + '<div class="ow-book">' + pages + '</div>';
-  }
-  function renderCalendar() {
-    var y = state.year, m = state.month, first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate(), key = y + '-' + String(m + 1).padStart(2, '0');
-    var events = S.calendarEvents.filter(function (x) { return x.date && x.date.slice(0, 7) === key; });
-    var cells = []; for (var i = 0; i < first; i++) cells.push('<span></span>');
-    for (var d = 1; d <= days; d++) {
-      var iso = key + '-' + String(d).padStart(2, '0'), count = events.filter(function (x) { return x.date === iso; }).length;
-      cells.push('<div style="min-height:44px;border:2px solid ' + (iso === todayISO() ? 'var(--gold)' : 'var(--panel-edge)') + ';padding:5px;background:' + (count ? 'var(--princess)' : '#fff') + '"><b>' + d + '</b>' + (count ? '<div style="font-size:11px">' + count + ' ♥</div>' : '') + '</div>');
-    }
-    return top('Shared Calendar', 'Anything added here belongs to both of you') + '<div class="ow-panel"><div style="display:flex;justify-content:space-between;align-items:center"><button class="pxbtn" data-world="prev-month">‹</button><h3>' + new Date(y, m, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) + '</h3><button class="pxbtn" data-world="next-month">›</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center;margin-bottom:12px;color:var(--ink-45);font-size:12px">' + ['S','M','T','W','T','F','S'].map(esc).join('') + '</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center">' + cells.join('') + '</div></div>' +
-      '<div class="ow-panel"><h3>Add to our calendar</h3><div class="ow-form"><input id="owCalTitle" class="wide" placeholder="Work, date night, appointment…"><input id="owCalDate" type="date"><input id="owCalTime" type="time"><textarea id="owCalNote" class="wide" placeholder="Optional note"></textarea><button class="pxbtn primary wide" data-world="add-calendar">Add shared date</button></div></div>' +
-      '<div class="ow-panel"><h3>This month</h3><div class="ow-list">' + (events.length ? events.map(function (x) { return '<div class="ow-row"><span>💗</span><div class="ow-grow"><b>' + esc(x.title) + '</b><small>' + esc(x.date) + (x.time ? ' · ' + esc(x.time) : '') + (x.note ? ' · ' + esc(x.note) : '') + '</small></div></div>'; }).join('') : '<p style="margin:0;color:var(--ink-45)">Nothing scheduled yet.</p>') + '</div></div>';
-  }
-  function renderPlan() {
-    var plans = (S.plans || []).slice().sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
-    return top('Plan', 'Imagine what comes next') + '<div class="ow-panel"><h3>Add a simple plan</h3><div class="ow-form"><input id="owPlanTitle" class="wide" placeholder="Trip or place name"><input id="owPlanPlace" placeholder="Location"><input id="owPlanDate" type="date"><textarea id="owPlanNote" class="wide" placeholder="Optional note"></textarea><button class="pxbtn primary wide" data-world="add-plan">Add plan</button></div></div><div class="ow-panel"><h3>Our plans</h3><div class="ow-list">' + (plans.length ? plans.map(function (x) { return '<div class="ow-row"><span>✦</span><div class="ow-grow"><b>' + esc(x.title) + '</b><small>' + esc(x.place || '') + (x.date ? ' · ' + esc(x.date) : '') + (x.note ? ' · ' + esc(x.note) : '') + '</small></div></div>'; }).join('') : '<p style="margin:0;color:var(--ink-45)">No plans yet.</p>') + '</div></div><div class="ow-panel"><h3>Also in Plan</h3><div class="ow-grid">' + card('calendar','🗓️','Shared Calendar','Work days, dates, and reminders.') + card('map','🗺️','Back to the map','See your future place as a star when it is connected.') + '</div></div>';
-  }
-  function renderTogether() {
-    var online = typeof PR !== 'undefined' && PR.partner;
-    return top('Together', 'Feel connected now') + '<div class="ow-grid">' + card('baby','🧸','Your Baby','Visit your shared companion.') + card('map','🗺️','Meet on the map','See your avatars and shared places.') + '</div><div class="ow-panel" style="margin-top:14px"><h3>' + (online ? 'Your princess is here 💗' : 'Together mode') + '</h3><p style="margin:0;line-height:1.55;color:var(--ink-70)">' + (online ? 'Open the map to see your avatars together.' : 'When both of you are online, your avatars can meet on the map.') + '</p></div>';
-  }
-  function renderBaby() {
-    var items = [{ id: 'blue-scarf', label: 'Blue scarf', kind: 'scarf' }, { id: 'pink-bow', label: 'Pink bow', kind: 'bow' }, { id: 'gold-bow', label: 'Gold bow', kind: 'bow' }];
-    return top('Your Baby', 'Your little companion') + '<div class="ow-panel ow-pet"><div class="ow-pet-preview">🧸</div><div><div class="ow-heart">💗 ' + (S.loveHearts || 0) + ' Love Hearts</div><h3 style="margin-top:8px">Meet your baby</h3><p style="color:var(--ink-70)">A simple shared companion for the world you are building.</p><input data-baby="name" value="' + esc(baby.name) + '" placeholder="Baby name"><div style="margin-top:10px"><select data-baby="animation"><option value="idle"' + (baby.animation === 'idle' ? ' selected' : '') + '>Idle</option><option value="happy"' + (baby.animation === 'happy' ? ' selected' : '') + '>Happy</option><option value="spin"' + (baby.animation === 'spin' ? ' selected' : '') + '>Spin</option><option value="sleep"' + (baby.animation === 'sleep' ? ' selected' : '') + '>Sleeping</option></select> <button class="pxbtn primary" data-world="save-baby">Save</button></div></div></div><div class="ow-panel"><h3>Small shop</h3><div class="ow-grid">' + items.map(function (it) { return '<button class="ow-card" data-world="buy" data-item="' + it.id + '"><span class="ow-ico">' + (it.kind === 'scarf' ? '🧣' : '🎀') + '</span><b>' + esc(it.label) + '</b><small>1 Love Heart</small></button>'; }).join('') + '</div></div><div class="ow-panel"><h3>Pet room</h3><p style="color:var(--ink-70)">Room customization comes next. Your design can drop into this room without changing the foundation.</p></div><div class="ow-panel"><button class="pxbtn" data-world="heart" data-n="1">Earn a practice heart</button></div>';
-  }
-  function renderPage() {
-    if (!root) inject();
-    var body = state.section === 'remember' ? renderRemember() : state.section === 'calendar' ? renderCalendar() : state.section === 'plan' ? renderPlan() : state.section === 'together' ? renderTogether() : state.section === 'baby' ? renderBaby() : hub();
-    root.innerHTML = '<div class="ow-shell">' + body + '</div>'; root.classList.add('on');
-  }
-  function closePage() { if (root) root.classList.remove('on'); }
-  function stepMonth(n) { state.month += n; if (state.month < 0) { state.month = 11; state.year--; } if (state.month > 11) { state.month = 0; state.year++; } renderPage(); }
-  function addCalendar() {
-    var title = document.getElementById('owCalTitle').value.trim(), date = document.getElementById('owCalDate').value;
-    if (!title || !date) return toast('Add a title and date first.', '🗓️', 2600);
-    var item = { id: nowId('cal'), title: title, date: date, time: document.getElementById('owCalTime').value, note: document.getElementById('owCalNote').value.trim(), by: S.who, at: Date.now() };
-    S.calendarEvents.push(item); saveShared('calendar', item); addHearts(1, 'calendar'); state.year = parseInt(date.slice(0, 4), 10); state.month = parseInt(date.slice(5, 7), 10) - 1; renderPage();
-  }
-  function addPlan() {
-    var title = document.getElementById('owPlanTitle').value.trim(); if (!title) return toast('Give the plan a name first.', '✦', 2600);
-    var item = { id: nowId('plan'), title: title, place: document.getElementById('owPlanPlace').value.trim(), date: document.getElementById('owPlanDate').value, note: document.getElementById('owPlanNote').value.trim(), by: S.who, at: Date.now() };
-    S.plans.push(item); saveShared('plans', item); addHearts(1, 'plan'); renderPage();
-  }
-  function saveBabyForm() { baby.name = (baby.name || 'Your Baby').trim() || 'Your Baby'; saveBaby(); toast('Your Baby saved.', '🧸', 2400); renderPage(); }
-  function buyItem(item) {
-    if ((S.loveHearts || 0) < 1) return toast('Earn a Love Heart first.', '💗', 2600);
-    S.loveHearts--; putLocal('ow.hearts', S.loveHearts);
-    if (item === 'blue-scarf') baby.scarf = item; else baby.bow = item;
-    saveBaby(); toast('Added to Your Baby.', '🎁', 2600); renderPage();
-  }
-
-  window.openWorldHub = function () { state.section = 'hub'; renderPage(); };
-  window.openWorldCalendar = function () { state.section = 'calendar'; renderPage(); };
-  window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root && root.classList.contains('on')) closePage(); });
-})();
 
 
 function boot() {

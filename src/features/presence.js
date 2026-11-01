@@ -133,7 +133,7 @@ function celebrateTogether() {
   var mid = midpoint(), town = nearestTown(mid.lat, mid.lng).name;
   discover(mid.lat, mid.lng, false);
   logMoment(mid);
-  playSound('heart');
+  playSound('heart'); if (window.earnHearts) earnHearts(3, 'together');
   flyTo(mid.lat, mid.lng, Math.max(S.zoom, 12.4));
   sparkle();
   openSheet(head('Together, right now', town) +

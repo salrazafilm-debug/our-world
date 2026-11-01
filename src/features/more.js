@@ -43,7 +43,7 @@ ACTIONS['grp'] = function (b) {
 };
 
 function openMenu() {
-  var td = thisDayList(), html = head('Menu', 'everything in one place') + annCardHtml();
+  var td = thisDayList(), html = head('Menu', 'everything in one place') + petCardHtml() + annCardHtml();
   if (td.length) {
     html += '<div class="list" style="margin-bottom:10px">' + td.map(function (it) {
       return '<button type="button" data-act="goto" data-lat="' + it.m.lat + '" data-lng="' + it.m.lng + '" data-z="13">' +
@@ -336,7 +336,7 @@ ACTIONS['plan-save'] = function (b) {
   S.plans = [rec].concat(S.plans); LS.write('plans', S.plans);
   if (S.db) S.db.collection('plans').doc(rec.id).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 5000); });
   closeSheet(); draw();
-  toast('On the list: ' + title, '⭐', 3600); sparkle();
+  toast('On the list: ' + title, '⭐', 3600); sparkle(); if (window.earnHearts) earnHearts(1, 'plan');
 };
 function openPlan(id) {
   var p = planById(id); if (!p) return;

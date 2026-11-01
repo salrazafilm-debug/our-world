@@ -33,7 +33,7 @@ for (const re of leaks) {
 }
 
 const out = shell.replace('<!--#include src/index.html -->', inlined);
-const dest = path.join(ROOT, 'index.html');
+const dest = process.env.OW_OUT || path.join(ROOT, 'index.html');
 fs.writeFileSync(dest, out);
-fs.writeFileSync(path.join(ROOT, '.nojekyll'), '');
+if (!process.env.OW_OUT) fs.writeFileSync(path.join(ROOT, '.nojekyll'), '');
 console.log('wrote', dest, (out.length / 1024).toFixed(0) + 'KB');

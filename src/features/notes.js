@@ -59,6 +59,6 @@ ACTIONS['note-save'] = function () {
   S.notes[S.who] = rec;
   try { localStorage.setItem('ow.notes', JSON.stringify(S.notes)); } catch (e) {}
   if (S.db) S.db.collection('notes').doc(S.who).set(rec).catch(function () { toast('Saved on this device — could not reach the shared world.', '⚠️', 4500); });
-  closeSheet(); sparkle();
+  closeSheet(); sparkle(); if (window.earnHearts) earnHearts(1, 'note');
   toast('Note sent — it will be waiting for them.', '💌', 3600);
 };
