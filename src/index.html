@@ -3240,7 +3240,16 @@ function startBehindGate() {
     try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('ow.') === 0) localStorage.removeItem(k); }); } catch (e) {}
     location.reload();
   });
-  OWCloud.session().then(function (sess) { if (sess) unlock(); else { gate.hidden = false; document.getElementById('gEmail').focus(); } });
+  /* Never leave a fresh browser on an empty locked page while the remote
+     session wakes up. The gate is the loading state and disappears for a
+     valid session. */
+  gate.hidden = false;
+  OWCloud.session().then(function (sess) {
+    if (sess) unlock();
+    else document.getElementById('gEmail').focus();
+  }).catch(function () {
+    err.textContent = 'Could not reach the shared world yet. Check your connection and try again.';
+  });
   form.addEventListener('submit', function (ev) {
     ev.preventDefault();
     err.textContent = ''; btn.disabled = true; btn.textContent = 'Opening\u2026';
