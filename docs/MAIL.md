@@ -1,6 +1,6 @@
 # Mail: the post office between our homes
 
-Status: agreed design, artwork approved, not built yet. Visual rules: STYLE.md.
+Status: built (src/features/mail.js). Visual rules: STYLE.md.
 
 ## Artwork (approved as drawn)
 Source: `art-src/mail reference.png`. The artwork is final: do not recolour, restyle or add to it.
@@ -41,7 +41,7 @@ The interface is built to match the artwork, not the other way round.
 
 ## Data
 - Each letter has: id, title, body, from, to, sent_at, opened_at.
-- Stored in the existing shared storage (the `docs` table, collection `letters`), so no database change is needed.
+- Stored in the existing shared storage (the `docs` table, collection `mail`), so no database change is needed.
 - Row-level security already limits each letter to its two people.
 
 ## Decisions (agreed)

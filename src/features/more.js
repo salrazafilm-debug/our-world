@@ -67,7 +67,7 @@ function dashEnsure() {
     else if (d === 'shop') { petOpen(); PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; petRender(); }
     else if (d === 'cal') openCal();
     else if (d === 'mem') ACTIONS['mn-mem']();
-    else if (d === 'letters') ACTIONS['mn-notes']();
+    else if (d === 'letters') mailOpen({ room: true });
     else if (d === 'avatars') ACTIONS['mn-us']();
     else if (d === 'dreams') ACTIONS['mn-dream']();
     else if (d === 'set') ACTIONS['mn-set']();
@@ -77,7 +77,7 @@ function dashEnsure() {
   return dashEl;
 }
 function dashBadge(id) {
-  if (id === 'letters') { var n = S.surprises.filter(function (x) { return x.forWho === S.who && !x.opened; }).length; return n ? n + ' new' : ''; }
+  if (id === 'letters') { var n = mailUnread().length; return n ? n + ' new' : ''; }
   return '';
 }
 function openMenu() {

@@ -2680,6 +2680,7 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
+  if (item.kind === 'mail') { mailOpen(); return; }
   if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
   if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
   if (item.kind === 'plan') { openPlan(item.id); return; }
@@ -3212,6 +3213,7 @@ function hydrateLocal() {
 //#include features/bucket.js
 //#include features/albums.js
 //#include features/polaroid.js
+//#include features/mail.js
 //#include features/pet.js
 //#include features/calendar-events.js
 //#include features/more.js

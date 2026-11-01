@@ -67,6 +67,7 @@ HOOKS.terrain.push(function () {
   var pois = [];
   ['bruce', 'elena'].forEach(function (k) { pois.push(proj(HOMES[k].lat, HOMES[k].lng)); });
   HOMEBASE.forEach(function (h) { pois.push(proj(h.lat, h.lng)); });
+  if (typeof MAIL_POS !== 'undefined') { var mp = proj(MAIL_POS.lat, MAIL_POS.lng); pois.push(mp, { x: mp.x - 60, y: mp.y }, { x: mp.x + 60, y: mp.y }); }
   LANDMARKS.forEach(function (l) { pois.push(proj(l[2], l[3])); });
   S.memories.forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
   (S.plans || []).forEach(function (m) { pois.push(proj(m.lat, m.lng)); });
