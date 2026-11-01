@@ -5424,7 +5424,7 @@ HOOKS.beforePins.push(function () {
   if (S.mode !== 'map' || !S.who) return;
   var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */
   var p = proj(MAIL_POS.lat, MAIL_POS.lng);
-  var h = Math.round(homeArtH(z) * 1.35), w = h * 350 / 112;
+  var h = Math.round(homeArtH(z) * 1.05), w = h * 449 / 314;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
   var fade = Math.min(1, (z - 6.8) / 0.8), unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;
@@ -5433,7 +5433,7 @@ HOOKS.beforePins.push(function () {
     g.addColorStop(0, 'rgba(255,214,140,.55)'); g.addColorStop(1, 'rgba(255,214,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.45, w * 0.55, 0, 6.283); ctx.fill();
   }
-  var box = drawArt(ctx, 'mail/island', p.x, p.y, h, DPR);
+  var box = drawArt(ctx, 'mail/postoffice', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
     if (unread) {                                          /* the floating envelope with a red dot */
@@ -5468,17 +5468,20 @@ function mailEnsure() {
     '.m-btn.primary{background:var(--berry);color:var(--cream);border-color:var(--berry-dk)}.m-btn[disabled]{opacity:.5}',
     '.m-btn img{width:22px;height:18px;object-fit:contain;image-rendering:pixelated}',
     /* outside */
-    '.m-ext{position:absolute;inset:0;background:#3F2F4F}',
-    '.m-ext .blur{position:absolute;inset:-20px;background:url(art/mail/exterior.jpg) center/cover;filter:blur(14px) brightness(.8)}',
-    '.m-ext .box{container-type:inline-size;position:absolute;left:50%;top:52%;width:max(100vw,calc(62vh * 905 / 350));aspect-ratio:905/350;transform:translate(-50%,-50%);transform-origin:var(--ox,50%) var(--oy,50%)}',
-    '.m-ext.zoom .box{animation:mZoom .7s cubic-bezier(.2,.8,.2,1)}@keyframes mZoom{from{transform:translate(-50%,-50%) scale(.25);opacity:.2}}',
-    '.m-ext .box img.scene{position:absolute;inset:0;width:100%;height:100%;image-rendering:auto}',
-    '.m-pill{position:absolute;left:44.4%;top:63.6%;width:21%;height:16.6%;border:3px solid var(--berry-dk);border-bottom-width:7px;background:#4A2F3D;color:var(--cream);font-family:var(--fdisp);font-weight:600;font-size:max(14px,2.1cqw);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}',
-    '.m-pill img{height:58%;image-rendering:pixelated}.m-pill:active{transform:translateY(3px);border-bottom-width:4px}',
+    '.m-ext{position:absolute;inset:0;background:#2E2747;overflow:hidden}',
+    /* the scene fills the screen; tall art on phones, wide art on computers */
+    '.m-ext .box{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:max(100vw,calc(100vh * 1670 / 838));aspect-ratio:1670/838}',
+    '.m-ext.tall .box{width:max(100vw,calc(100vh * 941 / 1547));aspect-ratio:941/1547}',
+    '.m-ext.zoom .box{animation:mZoom .7s cubic-bezier(.2,.8,.2,1)}@keyframes mZoom{from{transform:translate(-50%,-50%) scale(.3);opacity:.2}}',
+    '.m-ext .box img.scene{position:absolute;inset:0;width:100%;height:100%}',
+    '.m-door{background:none;border:none;padding:0;position:absolute;left:47.4%;top:31%;width:5.6%;height:19%;cursor:pointer}',
+    '.m-ext.tall .m-door{left:45.6%;top:37%;width:9%;height:13%}',
+    '.m-float{position:absolute;left:50%;top:4%;width:7.5%;transform:translateX(-50%);animation:mBob 2.6s ease-in-out infinite;pointer-events:none}',
+    '.m-ext.tall .m-float{top:21%;width:16%}',
+    '.m-float img{width:100%;image-rendering:pixelated;filter:drop-shadow(0 0 12px rgba(255,214,140,.8))}.m-float .m-dot{position:absolute;right:-12%;top:-18%}',
+    '.m-pill{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translateX(-50%);min-width:220px;height:58px;padding:0 22px;border:3px solid var(--berry-dk);border-bottom-width:8px;background:var(--berry);color:var(--cream);font-family:var(--fdisp);font-weight:600;font-size:19px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer}',
+    '.m-pill img{height:26px;image-rendering:pixelated}.m-pill:active{transform:translate(-50%,4px);border-bottom-width:4px}',
     '.m-dot{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:50%;background:#D9363E;color:#fff;font-family:var(--fdisp);font-size:13px;border:2px solid var(--cream)}',
-    '.m-door{background:none;border:none;padding:0;position:absolute;left:51.8%;top:34%;width:7.6%;height:22%;cursor:pointer}',
-    '.m-float{position:absolute;left:55.2%;top:-16%;width:11%;transform:translateX(-50%);animation:mBob 2.6s ease-in-out infinite;pointer-events:none}',
-    '.m-float img{width:100%;image-rendering:pixelated;filter:drop-shadow(0 0 12px rgba(255,214,140,.8))}.m-float .m-dot{position:absolute;right:-8%;top:-14%}',
     '@keyframes mBob{50%{transform:translate(-50%,-6px)}}',
     '.m-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;z-index:5}',
     '.m-sign{flex:1;text-align:center}.m-sign span{display:inline-flex;align-items:center;gap:10px;background:var(--wood);border:4px solid var(--wood-dk);border-bottom-width:8px;clip-path:var(--px-step);padding:6px 18px 8px;font-family:var(--ftitle);font-size:clamp(22px,6vw,32px);color:var(--cream);line-height:1}',
@@ -5561,8 +5564,9 @@ function dot(n) { return n ? '<span class="m-dot">' + (n > 9 ? '9+' : n) + '</sp
 function mailRender(anim) {
   var n = mailUnread().length;
   if (MAIL.mode === 'ext') {
-    mailEl.innerHTML = '<div class="m-ext' + (anim ? ' zoom' : '') + '"><div class="blur"></div>' +
-      '<div class="box"><img class="scene" alt="The post office" src="art/mail/exterior.jpg">' +
+    var tall = innerWidth / innerHeight < 0.9;
+    mailEl.innerHTML = '<div class="m-ext' + (tall ? ' tall' : '') + (anim ? ' zoom' : '') + '">' +
+      '<div class="box"><img class="scene" alt="The post office" src="art/mail/exterior-' + (tall ? 'tall' : 'wide') + '.jpg">' +
         (n ? '<div class="m-float"><img alt="" src="art/mail/env-gold.png">' + dot(n) + '</div>' : '') +
         '<button class="m-door" type="button" data-m="enter" aria-label="Go inside"></button>' +
         '<button class="m-pill" type="button" data-m="enter"><img alt="" src="art/mail/env-row.png">' + (n ? 'New mail!' + dot(n) : 'Go inside') + '</button>' +
