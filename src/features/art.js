@@ -16,6 +16,8 @@ function artLoad(name) {
  'bench', 'fence', 'lamp', 'sign', 'sign2']
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
+['city/castle', 'city/home', 'city/post-office', 'city/cafe', 'city/shop', 'city/church', 'city/row',
+ 'dc/capitol', 'dc/monument', 'dc/lincoln', 'dc/jefferson', 'dc/museum', 'dc/white-house', 'dc/cathedral'].forEach(artLoad);
 
 function artSized(name, h, res) {
   var e = artLoad(name);
