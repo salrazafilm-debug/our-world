@@ -3751,6 +3751,7 @@ var ART = {}, ARTSIZED = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
   var e = ART[name] = { ok: false }, im = new Image();
+  im.crossOrigin = 'anonymous';
   im.onload = function () { e.img = im; e.ok = true; };
   im.onerror = function () { e.bad = true; };
   im.src = 'art/' + name + '.png';
@@ -4573,6 +4574,7 @@ ROWHOOKS.avatars = function (rows) {
 function avLoad(who) {
   if (AVIMG[who]) return AVIMG[who];
   var e = AVIMG[who] = { ready: false }, a = new Image(), m = new Image(), n = 0;
+  a.crossOrigin = 'anonymous'; m.crossOrigin = 'anonymous';
   function done() {
     if (++n < 2) return;
     function grab(img) {
@@ -6779,7 +6781,7 @@ function petRender() {
 var PG = null;                                     /* room geometry on screen */
 var PB = { x: 0.49, dir: 1, act: 'sit', until: 0, tx: 0.49, f: 0, raf: 0, last: 0, shown: '' };
 var PF = {};                                       /* frame images, by name */
-['sleep'].forEach(function (n) { var im = new Image(); im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im; });
+['sleep'].forEach(function (n) { var im = new Image(); im.crossOrigin = 'anonymous'; im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im; });
 var X_MIN = 0.37, X_MAX = 0.62;
 function petLayout(sleeping) {
   var bg = document.getElementById('psBg'), dog = document.getElementById('psDog');
