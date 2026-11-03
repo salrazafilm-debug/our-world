@@ -16,8 +16,9 @@
   <script>
     fetch('../index.html').then(function (r) { return r.text(); }).then(function (html) {
       html = html.replace('<head>', '<head><base href="../">');
-      html = html.replace('<script src="config.js"><\/script>',
-        '<script>localStorage.setItem("ow.who","bruce");localStorage.setItem("ow.tod","day");localStorage.setItem("ow.weather","off");window.__OW_CONFIG={};<\/script>');
+      html = html.replace(/\/\* config\.js inlined at build time \*\/[\s\S]*?(?=\/\* cloud\.js inlined at build time \*\/)/,
+        '/* branch preview: cloud disabled */\nwindow.__OW_CONFIG = {};\n');
+      html = html.replace('<body', '<script>localStorage.setItem("ow.who","bruce");localStorage.setItem("ow.tod","day");localStorage.setItem("ow.weather","off");<\/script><body');
       document.querySelector('iframe').srcdoc = html;
     });
   </script>
