@@ -215,9 +215,9 @@ HOOKS.terrain.push(function () {
       items.push({ x: bp.x, y: bp.y, n: 'boat', h: Math.min(36, 13 + (z - 6.3) * 4), f: focusAt(bp.y), k: 0 });
     }
   }
-  /* too many for one frame? thin them evenly over the whole view (not just the bottom rows) */
-  var CAP = 680;
-  if (items.length > CAP) { var keep = CAP / items.length; items = items.filter(function (it) { return it.k < keep; }); }
+  /* The bounded world grids above already cap the work. Do not thin this final
+     list by its changing length: that made established trees disappear when a
+     neighbouring cell entered the viewport during zoom. */
   items.sort(function (a, b) { return a.y - b.y; });
   for (i = 0; i < items.length; i++) {
     var it = items[i], soft = false;
