@@ -11,7 +11,9 @@ function artLoad(name) {
   im.src = 'art/' + name + '.png';
   return e;
 }
-['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
+['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak',
+ 'bush-pink', 'bush', 'boat', 'rock', 'flowers', 'flowers2', 'flowers3', 'flowers4',
+ 'bench', 'fence', 'lamp', 'sign', 'sign2']
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Our World — branch preview</title>
+  <style>
+    html,body{margin:0;min-height:100%;background:#5d2f43;color:#fff2df;font:600 15px system-ui,sans-serif}
+    header{padding:10px 14px;background:#8e3a57;border-bottom:3px solid #fff2df}
+    iframe{display:block;width:100%;height:calc(100vh - 48px);border:0;background:#fbeBD6}
+  </style>
+</head>
+<body>
+  <header>Branch preview · local demo data · production is unchanged</header>
+  <iframe title="Our World preview"></iframe>
+  <script>
+    fetch('../index.html').then(function (r) { return r.text(); }).then(function (html) {
+      html = html.replace('<head>', '<head><base href="../">');
+      html = html.replace('<script src="config.js"><\/script>',
+        '<script>localStorage.setItem("ow.who","bruce");localStorage.setItem("ow.tod","day");localStorage.setItem("ow.weather","off");window.__OW_CONFIG={};<\/script>');
+      document.querySelector('iframe').srcdoc = html;
+    });
+  </script>
+</body>
+</html>
