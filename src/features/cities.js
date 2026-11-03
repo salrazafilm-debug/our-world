@@ -46,13 +46,6 @@ function owDistrictGround(d) {
 function drawDistrict(d) {
   if (!owDistrictVisible(d) || S.zoom < 7.15) return;
   var p = proj(d.lat, d.lng), z = S.zoom, scale = z < 8.2 ? 0.58 : (z < 9.4 ? 0.78 : 1);
-  /* At regional scale a city is a quiet anchor label, not five overlapping
-     stickers. The authored district opens only when the camera is close
-     enough to read its buildings. */
-  if (z < 8.35) {
-    if (d.kind === 'dc' || d.kind === 'city') owDistrictLabel(p.x, p.y + 24, d.name, 12);
-    return;
-  }
   owDistrictGround(d);
   d.buildings.slice().sort(function(a,b){ return a[2] - b[2]; }).forEach(function (b, i) {
     var q = proj(b[1], b[2]);
@@ -60,7 +53,7 @@ function drawDistrict(d) {
     if (q.x < -180 || q.y < -180 || q.x > W + 180 || q.y > H + 180) return;
     drawArt(ctx, b[0], q.x, q.y, h, DPR);
   });
-  owDistrictLabel(p.x, p.y + (d.kind === 'dc' ? 76 : 58), d.name, d.kind === 'dc' ? 14 : 12);
+  if (z > 7.55) owDistrictLabel(p.x, p.y + (d.kind === 'dc' ? 76 : 58), d.name, d.kind === 'dc' ? 14 : 12);
 }
 
 /* Add the wider, recognisable urban anchors before the smaller town labels. */
