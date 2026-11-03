@@ -3069,7 +3069,7 @@ function memoryForm(ll, starterId, prefillTitle) {
 }
 
 function shrinkImage(file, cb) {
-  var img = new Image(), url = URL.createObjectURL(file);
+  var img = (function(){var i=new Image();i.crossOrigin="anonymous";return i;}()), url = URL.createObjectURL(file);
   img.onload = function () {
     var max = 1100, w = img.width, h = img.height;
     var sc = Math.min(1, max / Math.max(w, h));
@@ -3741,7 +3741,7 @@ function hydrateLocal() {
 var ART = {}, ARTSIZED = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
-  var e = ART[name] = { ok: false }, im = new Image();
+  var e = ART[name] = { ok: false }, im = (function(){var i=new Image();i.crossOrigin="anonymous";return i;}());
   im.onload = function () { e.img = im; e.ok = true; };
   im.onerror = function () { e.bad = true; };
   im.src = 'art/' + name + '.png';
@@ -4474,7 +4474,7 @@ ROWHOOKS.avatars = function (rows) {
 
 function avLoad(who) {
   if (AVIMG[who]) return AVIMG[who];
-  var e = AVIMG[who] = { ready: false }, a = new Image(), m = new Image(), n = 0;
+  var e = AVIMG[who] = { ready: false }, a = (function(){var i=new Image();i.crossOrigin="anonymous";return i;}()), m = (function(){var i=new Image();i.crossOrigin="anonymous";return i;}()), n = 0;
   function done() {
     if (++n < 2) return;
     function grab(img) {
@@ -5553,7 +5553,7 @@ function polEntry(url) {
   var e = POL[url];
   if (e) return e;
   e = POL[url] = { ok: false, cv: null };
-  var img = new Image();
+  var img = (function(){var i=new Image();i.crossOrigin="anonymous";return i;}());
   img.crossOrigin = 'anonymous';
   img.onload = function () {
     var n = POL_N, c = document.createElement('canvas'); c.width = n; c.height = n;
@@ -6037,7 +6037,7 @@ function mpCrop(i) {
   var it = MEMPH.items[i]; if (!it) return;
   var ov = document.getElementById('mpCrop');
   if (!ov) { ov = document.createElement('div'); ov.id = 'mpCrop'; document.body.appendChild(ov); }
-  var url = URL.createObjectURL(it.orig), im = new Image();
+  var url = URL.createObjectURL(it.orig), im = (function(){var i=new Image();i.crossOrigin="anonymous";return i;}());
   im.onerror = function () { URL.revokeObjectURL(url); toast('That photo could not be opened for cropping.', '📷', 3500); };
   im.onload = function () {
     var nw = im.naturalWidth, nh = im.naturalHeight, maxW = Math.min(innerWidth - 64, 640), maxH = Math.max(160, innerHeight - 230);
@@ -6489,7 +6489,7 @@ function petLearnSizes(root) {
   if (!need.length) return;
   var left = need.length;
   need.forEach(function (im) {
-    var t = new Image();
+    var t = (function(){var i=new Image();i.crossOrigin="anonymous";return i;}());
     function done() { if (--left === 0) { clearTimeout(petLearnT); petLearnT = setTimeout(function () { if (PET.open) petRender(); }, 30); } }
     t.onload = function () { PET_SIZE[im.dataset.file] = [t.naturalWidth, t.naturalHeight]; done(); };
     t.onerror = function () { PET_SIZE[im.dataset.file] = [130, 100]; done(); };
@@ -6681,7 +6681,7 @@ function petRender() {
 var PG = null;                                     /* room geometry on screen */
 var PB = { x: 0.49, dir: 1, act: 'sit', until: 0, tx: 0.49, f: 0, raf: 0, last: 0, shown: '' };
 var PF = {};                                       /* frame images, by name */
-['sleep'].forEach(function (n) { var im = new Image(); im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im; });
+['sleep'].forEach(function (n) { var im = (function(){var i=new Image();i.crossOrigin="anonymous";return i;}()); im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im; });
 var X_MIN = 0.37, X_MAX = 0.62;
 function petLayout(sleeping) {
   var bg = document.getElementById('psBg'), dog = document.getElementById('psDog');
