@@ -163,7 +163,7 @@ function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
     if (!land) {
       if (r < .23) { scenicMark(g,p.x,p.y,'#d7f3f2',8,2); scenicMark(g,p.x+4,p.y+4,'#8ad7ee',5,2); }
       if (r > .985) scenicBloom(g,p.x,p.y,5,false);
-      if(fine&&r>.973&&terrainAt(p.x+16,p.y)==='water'&&terrainAt(p.x-16,p.y)==='water')
+      if(fine&&r>.995&&terrainAt(p.x+16,p.y)==='water'&&terrainAt(p.x-16,p.y)==='water')
         drawArt(g,'boat',p.x,p.y,32,1);
       continue;
     }

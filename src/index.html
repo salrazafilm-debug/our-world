@@ -1792,7 +1792,7 @@ function drawMapOverlays() {
   /* the flight out — a dashed hop from home to Chicago and up the shore to Milwaukee,
      with a small plane drifting along it. Nothing here is cleared ground; it is just the plan. */
   (function drawFlight() {
-    if(z<6.2)return;
+    if(z<6.2||z>9.6)return;
     var fp = [], fi;
     for (fi = 0; fi < FLIGHT.length; fi++) fp.push(proj(FLIGHT[fi][0], FLIGHT[fi][1]));
     /* one control point per leg, bowed north so the hop arcs instead of ruling a line */
