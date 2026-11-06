@@ -123,7 +123,7 @@ function scenicGround(g) {
 function drawScenic() {
   var g = scenicCtx, z = S.zoom;
   g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
-  if (!TER.on) return;
+  if (!TER.on) { drawCityGround(g); return; }
   scenicGround(g);
   scenicCoast(g);
   var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
@@ -134,6 +134,7 @@ function drawScenic() {
   scenicVegetation(g,tl,br,.42,(1-regional)*Math.max(0,Math.min(1,(z-4.5)/1.3)),120,false);
   scenicVegetation(g,tl,br,.105,(1-local)*regional,145,false);
   scenicVegetation(g,tl,br,.012,local,500,true);
+  drawCityGround(g);
   if(z<9.3){
     [[35.6,-83.5],[37.1,-80.3],[38.5,-79.4],[40.0,-77.7],[41.8,-75.3],
       [36.5,-106.1],[39.3,-106.3],[42.8,-109.2],[46.7,-112.1],[51.2,-116.4]].forEach(function(a){
@@ -165,6 +166,7 @@ function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
     var p = proj(lat,lng), r = scenicRand(gx,gy,73);
     if (p.x < -45 || p.x > W+45 || p.y < -45 || p.y > H+45) continue;
     var land = scenicLand(p.x,p.y), meadow = grove(lat,lng);
+    if(land&&cityZoneAt(lat,lng))continue;
     if (!land) {
       if (r < .23) { scenicMark(g,p.x,p.y,'#d7f3f2',8,2); scenicMark(g,p.x+4,p.y+4,'#8ad7ee',5,2); }
       if (r > .985) scenicBloom(g,p.x,p.y,5,false);

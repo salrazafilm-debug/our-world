@@ -2222,6 +2222,7 @@ function drawMapOverlays() {
   /* reserve the ground under each landmark first, so no town label lands on it */
   for (i = 0; i < LANDMARKS.length; i++) {
     var rl = LANDMARKS[i];
+    if(cityFind(rl[0]))continue; /* The city layer owns both distant and detailed views. */
     if (rl[0]!=='nyc' && !rl[8] && !isRevealed(rl[2], rl[3], 1.06)) continue;
     var rp2 = proj(rl[2], rl[3]);
     var rsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * (rl[6] || 1)));
@@ -2260,6 +2261,7 @@ function drawMapOverlays() {
   /* counties and city areas — the labels you see most of the time */
   var A = window.OW_AREAS;
   for (i = 0; i < A.length; i++) {
+    if(cityOwnsLabel(A[i][1],A[i][2]))continue;
     if (!isRevealed(A[i][1], A[i][2], 1.25)) continue;
     if (z < 9.8 && HB_PILLS[A[i][0]]) continue;          /* the home base draws its own name pills */
     p = proj(A[i][1], A[i][2]);
@@ -2272,6 +2274,7 @@ function drawMapOverlays() {
     var T = window.OW_TOWNS;
     for (i = 0; i < T.length; i++) {
       var t = T[i];
+      if(cityOwnsLabel(t[1],t[2]))continue;
       if (!isRevealed(t[1], t[2])) continue;
       p = proj(t[1], t[2]);
       if (p.x < -60 || p.y < -30 || p.x > W + 60 || p.y > H + 30) continue;
@@ -2353,6 +2356,7 @@ function drawMapOverlays() {
   for (i = 0; i < LANDMARKS.length; i++) {
     if(z<6.1)continue;
     var lm = LANDMARKS[i];
+    if(cityFind(lm[0]))continue;
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
@@ -3313,6 +3317,7 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
+  if(item.kind==='city'||item.kind==='cityplace'){cityOpenItem(item);return;}
   if (item.kind === 'mail') { mailOpen(); return; }
   if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
   if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
@@ -3602,7 +3607,7 @@ function openPlaces() {
       return '<button type="button" data-act="goto" data-lat="' + r.lat + '" data-lng="' + r.lng + '" data-z="' + r.z + '">' +
         '<span class="ico">' + r.ic + '</span><span><span class="t">' + esc(r.t) + '</span><br>' +
         '<span class="s">' + esc(r.s) + '</span></span></button>';
-    }).join('') + '</div>' +
+    }).join('') + '</div>' + cityAtlasList() +
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'
   );
 }
@@ -3895,6 +3900,182 @@ function drawArt(g, name, x, y, h, res, soft) {
   return { x: x - w / 2, y: y - hh, w: w, h: hh };
 }
 
+/* ---- features/city-data.js ---- */
+/* Curated public atlas locations. Coordinates are real landmark/park anchors;
+   street corridors are simplified and ordinary building blocks are illustrative.
+   None of these records are personal memories or discoveries. [lat,lng] order. */
+var CITY_ATLAS = [
+  {id:'dc',name:'Washington, DC',lat:38.892,lng:-77.030,z:14,icon:'city-capitol',kind:'civic',
+    bounds:[38.875,-77.060,38.918,-76.990],
+    streets:[
+      ['Constitution Avenue',[[38.8921,-77.052],[38.8921,-77.009]]],
+      ['Independence Avenue',[[38.8876,-77.052],[38.8876,-77.009]]],
+      ['Pennsylvania Avenue',[[38.8899,-77.0091],[38.8953,-77.0229],[38.8976,-77.0351]]],
+      ['14th Street',[[38.878,-77.0319],[38.916,-77.0319]]],
+      ['7th Street',[[38.879,-77.0219],[38.916,-77.0219]]],
+      ['17th Street',[[38.883,-77.0394],[38.908,-77.0394]]],
+      ['16th Street',[[38.900,-77.0365],[38.918,-77.0365]]],
+      ['Massachusetts Avenue',[[38.912,-77.043],[38.900,-77.017],[38.897,-77.007]]],
+      ['East Capitol Street',[[38.8898,-77.009],[38.8898,-76.990]]]
+    ],
+    parks:[{name:'National Mall',ring:[[38.8878,-77.0504],[38.8917,-77.0504],[38.8917,-77.0096],[38.8878,-77.0096]]},
+      {name:'Lafayette Square',ring:[[38.8993,-77.0383],[38.9015,-77.0383],[38.9015,-77.0348],[38.8993,-77.0348]]}],
+    water:[{name:'Reflecting Pool',ring:[[38.8890,-77.0481],[38.8897,-77.0481],[38.8897,-77.0411],[38.8890,-77.0411]]}],
+    landmarks:[
+      ['capitol','US Capitol',38.8899,-77.0091,'city-capitol',1.2],
+      ['whitehouse','White House',38.8977,-77.0365,'city-whitehouse',.9],
+      ['monument','Washington Monument',38.8895,-77.0353,'city-monument',1.15],
+      ['lincoln','Lincoln Memorial',38.8893,-77.0502,'city-lincoln',.9],
+      ['smithsonian','Smithsonian Castle',38.8888,-77.0259,'civic',.7],
+      ['airspace','Air and Space Museum',38.8882,-77.0199,'museum',.7],
+      ['union','Union Station',38.8971,-77.0064,'civic',.8]
+    ]},
+  {id:'nyc',name:'New York City',lat:40.751,lng:-73.984,z:13,icon:'story-nyc',kind:'metro',
+    bounds:[40.695,-74.025,40.810,-73.940],
+    streets:[
+      ['Broadway',[[40.704,-74.013],[40.718,-74.0035],[40.7308,-73.9925],[40.741,-73.989],[40.758,-73.9855],[40.7681,-73.9819]]],
+      ['Fifth Avenue',[[40.732,-73.9968],[40.7484,-73.9857],[40.7645,-73.973],[40.7968,-73.949]]],
+      ['Seventh Avenue',[[40.737,-74.0009],[40.7681,-73.9819]]],
+      ['Park Avenue',[[40.7405,-73.9868],[40.7757,-73.9575]]],
+      ['First Avenue',[[40.724,-73.9878],[40.786,-73.946]]],
+      ['Central Park West',[[40.7681,-73.9819],[40.8005,-73.9581]]],
+      ['34th Street',[[40.7560,-74.004],[40.7424,-73.9725]]],
+      ['42nd Street',[[40.7628,-74.0019],[40.7489,-73.968]]],
+      ['59th Street',[[40.7725,-73.9895],[40.7587,-73.9566]]],
+      ['14th Street',[[40.741,-74.0095],[40.7289,-73.9754]]]
+    ],
+    parks:[{name:'Central Park',ring:[[40.7681,-73.9819],[40.8005,-73.9581],[40.7968,-73.949],[40.7645,-73.973]]},
+      {name:'Washington Square Park',ring:[[40.7300,-73.9998],[40.7320,-73.9998],[40.7320,-73.9964],[40.7300,-73.9964]]}],water:[],
+    landmarks:[
+      ['liberty','Statue of Liberty',40.6892,-74.0445,'city-liberty',1.1],
+      ['empire','Empire State Building',40.7484,-73.9857,'city-empire',1.3],
+      ['chrysler','Chrysler Building',40.7516,-73.9755,'city-chrysler',1.1],
+      ['times','Times Square',40.7580,-73.9855,'metro',.9],
+      ['village','Greenwich Village',40.7336,-74.0027,'city-brownstones',.75],
+      ['grandcentral','Grand Central Terminal',40.7527,-73.9772,'civic',.7],
+      ['brooklyn','Brooklyn waterfront',40.7033,-73.9894,'city-brownstones',.75]
+    ]},
+  {id:'annapolis',name:'Annapolis',lat:38.9788,lng:-76.4885,z:14,icon:'city',kind:'harbor',bounds:[38.969,-76.505,38.990,-76.474],
+    streets:[['Main Street',[[38.9784,-76.4925],[38.9770,-76.4864]]],['Maryland Avenue',[[38.9793,-76.4906],[38.9823,-76.4862]]],['West Street',[[38.9780,-76.503],[38.9786,-76.4921]]],['Duke of Gloucester Street',[[38.9767,-76.4940],[38.9758,-76.4868]]]],
+    parks:[],water:[],landmarks:[['statehouse','Maryland State House',38.9788,-76.4909,'civic',.9],['naval','US Naval Academy',38.9846,-76.4841,'museum',.9],['dock','Annapolis City Dock',38.9770,-76.4864,'story-pier',.8]]},
+  {id:'baltimore',name:'Baltimore',lat:39.288,lng:-76.611,z:13,icon:'city',kind:'harbor',bounds:[39.274,-76.635,39.311,-76.590],
+    streets:[['Pratt Street',[[39.2860,-76.632],[39.2860,-76.594]]],['Charles Street',[[39.276,-76.6148],[39.309,-76.6154]]],['Light Street',[[39.275,-76.612],[39.289,-76.612]]],['Baltimore Street',[[39.2898,-76.632],[39.2898,-76.595]]]],
+    parks:[],water:[],landmarks:[['aquarium','National Aquarium',39.2859,-76.6083,'museum',.85],['camden','Camden Yards',39.2840,-76.6216,'stadium',1],['harbor','Inner Harbor',39.2847,-76.6107,'story-pier',.75]]},
+  {id:'philadelphia',name:'Philadelphia',lat:39.953,lng:-75.164,z:13,icon:'city',kind:'civic',bounds:[39.939,-75.190,39.977,-75.140],
+    streets:[['Market Street',[[39.9550,-75.185],[39.9491,-75.142]]],['Broad Street',[[39.940,-75.164],[39.973,-75.1625]]],['Benjamin Franklin Parkway',[[39.955,-75.166],[39.9656,-75.1809]]]],
+    parks:[],water:[],landmarks:[['hall','Philadelphia City Hall',39.9526,-75.1636,'civic',1],['independence','Independence Hall',39.9489,-75.1500,'civic',.8],['artmuseum','Philadelphia Museum of Art',39.9656,-75.1809,'museum',.9]]}
+  ,{id:'richmond',name:'Richmond',lat:37.539,lng:-77.439,z:13.5,icon:'city',kind:'civic',bounds:[37.526,-77.460,37.555,-77.416],
+    streets:[['Broad Street',[[37.550,-77.457],[37.536,-77.417]]],['Main Street',[[37.543,-77.455],[37.532,-77.422]]]],parks:[],water:[],landmarks:[['capitol','Virginia State Capitol',37.5388,-77.4336,'city-museum',.9],['station','Main Street Station',37.5317,-77.4291,'city-rowhouses',.8]]}
+  ,{id:'chicago',name:'Chicago',lat:41.883,lng:-87.628,z:12.8,icon:'city',kind:'metro',bounds:[41.865,-87.651,41.908,-87.612],
+    streets:[['Michigan Avenue',[[41.867,-87.6240],[41.902,-87.6246]]],['State Street',[[41.867,-87.6277],[41.902,-87.6282]]],['Wacker Drive',[[41.8869,-87.643],[41.8869,-87.625],[41.888,-87.618]]]],
+    parks:[{name:'Millennium Park',ring:[[41.8809,-87.6257],[41.8850,-87.6257],[41.8850,-87.6197],[41.8809,-87.6197]]}],water:[],
+    landmarks:[['willis','Willis Tower',41.8789,-87.6359,'city-towers',1.2],['art','Art Institute of Chicago',41.8796,-87.6237,'city-museum',.9],['navy','Navy Pier',41.8917,-87.6050,'story-pier',.9]]}
+  ,{id:'milwaukee',name:'Milwaukee',lat:43.037,lng:-87.905,z:13.2,icon:'story-lighthouse',kind:'harbor',bounds:[43.024,-87.926,43.056,-87.890],
+    streets:[['Wisconsin Avenue',[[43.0385,-87.923],[43.0385,-87.896]]],['Water Street',[[43.027,-87.908],[43.052,-87.909]]]],parks:[],water:[],
+    landmarks:[['market','Milwaukee Public Market',43.0340,-87.9067,'city-rowhouses',.8],['art','Milwaukee Art Museum',43.0400,-87.8970,'city-museum',.9],['light','Breakwater Lighthouse',43.0266,-87.8808,'story-lighthouse',.9]]}
+];
+
+/* ---- features/cities.js ---- */
+/* Cities unfold from one atlas silhouette into a walkable-looking district.
+   Public landmark anchors are factual; small background blocks are decorative. */
+var CITY_ART=['city-capitol','city-whitehouse','city-monument','city-lincoln','city-liberty','city-empire','city-chrysler','city-brownstones','city-rowhouses','city-towers','city-museum'];
+CITY_ART.forEach(artLoad);
+function cityDetail(z){return Math.max(0,Math.min(1,(z-10.2)/1.6));}
+function cityContains(c,lat,lng){var b=c.bounds;return lat>=b[0]&&lng>=b[1]&&lat<=b[2]&&lng<=b[3];}
+function cityZoneAt(lat,lng){return S.zoom>9.4&&CITY_ATLAS.some(function(c){return cityContains(c,lat,lng);});}
+function cityOwnsLabel(lat,lng){return S.zoom>6.5&&CITY_ATLAS.some(function(c){return cityContains(c,lat,lng);});}
+function cityRingHas(r,lat,lng){
+  var inside=false;
+  for(var i=0,j=r.length-1;i<r.length;j=i++)if((r[i][0]>lat)!==(r[j][0]>lat)&&lng<(r[j][1]-r[i][1])*(lat-r[i][0])/(r[j][0]-r[i][0])+r[i][1])inside=!inside;
+  return inside;
+}
+function cityOpenSpace(c,lat,lng){return c.parks.concat(c.water).some(function(p){return cityRingHas(p.ring,lat,lng);});}
+function cityBlockClear(c,p,size){
+  return [[0,0],[-size*.45,-size],[size*.45,-size],[0,-size*.5]].every(function(d){var a=unproj(p.x+d[0],p.y+d[1]);return !cityOpenSpace(c,a.lat,a.lng);});
+}
+function cityPath(g,points){g.beginPath();points.forEach(function(a,i){var p=proj(a[0],a[1]);if(i)g.lineTo(p.x,p.y);else g.moveTo(p.x,p.y);});}
+function cityShape(g,ring,fill){cityPath(g,ring);g.closePath();g.fillStyle=fill;g.fill();}
+function cityVisible(c){var a=proj(c.bounds[0],c.bounds[1]),b=proj(c.bounds[2],c.bounds[3]);return !(a.x>W+150||b.x<-150||a.y<-150||b.y>H+150)||c.landmarks.some(function(l){var p=proj(l[2],l[3]);return p.x>-100&&p.x<W+100&&p.y>-100&&p.y<H+150;});}
+function drawCityGround(g){
+  var alpha=cityDetail(S.zoom);if(alpha<.01)return;
+  CITY_ATLAS.forEach(function(c){
+    if(!cityVisible(c))return;
+    g.save();g.globalAlpha=alpha;
+    /* A quiet paved district surface separates urban blocks from countryside.
+       Feather its extent, and retain geographic water and park shapes. */
+    var cb=c.bounds;
+    for(var sy=0;sy<H;sy+=10)for(var sx=0;sx<W;sx+=10){
+      var at=unproj(sx,sy);if(!cityContains(c,at.lat,at.lng)||terrainAt(sx,sy)!=='land')continue;
+      var edge=Math.min((at.lat-cb[0])/(cb[2]-cb[0]),(cb[2]-at.lat)/(cb[2]-cb[0]),(at.lng-cb[1])/(cb[3]-cb[1]),(cb[3]-at.lng)/(cb[3]-cb[1]));
+      g.fillStyle='rgba(201,191,171,'+(Math.min(.8,edge*7))+')';g.fillRect(sx,sy,10,10);
+    }
+    /* Soft earth-colored street blocks leave the larger geographic land intact. */
+    var step=c.kind==='metro'?.0030:.0033,items=[];
+    var b=c.bounds,tl=unproj(-80,H+100),br=unproj(W+80,-100);
+    var minLat=Math.max(b[0],tl.lat),maxLat=Math.min(b[2],br.lat),minLng=Math.max(b[1],tl.lng),maxLng=Math.min(b[3],br.lng);
+    for(var gy=Math.floor(minLat/step);gy<=Math.ceil(maxLat/step);gy++)for(var gx=Math.floor(minLng/step);gx<=Math.ceil(maxLng/step);gx++){
+      var lat=(gy+.5)*step,lng=(gx+.5)*step,p=proj(lat,lng);
+      if(!cityContains(c,lat,lng)||cityOpenSpace(c,lat,lng)||terrainAt(p.x,p.y)!=='land'||scenicAvoid(p.x,p.y,12))continue;
+      var near=c.landmarks.some(function(l){var q=proj(l[2],l[3]);return Math.hypot(p.x-q.x,p.y-q.y)<12;});if(near)continue;
+      var seed=Math.floor(terHash(gx,gy,190)*1000),size=Math.max(30,Math.min(55,30+(S.zoom-11.4)*10));
+      if(seed%10>1||!cityBlockClear(c,p,size))continue;
+      items.push({x:p.x,y:p.y,size:size,seed:seed});
+    }
+    /* Thin evenly by a world seed before depth sorting; never truncate only
+       the northern rows of the city when limiting phone draw cost. */
+    if(items.length>260)items=items.sort(function(a,b){return a.seed-b.seed;}).slice(0,260);
+    items.sort(function(a,b){return a.y-b.y;});
+    /* Render the urban surface and its streets before the raised buildings. */
+    c.parks.forEach(function(p){cityShape(g,p.ring,'#86ae70');g.strokeStyle='#c5d49b';g.lineWidth=3;g.stroke();});
+    c.water.forEach(function(p){cityShape(g,p.ring,'#52b5ce');g.strokeStyle='#dce5b7';g.lineWidth=2;g.stroke();});
+    c.streets.forEach(function(s){cityPath(g,s[1]);g.strokeStyle='#b49d83';g.lineWidth=Math.max(4,Math.min(14,kmToPx(.035)));g.stroke();g.strokeStyle='#f0dfb8';g.lineWidth=Math.max(2,Math.min(10,kmToPx(.024)));g.stroke();});
+    items.forEach(function(it){var art=c.kind==='metro'?(it.seed%3?'city-towers':'city-brownstones'):'city-rowhouses';drawArt(g,art,it.x,it.y,it.size,1);});
+    /* Public parks get planted edges, while their interiors stay open. */
+    c.parks.forEach(function(p){for(var i=0;i<p.ring.length;i++){
+      var a=p.ring[i],b=p.ring[(i+1)%p.ring.length];
+      for(var t=.1;t<1;t+=.2){var q=proj(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t);drawArt(g,i%2?'story-oak':'story-cherry',q.x,q.y,Math.max(12,Math.min(28,12+(S.zoom-11)*5)),1);}
+    }});
+    g.restore();
+  });
+}
+function cityFind(id){return CITY_ATLAS.filter(function(c){return c.id===id;})[0];}
+function cityExplore(id){var c=cityFind(id);if(c){closeSheet();flyTo(c.lat,c.lng,c.z);}}
+ACTIONS['city-explore']=function(b){cityExplore(b.dataset.city);};
+function cityOpenItem(item){
+  var c=cityFind(item.city);if(!c)return;
+  if(item.kind==='city'){cityExplore(c.id);return;}
+  var l=c.landmarks.filter(function(l){return l[0]===item.id;})[0];if(!l)return;
+  openSheet(head(l[1],c.name)+'<p class="note">'+(c.id==='dc'?'A place along Washington’s civic streets and open parkland.':c.id==='nyc'?'One of the real places that make up New York’s neighborhoods.':'A public landmark in '+esc(c.name)+'.')+'</p><div class="sheet-actions"><button class="pxbtn" data-act="goto" data-lat="'+l[2]+'" data-lng="'+l[3]+'" data-z="14">Explore here</button><button class="pxbtn" data-act="close">Close</button></div>');
+}
+function cityAtlasList(){return '<h3 style="font-family:var(--fdisp)">Explore the atlas</h3><p class="hint">Cities to look around. Exploring the map does not record a visit.</p><div class="sheet-actions">'+CITY_ATLAS.map(function(c){return '<button class="pxbtn" data-act="city-explore" data-city="'+c.id+'">'+esc(c.name)+'</button>';}).join('')+'</div>';}
+HOOKS.beforePins.push(function(){
+  if(S.mode!=='map'||S.zoom<6.5)return;
+  var detail=cityDetail(S.zoom);
+  CITY_ATLAS.forEach(function(c){
+    if(!cityVisible(c))return;
+    var p=proj(c.lat,c.lng);
+    if(detail<1){
+      ctx.save();ctx.globalAlpha=1-detail;
+      var box=drawArt(ctx,c.icon,p.x,p.y,Math.max(40,Math.min(108,48+(S.zoom-7)*12)),DPR);ctx.restore();
+      if(box&&detail<.5){addHit(box,{kind:'city',city:c.id});tryLabel(p.x,box.y-5,c.name,{size:13,force:1,bg:'#fff0d9',border:'#b08b6c',fg:'#65424a'});}
+    }
+    if(detail<=0)return;
+    ctx.save();ctx.globalAlpha=detail;
+    c.landmarks.slice().sort(function(a,b){return b[2]-a[2];}).forEach(function(l){
+      var q=proj(l[2],l[3]);if(q.x<-100||q.x>W+100||q.y<-80||q.y>H+130)return;
+      var h=Math.round(Math.max(24,Math.min(c.kind==='metro'?105:78,26+(S.zoom-10.2)*18))*(l[5]||1)),box;
+      if(CITY_ART.indexOf(l[4])>=0||l[4]==='story-pier')box=drawArt(ctx,l[4],q.x,q.y,h,DPR);
+      else if(l[4]==='stadium'){
+        var w=h*1.2;ctx.fillStyle='#a18b85';ctx.fillRect(q.x-w/2,q.y-h*.5,w,h*.55);ctx.fillStyle='#72a475';ctx.fillRect(q.x-w*.35,q.y-h*.4,w*.7,h*.35);ctx.strokeStyle='#f5e6bd';ctx.lineWidth=2;ctx.strokeRect(q.x-w*.35,q.y-h*.4,w*.7,h*.35);box={x:q.x-w/2,y:q.y-h*.5,w:w,h:h*.55};
+      }else box=drawArt(ctx,l[4]==='metro'?'city-towers':'city-museum',q.x,q.y,h,DPR);
+      if(box&&detail>=.5){addHit(box,{kind:'cityplace',city:c.id,id:l[0]});if(q.x>70&&q.x<W-70)tryLabel(q.x,box.y-4,l[1],{size:13,fg:'#594150',bg:'#fff1db',border:'#c4a787'});}
+    });
+    ctx.restore();
+    if(S.zoom>11.7)c.parks.forEach(function(park){var a=park.ring,lat=0,lng=0;a.forEach(function(p){lat+=p[0];lng+=p[1];});var p=proj(lat/a.length,lng/a.length);if(p.x>0&&p.x<W&&p.y>60&&p.y<H-90)tryLabel(p.x,p.y,park.name,{size:13,bg:'#c9d5a2',fg:'#416342'});});
+    if(S.zoom>13)c.streets.forEach(function(s){var a=s[1][0],b=s[1][s[1].length-1],p=proj((a[0]+b[0])/2,(a[1]+b[1])/2);if(p.x>65&&p.x<W-65&&p.y>70&&p.y<H-100)tryLabel(p.x,p.y,s[0],{size:13,fg:'#745b4c',bg:'#f4e1bc'});});
+  });
+});
+
 /* ---- features/scenic.js ---- */
 /* Storybook scenery is anchored to geography, cached with the base map, and
    painted behind labels and interactive places. All ornament is decorative. */
@@ -4021,7 +4202,7 @@ function scenicGround(g) {
 function drawScenic() {
   var g = scenicCtx, z = S.zoom;
   g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
-  if (!TER.on) return;
+  if (!TER.on) { drawCityGround(g); return; }
   scenicGround(g);
   scenicCoast(g);
   var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
@@ -4032,6 +4213,7 @@ function drawScenic() {
   scenicVegetation(g,tl,br,.42,(1-regional)*Math.max(0,Math.min(1,(z-4.5)/1.3)),120,false);
   scenicVegetation(g,tl,br,.105,(1-local)*regional,145,false);
   scenicVegetation(g,tl,br,.012,local,500,true);
+  drawCityGround(g);
   if(z<9.3){
     [[35.6,-83.5],[37.1,-80.3],[38.5,-79.4],[40.0,-77.7],[41.8,-75.3],
       [36.5,-106.1],[39.3,-106.3],[42.8,-109.2],[46.7,-112.1],[51.2,-116.4]].forEach(function(a){
@@ -4063,6 +4245,7 @@ function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
     var p = proj(lat,lng), r = scenicRand(gx,gy,73);
     if (p.x < -45 || p.x > W+45 || p.y < -45 || p.y > H+45) continue;
     var land = scenicLand(p.x,p.y), meadow = grove(lat,lng);
+    if(land&&cityZoneAt(lat,lng))continue;
     if (!land) {
       if (r < .23) { scenicMark(g,p.x,p.y,'#d7f3f2',8,2); scenicMark(g,p.x+4,p.y+4,'#8ad7ee',5,2); }
       if (r > .985) scenicBloom(g,p.x,p.y,5,false);
