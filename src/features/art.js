@@ -6,7 +6,7 @@ var ART = {}, ARTSIZED = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
   var e = ART[name] = { ok: false }, im = new Image();
-  im.onload = function () { e.img = im; e.ok = true; if (typeof baseDirty !== 'undefined') baseDirty = true; };
+  im.onload = function () { e.img = im; e.ok = true; };
   im.onerror = function () { e.bad = true; };
   im.src = 'art/' + name + '.png';
   return e;
@@ -14,7 +14,6 @@ function artLoad(name) {
 ['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
-['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 
 function artSized(name, h, res) {
   var e = artLoad(name);

@@ -681,10 +681,6 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 .memphoto{cursor:zoom-in}
 .cal-item img{cursor:zoom-in}
-@media (max-width:720px){
-  #hop{bottom:calc(112px + env(safe-area-inset-bottom));max-width:min(270px,calc(100vw - 20px))}
-  #actions .row{margin-bottom:0}
-}
 </style>
 
 <script>document.body.classList.add('locked')</script>
@@ -1291,7 +1287,7 @@ var PARKS = [
 /* Places worth a proper icon. Drawn only once the area around them is cleared. */
 var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u2615', mountain: '\u26f0\ufe0f', sun: '\u2728', liberty: '\ud83d\uddfd', skyline: '\ud83c\udfd9\ufe0f', lighthouse: '\u26f5' };
 /* a few landmarks use the new art; the rest keep their pixel sprites */
-var LM_ART = { mountain: 'story-mountain', skyline: 'city', lighthouse: 'story-lighthouse' };
+var LM_ART = { mountain: 'mountain', skyline: 'city', lighthouse: 'lighthouse' };
 function lmDraw(type, x, y, sc) {
   var a = LM_ART[type];
   if (a) { var h = SP[type].length * sc * 1.5, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
@@ -2139,13 +2135,6 @@ function tryLabel(x, y, text, opts) {
   return true;
 }
 
-function homeDisplayPos(k, z) {
-  var h = HOMES[k], p = proj(h.lat, h.lng);
-  var t = Math.max(0, Math.min(1, (9.5-z)/1.2));
-  if (k === 'bruce') { p.x += 47*t; p.y += 23*t; }
-  else { p.x -= 33*t; p.y -= 30*t; }
-  return p;
-}
 function drawMapOverlays() {
   hitboxes = [];
   labelBoxes = [];
@@ -2191,7 +2180,7 @@ function drawMapOverlays() {
   }
 
   ['bruce', 'elena'].forEach(function (hk) {
-    var hh = HOMES[hk], hq = homeDisplayPos(hk, z);
+    var hh = HOMES[hk], hq = proj(hh.lat, hh.lng);
     var hsc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var hg = hk === 'elena' ? SP.castle : SP.cottage;
     var hw = homeArtH(z) * 1.15, hh2 = homeArtH(z) + 18;
@@ -2383,16 +2372,12 @@ function drawMapOverlays() {
   /* homes */
   HOMEBOXES = {};
   ['bruce', 'elena'].forEach(function (k) {
-    var h = HOMES[k]; var q = homeDisplayPos(k, z), actual = proj(h.lat,h.lng);
+    var h = HOMES[k]; var q = proj(h.lat, h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
-    if (z < 9.5) {
-      ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle = '#fff3d8'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(actual.x,actual.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.restore();
-    }
-    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'story-cottage', q.x, q.y, hz * 1.04, DPR)) ||
+    var box = (k === 'elena' ? drawArt(ctx, 'castle-pink', q.x, q.y, hz, DPR) : drawArt(ctx, 'cottage', q.x, q.y, hz * 0.84, DPR)) ||
       (k === 'elena'
         ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
         : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));
@@ -3797,7 +3782,7 @@ var ART = {}, ARTSIZED = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
   var e = ART[name] = { ok: false }, im = new Image();
-  im.onload = function () { e.img = im; e.ok = true; if (typeof baseDirty !== 'undefined') baseDirty = true; };
+  im.onload = function () { e.img = im; e.ok = true; };
   im.onerror = function () { e.bad = true; };
   im.src = 'art/' + name + '.png';
   return e;
@@ -3805,7 +3790,6 @@ function artLoad(name) {
 ['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
-['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 
 function artSized(name, h, res) {
   var e = artLoad(name);
@@ -3866,32 +3850,6 @@ function scenicAvoid(x, y, radius) {
   }
   return false;
 }
-function scenicClearing(g, place, radius, kind) {
-  var p = proj(place.lat, place.lng);
-  if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
-  g.fillStyle = kind === 'castle' ? '#e8d5a3' : '#e6d599';
-  g.beginPath(); g.ellipse(p.x, p.y-3, radius, radius*.30, 0, 0, 7); g.fill();
-  g.strokeStyle = '#bba773'; g.lineWidth = 3;
-  g.beginPath(); g.ellipse(p.x, p.y-3, radius, radius*.30, 0, .08, 3.07); g.stroke();
-  for (var i=0;i<7;i++) {
-    var a=(i/7)*6.283, x=p.x+Math.cos(a)*radius*.85, y=p.y+Math.sin(a)*radius*.25;
-    scenicBloom(g,x,y,4,i%2===0);
-  }
-}
-function scenicWaterfall(g, place) {
-  if (!isRevealed(place.lat,place.lng,1.1)) return;
-  var p=proj(place.lat,place.lng);
-  if (p.x<-60||p.x>W+60||p.y<-60||p.y>H+60) return;
-  drawArt(g,'story-bridge',p.x,p.y+30,Math.max(42,Math.min(95,30+S.zoom*6)),1);
-}
-function scenicPier(g, place) {
-  var p=proj(place.lat,place.lng);
-  if (p.x<-80||p.x>W+80||p.y<-80||p.y>H+80) return;
-  var shore=null;
-  for(var i=24;i<78;i+=6) if(terrainAt(p.x+i,p.y+i*.36)==='water'){shore={x:p.x+i,y:p.y+i*.36};break;}
-  if(!shore)return;
-  drawArt(g,'story-pier',shore.x+20,shore.y+25,S.zoom>9.3?76:48,1);
-}
 function scenicMark(g, x, y, color, w, h) {
   g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), w, h);
 }
@@ -3931,26 +3889,11 @@ function drawScenic() {
   scenicCoast(g);
   var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
   var local = Math.max(0, Math.min(1, (z - 8.9) / 1.15));
-  /* Two persistent grids fade across the regional/local transition. */
-  scenicVegetation(g,tl,br,.105,1-local,145,false);
-  scenicVegetation(g,tl,br,.026,local,420,true);
-  if (z > 9) {
-    scenicClearing(g,HOMES.bruce,Math.min(56,homeArtH(z)*.52),'cottage');
-    scenicClearing(g,HOMES.elena,Math.min(62,homeArtH(z)*.55),'castle');
-    scenicPier(g,HOMES.bruce);
-  }
-  if (z > 8) {
-    scenicWaterfall(g,{lat:41.1165,lng:-75.0121});
-    scenicWaterfall(g,{lat:38.9976,lng:-77.2530});
-  }
-}
-function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
-  if(alpha<.01)return;
-  g.save(); g.globalAlpha=alpha;
+  var cell = z < 9.2 ? .105 : .026;
   var y0 = Math.floor(Math.min(tl.lat, br.lat) / cell), y1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
   var x0 = Math.floor(Math.min(tl.lng, br.lng) / cell), x1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
-  if ((y1-y0+1)*(x1-x0+1) > 7500) {g.restore();return;}
-  var items = [], z=S.zoom, local=Math.max(0,Math.min(1,(z-8.9)/1.15));
+  if ((y1-y0+1)*(x1-x0+1) > 7500) return;
+  var items = [], cap = z < 9.2 ? 280 : 420;
   for (var gy = y0; gy <= y1; gy++) for (var gx = x0; gx <= x1; gx++) {
     var lat = (gy + .25 + scenicRand(gx,gy,71)*.5)*cell;
     var lng = (gx + .25 + scenicRand(gx,gy,72)*.5)*cell;
@@ -3968,21 +3911,15 @@ function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
       scenicMark(g,p.x+3,p.y+2,'#bbd47b',8,2);
     }
     if (r > .71 && r < .87) scenicBloom(g,p.x,p.y,4+local*2,r>.78);
-    var density = Math.max(.05, Math.min(fine?.78:.32, meadow*(fine?.77:.34)));
+    var density = Math.max(.08, Math.min(.78, meadow*.77));
     if (r < density) {
-      var h = (fine ? 27 + 15*local : 17 + z*1.3) * (.8+scenicRand(gx,gy,74)*.4);
+      var h = (z < 9.2 ? 17 + z*1.3 : 20 + 12*local) * (.8+scenicRand(gx,gy,74)*.4);
       items.push({x:p.x,y:p.y,h:h,blossom:scenicRand(gx,gy,75)<(local>.3?.24:.17),key:scenicRand(gx,gy,76)});
     }
   }
   if (items.length > cap) items = items.filter(function (it) { return it.key < cap / items.length; });
   items.sort(function (a,b) { return a.y-b.y; });
-  items.forEach(function (it) {
-    if (fine) {
-      var kind=it.blossom?'story-cherry':(it.key<.48?'story-pine':'story-oak');
-      drawArt(g,kind,it.x,it.y,Math.round(it.h/4)*4,1);
-    } else scenicTree(g,it.x,it.y,it.h,it.blossom);
-  });
-  g.restore();
+  items.forEach(function (it) { scenicTree(g,it.x,it.y,it.h,it.blossom); });
 }
 
 /* ---- features/homebase.js ---- */
@@ -3992,7 +3929,7 @@ function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
    out in the parts we have not explored yet. */
 
 var HOMEBASE = [
-  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'story-mountain', scale: 1.05 }
+  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'mountain', scale: 1.05 }
 ];
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
@@ -6196,7 +6133,7 @@ HOOKS.beforePins.push(function () {
     g.addColorStop(0, 'rgba(255,214,140,.55)'); g.addColorStop(1, 'rgba(255,214,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.45, w * 0.55, 0, 6.283); ctx.fill();
   }
-  var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
+  var box = drawArt(ctx, 'mail/postoffice', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
     if (unread) {                                          /* the floating envelope with a red dot */

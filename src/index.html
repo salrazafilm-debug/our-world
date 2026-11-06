@@ -642,10 +642,6 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 .memphoto{cursor:zoom-in}
 .cal-item img{cursor:zoom-in}
-@media (max-width:720px){
-  #hop{bottom:calc(112px + env(safe-area-inset-bottom));max-width:min(270px,calc(100vw - 20px))}
-  #actions .row{margin-bottom:0}
-}
 </style>
 
 <script>document.body.classList.add('locked')</script>
@@ -815,7 +811,7 @@ var PARKS = [
 /* Places worth a proper icon. Drawn only once the area around them is cleared. */
 var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u2615', mountain: '\u26f0\ufe0f', sun: '\u2728', liberty: '\ud83d\uddfd', skyline: '\ud83c\udfd9\ufe0f', lighthouse: '\u26f5' };
 /* a few landmarks use the new art; the rest keep their pixel sprites */
-var LM_ART = { mountain: 'story-mountain', skyline: 'city', lighthouse: 'story-lighthouse' };
+var LM_ART = { mountain: 'mountain', skyline: 'city', lighthouse: 'lighthouse' };
 function lmDraw(type, x, y, sc) {
   var a = LM_ART[type];
   if (a) { var h = SP[type].length * sc * 1.5, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
@@ -1663,13 +1659,6 @@ function tryLabel(x, y, text, opts) {
   return true;
 }
 
-function homeDisplayPos(k, z) {
-  var h = HOMES[k], p = proj(h.lat, h.lng);
-  var t = Math.max(0, Math.min(1, (9.5-z)/1.2));
-  if (k === 'bruce') { p.x += 47*t; p.y += 23*t; }
-  else { p.x -= 33*t; p.y -= 30*t; }
-  return p;
-}
 function drawMapOverlays() {
   hitboxes = [];
   labelBoxes = [];
@@ -1715,7 +1704,7 @@ function drawMapOverlays() {
   }
 
   ['bruce', 'elena'].forEach(function (hk) {
-    var hh = HOMES[hk], hq = homeDisplayPos(hk, z);
+    var hh = HOMES[hk], hq = proj(hh.lat, hh.lng);
     var hsc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var hg = hk === 'elena' ? SP.castle : SP.cottage;
     var hw = homeArtH(z) * 1.15, hh2 = homeArtH(z) + 18;
@@ -1907,16 +1896,12 @@ function drawMapOverlays() {
   /* homes */
   HOMEBOXES = {};
   ['bruce', 'elena'].forEach(function (k) {
-    var h = HOMES[k]; var q = homeDisplayPos(k, z), actual = proj(h.lat,h.lng);
+    var h = HOMES[k]; var q = proj(h.lat, h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
-    if (z < 9.5) {
-      ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle = '#fff3d8'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(actual.x,actual.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.restore();
-    }
-    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'story-cottage', q.x, q.y, hz * 1.04, DPR)) ||
+    var box = (k === 'elena' ? drawArt(ctx, 'castle-pink', q.x, q.y, hz, DPR) : drawArt(ctx, 'cottage', q.x, q.y, hz * 0.84, DPR)) ||
       (k === 'elena'
         ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
         : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));
