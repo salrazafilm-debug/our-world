@@ -2113,8 +2113,8 @@ function zoomBy(d, at) {
     draw(); return;
   }
   var before = at ? unproj(at.x, at.y) : null;
-  var nz = Math.max(4.6, Math.min(14.5, S.zoom + d * 3));
-  if (nz <= 4.62 && d < 0) { if (performance.now() - lastModeSwitch < 350) return; enterGlobe(); return; }
+  var nz = Math.max(2.8, Math.min(14.5, S.zoom + d * 3));
+  if (nz <= 2.82 && d < 0) { if (performance.now() - lastModeSwitch < 350) return; enterGlobe(); return; }
   S.zoom = nz;
   if (before && at) {
     var after = unproj(at.x, at.y);

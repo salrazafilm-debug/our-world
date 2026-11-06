@@ -70,15 +70,33 @@ function scenicCoast(g) {
     if (terrainAt(x + 10, y + 4) === 'water') scenicMark(g, x + 8, y + 4, '#d8f5e7', 4, 2);
   }
 }
+/* Geographic relief is sampled in world coordinates, so its ridges and
+   meadows stay attached to the same ground through every camera movement. */
+function scenicGround(g) {
+  var z=S.zoom, step=6;
+  for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
+    if(!scenicLand(x,y))continue;
+    var p=unproj(x,y), n=terNoise(p.lng/.12,p.lat/.12), broad=terNoise(p.lng/.65,p.lat/.65);
+    var ridge=Math.sin(p.lng*13+p.lat*9+ broad*5)*.5+.5;
+    var shade=(n*.4+broad*.6);
+    g.fillStyle=shade>.62?'rgba(36,91,58,.20)':shade<.35?'rgba(243,220,133,.27)':'rgba(102,143,66,.08)';
+    g.fillRect(x,y,step,step);
+    if(ridge>.88&&broad>.5){g.fillStyle='rgba(49,86,66,.13)';g.fillRect(x,y+step-2,step,2);}
+  }
+}
 function drawScenic() {
   var g = scenicCtx, z = S.zoom;
   g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
-  if (z < 6.1 || !TER.on) return;
+  if (!TER.on) return;
+  scenicGround(g);
   scenicCoast(g);
   var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
   var local = Math.max(0, Math.min(1, (z - 8.9) / 1.15));
   /* Two persistent grids fade across the regional/local transition. */
-  scenicVegetation(g,tl,br,.105,1-local,145,false);
+  var regional=Math.max(0,Math.min(1,(z-6.8)/1.2));
+  scenicVegetation(g,tl,br,1.68,Math.max(0,Math.min(1,(6-z)/1.5)),100,false);
+  scenicVegetation(g,tl,br,.42,(1-regional)*Math.max(0,Math.min(1,(z-4.5)/1.3)),120,false);
+  scenicVegetation(g,tl,br,.105,(1-local)*regional,145,false);
   scenicVegetation(g,tl,br,.026,local,420,true);
   if (z > 9) {
     scenicClearing(g,HOMES.bruce,Math.min(56,homeArtH(z)*.52),'cottage');
