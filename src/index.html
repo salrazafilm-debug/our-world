@@ -81,6 +81,9 @@ input,textarea,select{font-size:16px}
 .pxbtn.gold{background:var(--softgold); color:#5A3B12; border-color:#9A6F22; box-shadow:0 4px 0 #9A6F22}
 .pxbtn[disabled]{opacity:.5; cursor:not-allowed; box-shadow:none; transform:none}
 
+/* The pixel font draws its joined "fi" shape wrongly ("first" -> "Arst"), so letters are never joined. */
+*,*::before,*::after{font-variant-ligatures:none !important; font-feature-settings:"liga" 0,"clig" 0 !important}
+
 #views{
   position:absolute; left:12px; top:12px; z-index:4;
   display:flex; flex-direction:column; gap:6px;
@@ -97,6 +100,7 @@ input,textarea,select{font-size:16px}
 #actions .pxbtn{font-size:12.5px}
 #actions .icon{width:44px;height:44px;padding:0;display:grid;place-items:center}
 #actions .icon svg{width:21px;height:21px}
+#actions .lbl{display:none}
 
 /* ---------- toast ---------- */
 #toasts{
@@ -449,9 +453,12 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 
 @media (max-width:720px){
   #views{flex-direction:row; left:10px; top:10px; gap:5px}
-  #views .pxbtn{min-width:0; padding:6px 8px; font-size:11px}
-  #zoomer{bottom:auto; top:54px; left:10px; flex-direction:row}
-  #zoomer .pxbtn{width:36px;height:36px}
+  #views .pxbtn{min-width:0; padding:8px 12px; font-size:13px}
+  #views .pxbtn:not([data-view="local"]){display:none}      /* phones: just Local; the other views stay on bigger screens */
+  #zoomer{display:none}                                       /* pinch to zoom on a phone */
+  #actions #btnLocate{display:none}                                    /* Find me lives in the Us menu on a phone */
+  #actions .icon{width:auto; min-width:44px; padding:0 12px; gap:7px; grid-auto-flow:column; align-items:center}
+  #actions .lbl{display:block; font-family:var(--fdisp); font-weight:600; font-size:13px; color:var(--berry)}
   #actions{left:10px; right:10px; bottom:10px; align-items:stretch}
   /* the icon buttons become a rail down the right edge, freeing the middle of the map */
   #actions .row{flex-direction:column; flex-wrap:nowrap; align-items:flex-end; align-self:flex-end}
@@ -660,10 +667,10 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
     <div id="actions">
       <div class="row">
         <button class="pxbtn icon" id="btnPlaces" title="Menu" aria-label="Menu">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="lbl">Menu</span>
         </button>
         <button class="pxbtn icon" id="btnMemory" title="Add something" aria-label="Add something">
-          <img class="px-ico" src="art/heart.png" alt="">
+          <img class="px-ico" src="art/heart.png" alt=""><span class="lbl">Add</span>
         </button>
         <button class="pxbtn icon" id="btnLocate" title="Find me" aria-label="Find me">
           <img class="px-ico" src="art/pin.png" alt="">
@@ -1970,6 +1977,7 @@ function draw() {
   if (!W) return;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.imageSmoothingEnabled = false;
+  if ('textRendering' in ctx) ctx.textRendering = 'optimizeSpeed';     /* no joined "fi" in map labels */
   ctx.clearRect(0, 0, W, H);
 
   if (S.mode === 'globe') {
@@ -2139,6 +2147,7 @@ function updateWhere() {
 /* ============================== toasts ============================== */
 function toast(msg, emoji, ms) {
   var wrap = document.getElementById('toasts');
+  if (innerWidth <= 720) wrap.innerHTML = '';          /* phones show one message at a time */
   var d = document.createElement('div');
   d.className = 'toast';
   d.innerHTML = '<span class="em"></span><span class="tx"></span>';
@@ -3177,7 +3186,7 @@ function setWho(k) {
   resize();
   startPresence();
   if (k === 'elena') showQuote();
-  else setTimeout(function () { toast('Welcome back to Our World, Bruce.', '\ud83d\uddfa\ufe0f', 3600); }, 500);
+  else setTimeout(function () { toast('Welcome back to Our World, Bruce.', '\ud83d\uddfa\ufe0f', 3000); }, 500);
 }
 [].forEach.call(document.querySelectorAll('.whobtn'), function (b) {
   b.addEventListener('click', function () { setWho(b.dataset.who); });

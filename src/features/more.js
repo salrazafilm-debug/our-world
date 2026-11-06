@@ -141,6 +141,7 @@ ACTIONS['mn-us'] = function () {
   var them = whoName(other(S.who)).replace('Princess ', '');
   subPage('Us', them + (PR.partner ? ' is online now' : ' is offline'),
     moreRow('together-map', '🏘️', 'Show us together', 'Both homes on one map') +
+    moreRow('find-me', '🧭', 'Find me', 'Clear the area where I am') +
     moreRow('share-loc', '📍', PR.mine.sharing ? 'Live location is on' : 'Share live location', PR.mine.sharing ? 'Tap to stop' : 'Meet on the map when you are both out') +
     moreRow('walk', '👣', WALK.rec ? 'Stop recording the walk' : 'Record a walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : 'Warms up our heat trail') +
     moreRow('avatars', '👗', 'Outfits', 'Change what you are wearing') +
@@ -181,6 +182,7 @@ ACTIONS['add-memory'] = function () { startPlacing('memory'); };
 ACTIONS['add-letter'] = function () { startPlacing('surprise'); };
 ACTIONS['places'] = function () { openPlaces(); };
 ACTIONS['calendar'] = function () { closeSheet(); openCal(); };
+ACTIONS['find-me'] = function () { closeSheet(); document.getElementById('btnLocate').click(); };
 ACTIONS['together-map'] = function () { closeSheet(); document.getElementById('btnTogether').click(); };
 ACTIONS['discover-here'] = function () { closeSheet(); document.getElementById('btnHere').click(); };
 ACTIONS['trees-toggle'] = function () {
