@@ -46,7 +46,7 @@ HOOKS.beforePins.push(function () {
     g.addColorStop(0, 'rgba(255,214,140,.55)'); g.addColorStop(1, 'rgba(255,214,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.45, w * 0.55, 0, 6.283); ctx.fill();
   }
-  var box = drawArt(ctx, 'mail/postoffice', p.x, p.y, h, DPR);
+  var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
     if (unread) {                                          /* the floating envelope with a red dot */
