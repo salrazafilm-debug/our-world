@@ -186,7 +186,7 @@ function drawSkyClouds(z, target) {
     edge = Math.max(0, Math.min(1, edge));
     if (edge > 0.38) continue;
     var w = Math.max(105, Math.min(230, px * (0.72 + terHash(gx, gy, cl.seed + 35) * 0.32)));
-    list.push({ x: p.x, y: p.y, h: w * 0.43, n: h0 < 0.13 ? 'cloud1' : 'cloud2', a: cl.a * (0.95 - 0.55 * edge) });
+    list.push({ x: p.x, y: p.y, h: w * 0.30, n: 'story-cloud', a: cl.a * (0.95 - 0.55 * edge) });
     }
   }
   list.sort(function (a, b) { return a.y - b.y; });

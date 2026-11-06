@@ -55,6 +55,7 @@ HOOKS.terrain.push(function () {
   }
   HBBOX = {};
   HOMEBASE.forEach(function (h) {
+    if(z<6.1)return;
     var p = proj(h.lat, h.lng);
     if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 80) return;
     var b = drawArt(ctx, h.art, p.x, p.y, homeArtH(z) * h.scale, DPR);
