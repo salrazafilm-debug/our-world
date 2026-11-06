@@ -493,7 +493,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 @media (max-width:720px){
   #views{flex-direction:row; left:10px; top:10px; gap:5px}
   #views .pxbtn{min-width:0; padding:8px 12px; font-size:13px}
-  #views .pxbtn:not([data-view="local"]):not([data-view="dmv"]){display:none}
+  #views .pxbtn:not([data-view="local"]){display:none}      /* phones: just Local; the other views stay on bigger screens */
   #zoomer{display:none}                                       /* pinch to zoom on a phone */
   #actions #btnLocate{display:none}                                    /* Find me lives in the Us menu on a phone */
   #actions .icon{width:auto; min-width:44px; padding:0 12px; gap:7px; grid-auto-flow:column; align-items:center}
@@ -508,26 +508,6 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
   #credits{display:none}
   #brand h1{font-size:20px}
   #where{display:none}
-}
-/* Storybook map HUD: compact controls leave the middle of the world visible. */
-#top{background:#fbe9da; border-bottom:4px solid var(--wood-dk); padding:7px 12px; box-shadow:inset 0 -3px #d79d84}
-#brand h1{font-family:var(--ftitle); color:var(--berry); text-shadow:2px 2px #fff4df}
-#brand h1 .w{color:var(--berry)}
-#views .pxbtn,#zoomer .pxbtn,#actions .pxbtn,#hop button{background:var(--cream); color:var(--berry-dk); border:3px solid var(--wood-dk); border-bottom-width:6px; box-shadow:none; clip-path:var(--px-step)}
-#views .pxbtn[aria-pressed="true"]{background:#f3c5d2; border-color:var(--berry-dk)}
-#actions>.primary{background:#a35b44; color:#fff5df; border-color:#573321; border-bottom-width:7px; padding:10px 16px}
-#actions>.primary:hover{background:#b56b4e}
-#hop{background:none; box-shadow:none}
-@media (max-width:720px){
-  #top{padding:6px 10px}
-  #brand h1{font-size:19px}
-  #views{top:9px; left:9px; gap:4px}
-  #views .pxbtn{font-size:13px; padding:7px 11px; min-width:65px; text-align:center}
-  #actions{bottom:calc(8px + env(safe-area-inset-bottom)); gap:5px}
-  #actions .row{flex-direction:row; align-self:flex-end; gap:5px}
-  #actions .icon{height:38px; padding:0 9px}
-  #actions>.primary{align-self:flex-end; font-size:13px; padding:8px 12px}
-  #hop{bottom:calc(100px + env(safe-area-inset-bottom)); left:9px; max-width:calc(100vw - 18px)}
 }
 @media (min-width:900px){
   #sheet{
@@ -1653,7 +1633,6 @@ function blobPath(ctx, cx, cy, r, radii) {
 /* ============================== canvas setup ============================== */
 var cv = document.getElementById('map'), ctx = cv.getContext('2d');
 var baseCv = document.createElement('canvas'), baseCtx = baseCv.getContext('2d');
-var scenicCv = document.createElement('canvas'), scenicCtx = scenicCv.getContext('2d');
 var fogCv  = document.createElement('canvas'), fogCtx  = fogCv.getContext('2d');
 var W = 0, H = 0, DPR = 1, baseDirty = true;
 var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1666,7 +1645,6 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   baseCv.width  = Math.max(1, Math.ceil(W / PIXEL));    baseCv.height = Math.max(1, Math.ceil(H / PIXEL));
-  scenicCv.width = Math.max(1, Math.ceil(W / 2)); scenicCv.height = Math.max(1, Math.ceil(H / 2));
   fogCv.width   = Math.max(1, Math.ceil(W / FOGPIXEL)); fogCv.height  = Math.max(1, Math.ceil(H / FOGPIXEL));
   baseDirty = true;
   draw();
@@ -2485,9 +2463,8 @@ function draw() {
     return;
   }
 
-  if (baseDirty) { drawBase(); runHooks('afterBase'); drawScenic(); }
+  if (baseDirty) { drawBase(); runHooks('afterBase'); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
-  ctx.drawImage(scenicCv, 0, 0, scenicCv.width, scenicCv.height, 0, 0, W, H);
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
@@ -3835,93 +3812,6 @@ function drawArt(g, name, x, y, h, res, soft) {
   return { x: x - w / 2, y: y - hh, w: w, h: hh };
 }
 
-/* ---- features/scenic.js ---- */
-/* Storybook scenery is anchored to geography, cached with the base map, and
-   painted behind labels and interactive places. All ornament is decorative. */
-window.OW_SCENIC = true;
-function scenicRand(a, b, seed) { return terHash(a, b, seed); }
-function scenicLand(x, y) { return terrainAt(x, y) === 'land'; }
-function scenicAvoid(x, y, radius) {
-  var places = [HOMES.bruce, HOMES.elena].concat(HOMEBASE).concat(
-    LANDMARKS.map(function (l) { return { lat: l[2], lng: l[3] }; }), S.memories, S.plans || []);
-  for (var i = 0; i < places.length; i++) {
-    var p = proj(places[i].lat, places[i].lng), dx = x - p.x, dy = (y - p.y) * 1.2;
-    if (dx * dx + dy * dy < radius * radius) return true;
-  }
-  return false;
-}
-function scenicMark(g, x, y, color, w, h) {
-  g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), w, h);
-}
-function scenicTree(g, x, y, h, blossom) {
-  var w = h * (blossom ? .95 : .66);
-  scenicMark(g, x - 2, y - h * .28, '#60452f', 4, h * .28);
-  g.fillStyle = '#384b3d'; g.beginPath(); g.ellipse(x + 2, y, w * .44, h * .075, 0, 0, 7); g.fill();
-  var cols = blossom ? ['#703e5a','#bd5c87','#ec8bb3','#ffd0df'] : ['#274f4c','#30735b','#4c9363','#8cba71'];
-  for (var i = 0; i < 4; i++) {
-    var yy = y - h * (.20 + i * .17), ww = w * (1 - i * .19);
-    scenicMark(g, x - ww / 2 - 2, yy - h * .12 + 3, cols[0], ww + 4, h * .17);
-    scenicMark(g, x - ww / 2, yy - h * .13, cols[1], ww, h * .16);
-    scenicMark(g, x - ww * .31, yy - h * .15, cols[2], ww * .48, h * .07);
-    scenicMark(g, x + ww * .14, yy - h * .08, cols[3], ww * .13, h * .035);
-  }
-}
-function scenicBloom(g, x, y, s, pink) {
-  scenicMark(g, x, y, '#37765b', 2, s + 2);
-  scenicMark(g, x - s / 2, y - 2, pink ? '#c85889' : '#f4cc78', s, 3);
-  scenicMark(g, x - 2, y - s / 2, pink ? '#f4a9c8' : '#ffe5a1', 3, s);
-  scenicMark(g, x, y, '#fff3d4', 2, 2);
-}
-function scenicCoast(g) {
-  /* A stepped, two-tone lip follows the actual geographic coast pixels. */
-  for (var y = 4; y < H - 4; y += 5) for (var x = 4; x < W - 4; x += 5) {
-    if (!scenicLand(x, y)) continue;
-    if (terrainAt(x + 7, y) !== 'water' && terrainAt(x, y + 7) !== 'water') continue;
-    scenicMark(g, x, y + 2, '#a36b4d', 5, 3);
-    scenicMark(g, x, y, '#e6ad71', 5, 2);
-    if (terrainAt(x + 10, y + 4) === 'water') scenicMark(g, x + 8, y + 4, '#d8f5e7', 4, 2);
-  }
-}
-function drawScenic() {
-  var g = scenicCtx, z = S.zoom;
-  g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
-  if (z < 6.1 || !TER.on) return;
-  scenicCoast(g);
-  var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
-  var local = Math.max(0, Math.min(1, (z - 8.9) / 1.15));
-  var cell = z < 9.2 ? .105 : .026;
-  var y0 = Math.floor(Math.min(tl.lat, br.lat) / cell), y1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
-  var x0 = Math.floor(Math.min(tl.lng, br.lng) / cell), x1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
-  if ((y1-y0+1)*(x1-x0+1) > 7500) return;
-  var items = [], cap = z < 9.2 ? 280 : 420;
-  for (var gy = y0; gy <= y1; gy++) for (var gx = x0; gx <= x1; gx++) {
-    var lat = (gy + .25 + scenicRand(gx,gy,71)*.5)*cell;
-    var lng = (gx + .25 + scenicRand(gx,gy,72)*.5)*cell;
-    var p = proj(lat,lng), r = scenicRand(gx,gy,73);
-    if (p.x < -45 || p.x > W+45 || p.y < -45 || p.y > H+45) continue;
-    var land = scenicLand(p.x,p.y), meadow = grove(lat,lng);
-    if (!land) {
-      if (r < .23) { scenicMark(g,p.x,p.y,'#d7f3f2',8,2); scenicMark(g,p.x+4,p.y+4,'#8ad7ee',5,2); }
-      if (r > .985) scenicBloom(g,p.x,p.y,5,false);
-      continue;
-    }
-    if (scenicAvoid(p.x,p.y,Math.max(56,homeArtH(z)*1.05))) continue;
-    if (r < .33) {
-      scenicMark(g,p.x-8,p.y-3,'#8ab967',13,3);
-      scenicMark(g,p.x+3,p.y+2,'#bbd47b',8,2);
-    }
-    if (r > .71 && r < .87) scenicBloom(g,p.x,p.y,4+local*2,r>.78);
-    var density = Math.max(.08, Math.min(.78, meadow*.77));
-    if (r < density) {
-      var h = (z < 9.2 ? 17 + z*1.3 : 20 + 12*local) * (.8+scenicRand(gx,gy,74)*.4);
-      items.push({x:p.x,y:p.y,h:h,blossom:scenicRand(gx,gy,75)<(local>.3?.24:.17),key:scenicRand(gx,gy,76)});
-    }
-  }
-  if (items.length > cap) items = items.filter(function (it) { return it.key < cap / items.length; });
-  items.sort(function (a,b) { return a.y-b.y; });
-  items.forEach(function (it) { scenicTree(g,it.x,it.y,it.h,it.blossom); });
-}
-
 /* ---- features/homebase.js ---- */
 /* The home base, drawn like the reference art: big homes with heart badges,
    Northern Virginia's mountains, name pills
@@ -4070,7 +3960,6 @@ function focusAt(y) {
 }
 
 HOOKS.terrain.push(function () {
-  if (window.OW_SCENIC) return;
   if (S.mode !== 'map' || !TER.on || !TER.px) return;
   var z = S.zoom;
   if (z < 5.8) return;
@@ -4191,7 +4080,7 @@ function drawSkyClouds(z, target) {
     var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
     for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
     var h0 = terHash(gx, gy, cl.seed + 31);
-    if (h0 > 0.26) continue;
+    if (h0 > 0.42) continue;
     var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
     var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
     var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
@@ -4201,9 +4090,9 @@ function drawSkyClouds(z, target) {
     var p = proj(lat, lng);
     var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
     edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.38) continue;
-    var w = Math.max(105, Math.min(230, px * (0.72 + terHash(gx, gy, cl.seed + 35) * 0.32)));
-    list.push({ x: p.x, y: p.y, h: w * 0.43, n: h0 < 0.13 ? 'cloud1' : 'cloud2', a: cl.a * (0.95 - 0.55 * edge) });
+    if (edge > 0.52) continue;
+    var w = Math.max(130, Math.min(280, px * (0.85 + terHash(gx, gy, cl.seed + 35) * 0.35)));
+    list.push({ x: p.x, y: p.y, h: w * 0.43, n: h0 < 0.22 ? 'cloud1' : 'cloud2', a: cl.a * (0.98 - 0.42 * edge) });
     }
   }
   list.sort(function (a, b) { return a.y - b.y; });
@@ -7194,7 +7083,7 @@ ACTIONS['together-map'] = function () { closeSheet(); document.getElementById('b
 ACTIONS['discover-here'] = function () { closeSheet(); document.getElementById('btnHere').click(); };
 ACTIONS['trees-toggle'] = function () {
   TER.on = !TER.on; try { localStorage.setItem('ow.terrain', TER.on ? 'on' : 'off'); } catch (e) {}
-  baseDirty = true; openMenu(); draw();
+  openMenu(); draw();
 };
 ACTIONS['atmos'] = openAtmos;
 ACTIONS['poster'] = savePoster;

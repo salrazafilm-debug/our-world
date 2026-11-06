@@ -53,7 +53,6 @@ function focusAt(y) {
 }
 
 HOOKS.terrain.push(function () {
-  if (window.OW_SCENIC) return;
   if (S.mode !== 'map' || !TER.on || !TER.px) return;
   var z = S.zoom;
   if (z < 5.8) return;
@@ -174,7 +173,7 @@ function drawSkyClouds(z, target) {
     var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
     for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
     var h0 = terHash(gx, gy, cl.seed + 31);
-    if (h0 > 0.26) continue;
+    if (h0 > 0.42) continue;
     var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
     var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
     var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
@@ -184,9 +183,9 @@ function drawSkyClouds(z, target) {
     var p = proj(lat, lng);
     var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
     edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.38) continue;
-    var w = Math.max(105, Math.min(230, px * (0.72 + terHash(gx, gy, cl.seed + 35) * 0.32)));
-    list.push({ x: p.x, y: p.y, h: w * 0.43, n: h0 < 0.13 ? 'cloud1' : 'cloud2', a: cl.a * (0.95 - 0.55 * edge) });
+    if (edge > 0.52) continue;
+    var w = Math.max(130, Math.min(280, px * (0.85 + terHash(gx, gy, cl.seed + 35) * 0.35)));
+    list.push({ x: p.x, y: p.y, h: w * 0.43, n: h0 < 0.22 ? 'cloud1' : 'cloud2', a: cl.a * (0.98 - 0.42 * edge) });
     }
   }
   list.sort(function (a, b) { return a.y - b.y; });

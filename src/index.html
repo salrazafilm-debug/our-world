@@ -454,7 +454,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 @media (max-width:720px){
   #views{flex-direction:row; left:10px; top:10px; gap:5px}
   #views .pxbtn{min-width:0; padding:8px 12px; font-size:13px}
-  #views .pxbtn:not([data-view="local"]):not([data-view="dmv"]){display:none}
+  #views .pxbtn:not([data-view="local"]){display:none}      /* phones: just Local; the other views stay on bigger screens */
   #zoomer{display:none}                                       /* pinch to zoom on a phone */
   #actions #btnLocate{display:none}                                    /* Find me lives in the Us menu on a phone */
   #actions .icon{width:auto; min-width:44px; padding:0 12px; gap:7px; grid-auto-flow:column; align-items:center}
@@ -469,26 +469,6 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
   #credits{display:none}
   #brand h1{font-size:20px}
   #where{display:none}
-}
-/* Storybook map HUD: compact controls leave the middle of the world visible. */
-#top{background:#fbe9da; border-bottom:4px solid var(--wood-dk); padding:7px 12px; box-shadow:inset 0 -3px #d79d84}
-#brand h1{font-family:var(--ftitle); color:var(--berry); text-shadow:2px 2px #fff4df}
-#brand h1 .w{color:var(--berry)}
-#views .pxbtn,#zoomer .pxbtn,#actions .pxbtn,#hop button{background:var(--cream); color:var(--berry-dk); border:3px solid var(--wood-dk); border-bottom-width:6px; box-shadow:none; clip-path:var(--px-step)}
-#views .pxbtn[aria-pressed="true"]{background:#f3c5d2; border-color:var(--berry-dk)}
-#actions>.primary{background:#a35b44; color:#fff5df; border-color:#573321; border-bottom-width:7px; padding:10px 16px}
-#actions>.primary:hover{background:#b56b4e}
-#hop{background:none; box-shadow:none}
-@media (max-width:720px){
-  #top{padding:6px 10px}
-  #brand h1{font-size:19px}
-  #views{top:9px; left:9px; gap:4px}
-  #views .pxbtn{font-size:13px; padding:7px 11px; min-width:65px; text-align:center}
-  #actions{bottom:calc(8px + env(safe-area-inset-bottom)); gap:5px}
-  #actions .row{flex-direction:row; align-self:flex-end; gap:5px}
-  #actions .icon{height:38px; padding:0 9px}
-  #actions>.primary{align-self:flex-end; font-size:13px; padding:8px 12px}
-  #hop{bottom:calc(100px + env(safe-area-inset-bottom)); left:9px; max-width:calc(100vw - 18px)}
 }
 @media (min-width:900px){
   #sheet{
@@ -1177,7 +1157,6 @@ function blobPath(ctx, cx, cy, r, radii) {
 /* ============================== canvas setup ============================== */
 var cv = document.getElementById('map'), ctx = cv.getContext('2d');
 var baseCv = document.createElement('canvas'), baseCtx = baseCv.getContext('2d');
-var scenicCv = document.createElement('canvas'), scenicCtx = scenicCv.getContext('2d');
 var fogCv  = document.createElement('canvas'), fogCtx  = fogCv.getContext('2d');
 var W = 0, H = 0, DPR = 1, baseDirty = true;
 var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1190,7 +1169,6 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   baseCv.width  = Math.max(1, Math.ceil(W / PIXEL));    baseCv.height = Math.max(1, Math.ceil(H / PIXEL));
-  scenicCv.width = Math.max(1, Math.ceil(W / 2)); scenicCv.height = Math.max(1, Math.ceil(H / 2));
   fogCv.width   = Math.max(1, Math.ceil(W / FOGPIXEL)); fogCv.height  = Math.max(1, Math.ceil(H / FOGPIXEL));
   baseDirty = true;
   draw();
@@ -2009,9 +1987,8 @@ function draw() {
     return;
   }
 
-  if (baseDirty) { drawBase(); runHooks('afterBase'); drawScenic(); }
+  if (baseDirty) { drawBase(); runHooks('afterBase'); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
-  ctx.drawImage(scenicCv, 0, 0, scenicCv.width, scenicCv.height, 0, 0, W, H);
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
@@ -3298,7 +3275,6 @@ function hydrateLocal() {
 }
 
 //#include features/art.js
-//#include features/scenic.js
 //#include features/homebase.js
 //#include features/terrain.js
 //#include features/beacon.js

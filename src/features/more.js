@@ -187,7 +187,7 @@ ACTIONS['together-map'] = function () { closeSheet(); document.getElementById('b
 ACTIONS['discover-here'] = function () { closeSheet(); document.getElementById('btnHere').click(); };
 ACTIONS['trees-toggle'] = function () {
   TER.on = !TER.on; try { localStorage.setItem('ow.terrain', TER.on ? 'on' : 'off'); } catch (e) {}
-  baseDirty = true; openMenu(); draw();
+  openMenu(); draw();
 };
 ACTIONS['atmos'] = openAtmos;
 ACTIONS['poster'] = savePoster;
