@@ -160,7 +160,7 @@ function drawSkyClouds(z, target) {
   var sky = target || ctx;
   var list = [];
   var cloudLayers = [
-    { cell: 0.32, a: 1, seed: 500 },
+    { cell: z<5.5?5.12:z<7?1.28:0.32, a: 1, seed: 500 },
     { cell: 0.08, a: Math.max(0, Math.min(1, (z - 9.1) / 1.2)), seed: 600 }
   ];
   for (var li = 0; li < cloudLayers.length; li++) {
@@ -174,7 +174,7 @@ function drawSkyClouds(z, target) {
     var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
     for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
     var h0 = terHash(gx, gy, cl.seed + 31);
-    if (h0 > 0.26) continue;
+    if (h0 > 0.52) continue;
     var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
     var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
     var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
@@ -184,8 +184,8 @@ function drawSkyClouds(z, target) {
     var p = proj(lat, lng);
     var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
     edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.38) continue;
-    var w = Math.max(105, Math.min(230, px * (0.72 + terHash(gx, gy, cl.seed + 35) * 0.32)));
+    if (edge > 0.68) continue;
+    var w = Math.max(190, Math.min(360, px * (0.9 + terHash(gx, gy, cl.seed + 35) * 0.32)));
     list.push({ x: p.x, y: p.y, h: w * 0.30, n: 'story-cloud', a: cl.a * (0.95 - 0.55 * edge) });
     }
   }

@@ -42,6 +42,7 @@ function agoText(ts) {
 /* ---------- the little status pill ---------- */
 var partnerChip = document.getElementById('partnerchip'), partnerNam = document.getElementById('partnernam');
 function paintPartner() {
+  paintAvatarDock();
   if (!S.who || !window.OWCloud || !OWCloud.configured) { partnerChip.hidden = true; return; }
   var them = other(S.who), n = whoName(them).replace('Princess ', '');
   partnerChip.hidden = false;
@@ -50,6 +51,18 @@ function paintPartner() {
   if (on) partnerNam.textContent = n + (PR.partner.sharing ? ' · live' : ' · online');
   else partnerNam.textContent = n + ' · offline' + (PR.seen[them] ? ' · ' + agoText(PR.seen[them]) : '');
 }
+function paintAvatarDock(){
+  document.querySelectorAll('#avatarDock [data-explorer]').forEach(function(b){
+    var who=b.dataset.explorer;
+    var online=who===S.who?!!(window.OWCloud&&OWCloud.configured):!!PR.partner;
+    b.classList.toggle('online',online);
+    b.setAttribute('aria-label',jrShortName(who)+(online?' · online':' · offline'));
+    b.title=b.getAttribute('aria-label');
+  });
+}
+document.querySelectorAll('#avatarDock [data-explorer]').forEach(function(b){
+  b.addEventListener('click',function(){openAvatarInfo(b.dataset.explorer);});
+});
 partnerChip.addEventListener('click', function () {
   var them = other(S.who);
   openSheet(head(whoName(them), PR.partner ? 'online right now' : 'offline') +
@@ -189,7 +202,16 @@ function besideHomes(x, y, w) {
   return x;
 }
 function drawFigure(who, x, y, h) {
-  return drawAvatar(ctx, who, besideHomes(x, y, avWidth(who, h)), y, h, null, { res: DPR });
+  var pt=avatarGroundPoint(besideHomes(x,y,avWidth(who,h)),y,avWidth(who,h));
+  return pt?drawAvatar(ctx,who,pt.x,pt.y,h,null,{res:DPR}):null;
+}
+function avatarGroundPoint(x,y,w) {
+  var candidates=[[0,0],[-w,0],[-w*1.6,0],[0,18],[-w,18],[w,0],[0,-18]];
+  for(var i=0;i<candidates.length;i++){
+    var xx=x+candidates[i][0],yy=y+candidates[i][1];
+    if(terrainAt(xx,yy)==='land'&&terrainAt(xx-w*.25,yy)==='land'&&terrainAt(xx+w*.25,yy)==='land')return{x:xx,y:yy};
+  }
+  return null;
 }
 HOOKS.afterOverlays.push(function () {
   if (S.mode !== 'map' || !S.who || !AV_ON) return;
@@ -201,7 +223,8 @@ HOOKS.afterOverlays.push(function () {
     var mid = midpoint(), g = worldGlide('pair', mid.lat, mid.lng);
     pt = proj(g.lat, g.lng);
     var pw = avWidth('bruce', h) + avWidth('elena', h);
-    box = drawTogetherPair(ctx, besideHomes(pt.x, pt.y, pw), pt.y, h, DPR);
+    var pairGround=avatarGroundPoint(besideHomes(pt.x,pt.y,pw),pt.y,pw);
+    box = pairGround?drawTogetherPair(ctx,pairGround.x,pairGround.y,h,DPR):null;
     if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(box.x + box.w / 2, box.y - 2, 'Together'); }
     return;
   }
@@ -216,8 +239,9 @@ HOOKS.afterOverlays.push(function () {
     } else if (online && HOMEBOXES[who] && S.zoom > 8.6) {
       /* waiting at home: standing beside the house, on its ground line, never moving */
       var hb = HOMEBOXES[who], w = avWidth(who, h);
-      var x = who === 'elena' ? hb.x - w / 2 - 1 : hb.x + hb.w + w / 2 + 1;
-      box = drawAvatar(ctx, who, x, hb.baseY, h, null, { res: DPR });
+      var x = hb.x - w / 2 - 6;
+      var ground=avatarGroundPoint(x,hb.baseY,w);
+      box = ground?drawAvatar(ctx, who, ground.x, ground.y, h, null, { res: DPR }):null;
       if (box) addHit(box, { kind: 'avatar', who: who });
     }
   });

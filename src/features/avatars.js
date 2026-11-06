@@ -132,7 +132,7 @@ function drawTogetherPair(g, x, y, h, res) {
       b = drawAvatar(g, 'elena', x + we / 2 + gap, y, h, null, { res: res, lift: 0 });
   if (!a || !b) return null;
   var bob = 0;
-  drawSprite(g, SP.heart, PAL.heartP, x, Math.round(y - h - 3 + bob), Math.max(1, Math.min(4, Math.round(h / 40))), '#FFFFFF');
+  /* The shared heart belongs between the homes, rather than above each pair. */
   return { x: a.x, y: a.y - 8, w: b.x + b.w - a.x, h: h + 8 };
 }
 /* a slow breath while standing still */

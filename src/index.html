@@ -454,7 +454,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 @media (max-width:720px){
   #views{flex-direction:row; left:10px; top:10px; gap:5px}
   #views .pxbtn{min-width:0; padding:8px 12px; font-size:13px}
-  #views .pxbtn:not([data-view="local"]):not([data-view="dmv"]){display:none}
+  #views .pxbtn[data-view="space"]{display:none}
   #zoomer{display:none}                                       /* pinch to zoom on a phone */
   #actions #btnLocate{display:none}                                    /* Find me lives in the Us menu on a phone */
   #actions .icon{width:auto; min-width:44px; padding:0 12px; gap:7px; grid-auto-flow:column; align-items:center}
@@ -642,8 +642,28 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 .memphoto{cursor:zoom-in}
 .cal-item img{cursor:zoom-in}
+#top{display:grid;grid-template-columns:94px minmax(0,1fr) 94px;gap:8px;align-items:center;padding:8px 12px;background:#f8e8d1;border-bottom:3px solid #634439}
+#avatarDock{display:flex;gap:6px}
+#avatarDock button{width:42px;height:46px;border:3px solid #755343;background:#e4d1b9;padding:1px;position:relative;box-shadow:0 3px #4b3540;clip-path:var(--px-step);overflow:hidden}
+#avatarDock img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;image-rendering:pixelated;filter:grayscale(1);opacity:.32}
+#avatarDock button.online{background:#fff0d9;border-color:#a66f51}
+#avatarDock button.online img{filter:none;opacity:1}
+#brand{justify-content:center}#brand h1{font-size:20px}#brand .crown,#where,#mechip{display:none}
+#topright{margin:0;justify-self:end}#worldchip{width:34px;height:34px;min-width:34px;padding:0;justify-content:center;border:2px solid #86614a;background:#fff0d9}
+#worldnam{display:none}#partnerchip{display:none!important}
+#views{left:50%;transform:translateX(-50%);top:12px;flex-direction:row;gap:0;padding:3px;background:#624538;max-width:calc(100% - 24px)}
+#views .pxbtn{min-width:65px;height:38px;text-align:center;border:0;border-bottom:3px solid #b98b69;clip-path:none;padding:8px 12px;font-size:13px}
+#views .pxbtn[aria-pressed=true]{background:#e7b2c3;border-bottom-color:#8e3a57}
+#actions{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:8px;align-items:stretch;max-width:520px;margin:auto}
+#actions .row{display:contents}#actions .icon,#actions>.primary{height:46px;width:100%;min-width:0;margin:0;padding:0 8px;font-size:13px;align-self:stretch;display:flex;justify-content:center;align-items:center;gap:6px}
+#actions #btnPlaces{grid-column:1;grid-row:1}#actions>.primary{grid-column:2;grid-row:1;background:#966249}
+#actions #btnMemory{grid-column:3;grid-row:1}#actions #btnLocate{display:none}#actions .lbl{display:inline}
+#actions .px-ico,#actions svg{display:none}
+#hop{bottom:calc(76px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:520px;display:grid;grid-template-columns:42px 1fr 42px;box-sizing:border-box}
+#hop button{height:40px;font-size:13px}#hopName{justify-content:center}
 @media (max-width:720px){
-  #hop{bottom:calc(112px + env(safe-area-inset-bottom));max-width:min(270px,calc(100vw - 20px))}
+  #hop{bottom:calc(76px + env(safe-area-inset-bottom));max-width:calc(100% - 24px);left:50%;transform:translateX(-50%)}
+  #views .pxbtn[data-view=earth]{display:block}#views .pxbtn[data-view=space]{display:none}
   #actions .row{margin-bottom:0}
 }
 </style>
@@ -651,6 +671,10 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 <script>document.body.classList.add('locked')</script>
 <div id="app">
   <header id="top">
+    <div id="avatarDock" aria-label="Who is in our world">
+      <button type="button" data-explorer="bruce" aria-label="Bruce · offline"><img src="avatars/bruce.png" alt="Bruce"></button>
+      <button type="button" data-explorer="elena" aria-label="Elena · offline"><img src="avatars/elena.png" alt="Elena"></button>
+    </div>
     <div id="brand">
       <h1><img class="crown" src="art/crown.png" alt="" width="34" height="26">Our <span class="w">World</span></h1>
       <span id="where">Loading the map&hellip;</span>
@@ -704,7 +728,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
         <button id="btnHere" type="button"></button><button id="btnCalendar" type="button"></button><button id="btnTogether" type="button"></button>
         <button id="btnSurprise" type="button"></button><button id="btnMore" type="button"></button>
       </div>
-      <button class="pxbtn primary" id="btnDiscover">Discover this area ✦</button>
+      <button class="pxbtn primary" id="btnDiscover">Discover ✦</button>
     </div>
 
     <div id="placing">
@@ -815,7 +839,7 @@ var PARKS = [
 /* Places worth a proper icon. Drawn only once the area around them is cleared. */
 var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u2615', mountain: '\u26f0\ufe0f', sun: '\u2728', liberty: '\ud83d\uddfd', skyline: '\ud83c\udfd9\ufe0f', lighthouse: '\u26f5' };
 /* a few landmarks use the new art; the rest keep their pixel sprites */
-var LM_ART = { mountain: 'story-mountain', skyline: 'city', lighthouse: 'story-lighthouse' };
+var LM_ART = { liberty: 'story-nyc', mountain: 'story-mountain', skyline: 'city', lighthouse: 'story-lighthouse' };
 function lmDraw(type, x, y, sc) {
   var a = LM_ART[type];
   if (a) { var h = SP[type].length * sc * 1.5, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
@@ -1678,9 +1702,11 @@ function tryLabel(x, y, text, opts) {
 
 function homeDisplayPos(k, z) {
   var h = HOMES[k], p = proj(h.lat, h.lng);
-  var t = Math.max(0, Math.min(1, (9.5-z)/1.2));
-  if (k === 'bruce') { p.x += 47*t; p.y += 23*t; }
-  else { p.x -= 33*t; p.y -= 30*t; }
+  /* Homes stay on Maryland's western shore. Never spread them east across
+     the bay to make room for labels. The geographic coordinate is unchanged. */
+  if (terrainAt(p.x,p.y)!=='land') {
+    for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){p.x-=dx;break;}
+  }
   return p;
 }
 function drawMapOverlays() {
@@ -1720,7 +1746,7 @@ function drawMapOverlays() {
   /* reserve the ground under each landmark first, so no town label lands on it */
   for (i = 0; i < LANDMARKS.length; i++) {
     var rl = LANDMARKS[i];
-    if (!rl[8] && !isRevealed(rl[2], rl[3], 1.06)) continue;
+    if (rl[0]!=='nyc' && !rl[8] && !isRevealed(rl[2], rl[3], 1.06)) continue;
     var rp2 = proj(rl[2], rl[3]);
     var rsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * (rl[6] || 1)));
     var gr = SP[rl[4]], gw = gr[0].length * rsc, gh = gr.length * rsc;
@@ -1854,7 +1880,7 @@ function drawMapOverlays() {
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
-    if (!planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
+    if (lm[0]!=='nyc' && !planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
@@ -1914,14 +1940,14 @@ function drawMapOverlays() {
       ctx.beginPath(); ctx.arc(p.x, p.y - 8 * lsc, 11 * lsc, 0, 7); ctx.fill();
     }
     var lb = lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc);
-    if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 12, fg: C.deep, border: C.gold, force: 1 });
+    if (z > 9.6 || lm[0]==='nyc') tryLabel(p.x, lb.y - 2, lm[1], { size: 13, fg: C.deep, border: C.gold, force: 1 });
     labelBoxes.push({ x: lb.x - 4, y: lb.y - 4, w: lb.w + 8, h: lb.h + 8 });
     addHit({ x: lb.x - 8, y: lb.y - 20, w: lb.w + 16, h: lb.h + 26 }, { kind: 'landmark', id: lm[0] });
   }
 
   /* homes */
   HOMEBOXES = {};
-  ['bruce', 'elena'].forEach(function (k) {
+  ['elena', 'bruce'].forEach(function (k) {
     if(z<6.1)return;
     var h = HOMES[k]; var q = homeDisplayPos(k, z), actual = proj(h.lat,h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
@@ -1969,7 +1995,7 @@ function drawMapOverlays() {
     pinSeen[pk] = pi + 1;
     if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; var pr = z > 9.2 ? 46 : 24; p = { x: p.x + Math.cos(pa) * pr, y: p.y + Math.sin(pa) * pr }; }
     if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
-    var b = polaroidPin(m, p, z) || drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
+    var b = polaroidPin(m, p, z) || drawSprite(ctx, SP.mapPin, PAL.mapPin, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
     addHit({ x: b.x - 7, y: b.y - 7, w: b.w + 14, h: b.h + 14 }, { kind: 'memory', id: m.id });
   }
 
@@ -1990,7 +2016,7 @@ function drawMapOverlays() {
       p = proj(st[2], st[3]);
       if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
       ctx.globalAlpha = 0.62;
-      var sb = drawSprite(ctx, SP.heart, PAL.heartG, p.x, p.y, 2, '#FFFFFF');
+      var sb = drawSprite(ctx, SP.mapPin, PAL.mapPin, p.x, p.y, 2, '#FFFFFF');
       ctx.globalAlpha = 1;
       ctx.save();
       ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(159,61,109,.5)'; ctx.lineWidth = 2;
@@ -3069,7 +3095,7 @@ function renderHop() {
   var rows = placesList(), n = rows.length;
   var nameEl = document.getElementById('hopName');
   if (!n) { document.getElementById('hop').style.display = 'none'; return; }
-  document.getElementById('hop').style.display = 'flex';
+  document.getElementById('hop').style.display = 'grid';
   if (hopIdx >= n) hopIdx = 0;
   nameEl.innerHTML = '<span class="ic">' + rows[hopIdx].ic + '</span><span>' + esc(rows[hopIdx].t) + '</span>';
   nameEl.title = 'See all ' + n + ' places';

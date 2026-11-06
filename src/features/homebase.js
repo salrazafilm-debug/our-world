@@ -12,7 +12,7 @@ function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.i
 function homeArtH(z) { return Math.max(51, Math.min(117, 51 + (z - 6.9) * 15)); }   /* homes and the castle: big and easy to see, always well above the trees */
 
 var HBBOX = {};
-var HB_LABEL = { bruce: 'Calvert County' };
+var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };
 var HB_PILLS = { 'Northern Virginia': 1, 'Calvert County': 1 };
 var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], ['Philadelphia', 39.95, -75.17], ['Wilmington', 39.74, -75.55],
   ['Frederick', 39.41, -77.41], ['Fredericksburg', 38.30, -77.46], ['Harrisburg', 40.27, -76.88], ['Norfolk', 36.85, -76.29], ['Hagerstown', 39.64, -77.72]];
@@ -73,19 +73,20 @@ function drawHeartBadge(x, y, color) {
   drawSprite(ctx, SP.heart, { h: color, o: '#6E2549' }, x, y + 7, 2, null);
 }
 function pill(x, y, text) { tryLabel(x, y, text, { size: 12, force: 1, bg: 'rgba(255,247,242,.96)', border: '#D9A3B8', fg: '#5B3046' }); }
+HOOKS.afterOverlays.push(function(){
+  if(S.mode!=='map')return;
+  var p=proj((HOMES.bruce.lat+HOMES.elena.lat)/2,(HOMES.bruce.lng+HOMES.elena.lng)/2);
+  if(p.x<0||p.x>W||p.y<30||p.y>H-80)return;
+  drawHeartBadge(p.x,p.y,C.pink);
+});
 HOOKS.beforePins.push(function () {
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;
-    var bx = b.x + b.w / 2, by = b.y - 16, o = HOMEBOXES[other(k)];
-    /* if the badge would land on the other home, tuck it beside this one instead */
-    if (o && bx + 12 > o.x && bx - 12 < o.x + o.w && by + 15 > o.y && by - 11 < o.y + o.h) { bx = b.x + b.w + 10; by = b.y + 6; }
-    drawHeartBadge(bx, by, C.pink);
     if (HB_LABEL[k]) pill(b.x + b.w / 2, b.y + b.h + 24, HB_LABEL[k]);
   });
   HOMEBASE.forEach(function (h) {
     var b = HBBOX[h.id]; if (!b) return;
-    if (h.heart) drawHeartBadge(b.x + b.w / 2, b.y - 16, h.heart);
     pill(b.x + b.w / 2, b.y + b.h + 24, h.name);
   });
 });

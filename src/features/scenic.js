@@ -13,15 +13,20 @@ function scenicAvoid(x, y, radius) {
   return false;
 }
 function scenicClearing(g, place, radius, kind) {
-  var p = proj(place.lat, place.lng);
+  var p = place.who?homeDisplayPos(place.who,S.zoom):proj(place.lat, place.lng);
   if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
-  if(kind==='castle'){
-    for(var ledge=18;ledge>=3;ledge-=3){
+  if(kind==='castle'||kind==='cottage'){
+    var terraceDepth=kind==='castle'?27:12;
+    for(var ledge=terraceDepth;ledge>=3;ledge-=3){
       g.fillStyle=ledge>12?'#716077':ledge>6?'#a08487':'#c4a88b';
       g.beginPath();g.ellipse(p.x,p.y+ledge,radius,radius*.30,0,0,7);g.fill();
     }
     for(var stone=0;stone<8;stone++){
       scenicMark(g,p.x-radius+stone*radius/4,p.y+9+(stone%2)*3,'#d0b7a1',3,9);
+    }
+    if(kind==='castle')for(var stair=0;stair<6;stair++){
+      scenicMark(g,p.x+radius*.5-stair*3,p.y+10+stair*4,'#7c645a',18,5);
+      scenicMark(g,p.x+radius*.5-stair*3,p.y+9+stair*4,'#f0d9a6',18,3);
     }
   }
   g.fillStyle = kind === 'castle' ? '#e8d5a3' : '#e6d599';
@@ -82,7 +87,7 @@ function scenicCoast(g) {
   for (var y = 4; y < H - 4; y += 5) for (var x = 4; x < W - 4; x += 5) {
     if (!scenicLand(x, y)) continue;
     if (terrainAt(x + 7, y) !== 'water' && terrainAt(x, y + 7) !== 'water') continue;
-    var depth=S.zoom>9?12:5;
+    var depth=S.zoom>9?18:7;
     scenicMark(g, x+2, y+2, '#736477', 5, depth);
     scenicMark(g, x+2, y+2, '#a98272', 3, depth-2);
     scenicMark(g, x+2, y+depth, '#d4b398', 4, 2);
@@ -194,10 +199,16 @@ function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
 /* Clouds sit in the foreground corners without covering the central places. */
 HOOKS.afterOverlays.push(function () {
   if(S.mode!=='map')return;
-  var h=Math.min(100,W*.22);
+  var wide=Math.max(0,Math.min(1,(9-S.zoom)/3));
+  var h=Math.min(190,W*(.29+wide*.15));
   ctx.save();ctx.globalAlpha=.94;
-  drawArt(ctx,'story-cloud',12,H+h*.43,h,1);
-  drawArt(ctx,'story-cloud',W+20,H+h*.53,h*1.08,1);
+  drawArt(ctx,'story-cloud',12,H+h*.15,h,1);
+  drawArt(ctx,'story-cloud',W+20,H+h*.25,h*1.08,1);
+  if(wide>.1){
+    ctx.globalAlpha=wide*.94;
+    drawArt(ctx,'story-cloud',-45,h*.65,h*.85,1);
+    drawArt(ctx,'story-cloud',W+65,h*.72,h*.9,1);
+  }
   ctx.restore();
   if(S.zoom<5.3){
     [['CANADA',53,-105],['UNITED STATES',39,-98],['MEXICO',24,-103]].forEach(function(a){
