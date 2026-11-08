@@ -1746,7 +1746,6 @@ function drawMapOverlays() {
   /* reserve the ground under each landmark first, so no town label lands on it */
   for (i = 0; i < LANDMARKS.length; i++) {
     var rl = LANDMARKS[i];
-    if(cityFind(rl[0]))continue; /* The city layer owns both distant and detailed views. */
     if (rl[0]!=='nyc' && !rl[8] && !isRevealed(rl[2], rl[3], 1.06)) continue;
     var rp2 = proj(rl[2], rl[3]);
     var rsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * (rl[6] || 1)));
@@ -1785,7 +1784,6 @@ function drawMapOverlays() {
   /* counties and city areas — the labels you see most of the time */
   var A = window.OW_AREAS;
   for (i = 0; i < A.length; i++) {
-    if(cityOwnsLabel(A[i][1],A[i][2]))continue;
     if (!isRevealed(A[i][1], A[i][2], 1.25)) continue;
     if (z < 9.8 && HB_PILLS[A[i][0]]) continue;          /* the home base draws its own name pills */
     p = proj(A[i][1], A[i][2]);
@@ -1798,7 +1796,6 @@ function drawMapOverlays() {
     var T = window.OW_TOWNS;
     for (i = 0; i < T.length; i++) {
       var t = T[i];
-      if(cityOwnsLabel(t[1],t[2]))continue;
       if (!isRevealed(t[1], t[2])) continue;
       p = proj(t[1], t[2]);
       if (p.x < -60 || p.y < -30 || p.x > W + 60 || p.y > H + 30) continue;
@@ -1880,7 +1877,6 @@ function drawMapOverlays() {
   for (i = 0; i < LANDMARKS.length; i++) {
     if(z<6.1)continue;
     var lm = LANDMARKS[i];
-    if(cityFind(lm[0]))continue;
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
@@ -2841,7 +2837,6 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
-  if(item.kind==='city'||item.kind==='cityplace'){cityOpenItem(item);return;}
   if (item.kind === 'mail') { mailOpen(); return; }
   if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
   if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
@@ -3131,7 +3126,7 @@ function openPlaces() {
       return '<button type="button" data-act="goto" data-lat="' + r.lat + '" data-lng="' + r.lng + '" data-z="' + r.z + '">' +
         '<span class="ico">' + r.ic + '</span><span><span class="t">' + esc(r.t) + '</span><br>' +
         '<span class="s">' + esc(r.s) + '</span></span></button>';
-    }).join('') + '</div>' + cityAtlasList() +
+    }).join('') + '</div>' +
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'
   );
 }
@@ -3360,8 +3355,6 @@ function hydrateLocal() {
 }
 
 //#include features/art.js
-//#include features/city-data.js
-//#include features/cities.js
 //#include features/scenic.js
 //#include features/homebase.js
 //#include features/terrain.js
