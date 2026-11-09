@@ -31,6 +31,13 @@ var SPECIAL_REGIONS = {
     ],portals:[],ripples:[{u:.86,v:.70},{u:.75,v:.76}],waterfall:{u:.15,v:.69}
   }
 };
+/* One approved close-up per city. No nested destinations after entry. */
+var nycCloseup=SPECIAL_REGIONS['nyc-waterfront'];
+['asset','points','ripples','waterfall'].forEach(function(key){SPECIAL_REGIONS['nyc-area'][key]=nycCloseup[key];});
+SPECIAL_REGIONS['nyc-area'].portals=[];
+delete SPECIAL_REGIONS['nyc-waterfront'];
+SPECIAL_REGIONS['nyc-area'].visitors={u:.40,v:.59};
+SPECIAL_REGIONS['dc-area'].visitors={u:.44,v:.59};
 Object.keys(SPECIAL_REGIONS).forEach(function(id){
   SPECIAL_REGIONS[id].artworkBounds={u0:0,v0:0,u1:1,v1:1};
   SPECIAL_REGIONS[id].projection='affine-mercator';

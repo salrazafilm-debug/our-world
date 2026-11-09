@@ -16,7 +16,7 @@ try { PR.mine.sharing = localStorage.getItem('ow.share') === 'on'; } catch (e) {
 ROWHOOKS.seen = function (rows) { rows.forEach(function (r) { PR.seen[r.id] = r.at; }); paintPartner(); };
 
 function presMeta() {
-  return { who: S.who, at: Date.now(), sharing: PR.mine.sharing, lat: PR.mine.lat, lng: PR.mine.lng, acc: PR.mine.acc, together: PR.mine.together };
+  return { who: S.who, at: Date.now(), scene:typeof SPECIAL!=='undefined'&&SPECIAL.active?SPECIAL.active.city:null, sharing: PR.mine.sharing, lat: PR.mine.lat, lng: PR.mine.lng, acc: PR.mine.acc, together: PR.mine.together };
 }
 var pushTimer = null;
 function pushPresence(force) {

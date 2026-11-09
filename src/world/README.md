@@ -1,5 +1,19 @@
 # Illustrated world development milestone
 
+## Approved simplification: single close-up and shared visitors
+
+NYC now opens directly into the waterfront illustration; DC opens its garden
+illustration. Neither scene has another Explore Closer destination or decorative
+landmark action sheet. Pinch magnification and ordinary memory interactions stay.
+The earlier nested-scene description below records the original prototype only.
+
+The current viewer's canonical avatar stands at an authored dry-path point.
+The partner appears alongside only when their private realtime presence reports
+the same city. Scene identity is ephemeral presence metadata, independent of GPS
+sharing, with no database changes. Leaving clears that metadata. Browser checks
+simulate partner presence for solo/same-city/different-city assertions; live
+two-account delivery still needs an authenticated two-device check.
+
 This is an incremental prototype on `codex/special-regions-preview`, not a
 deployment or a replacement app. No database, auth configuration, stored memory
 records, home anchors, canonical avatars, or primary navigation were changed.

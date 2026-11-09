@@ -6,7 +6,7 @@ const assert=require('assert'),fs=require('fs'),path=require('path');
 const origin=process.env.OW_PREVIEW_URL||'http://127.0.0.1:4174';
 const out=process.env.OW_PREVIEW_OUTPUT||'/workspace/shared/downloads';
 fs.mkdirSync(out,{recursive:true});
-const apiInjection='window.__OW_TEST_API={state:S,special:SPECIAL,pose:specialPose,project:proj,unproject:unproj,draw:draw,fly:flyTo,zoom:zoomBy,hits:function(){return hitboxes;},geometry:specialGeometry};startBehindGate();';
+const apiInjection='window.__OW_TEST_API={state:S,presence:PR,visitors:specialVisitorList,meta:presMeta,special:SPECIAL,pose:specialPose,project:proj,unproject:unproj,draw:draw,fly:flyTo,zoom:zoomBy,hits:function(){return hitboxes;},geometry:specialGeometry};startBehindGate();';
 async function createContext(browser,reduce,record){
   const context=await browser.newContext({viewport:{width:430,height:932},isMobile:true,hasTouch:true,reducedMotion:reduce?'reduce':'no-preference',...(record?{recordVideo:{dir:path.join(out,'special-region-recording'),size:{width:430,height:932}}}:{})});
   await context.route(origin+'/',async route=>{const response=await route.fetch(),body=await response.text();await route.fulfill({response,body:body.replace('startBehindGate();',apiInjection)});});
@@ -42,9 +42,15 @@ async function run(){
   let memory=await memoryHit(page,'preview-empire');await canvasTap(page,memory.b.x+memory.b.w/2,memory.b.y+memory.b.h/2);
   assert((await page.locator('#sheet').innerText()).includes('Preview · NYC skyline'));await page.keyboard.press('Escape');
   assert.equal(await page.evaluate(()=>window.__OW_TEST_API.special.active.id),'nyc-area','Escape closes details before leaving scene');
-  const portal=await page.evaluate(()=>window.__OW_TEST_API.project(40.7061,-73.9969));await canvasTap(page,portal.x,portal.y-12);
-  await page.locator('[data-act="region-open"]').click();await settled(page,'nyc-waterfront');await snapshot(page,'nyc-waterfront');
-  assert.equal(await page.evaluate(()=>window.__OW_TEST_API.special.stack.length),2);
+  assert.equal(await page.evaluate(()=>window.__OW_TEST_API.special.active.portals.length),0);
+  assert.deepEqual(await page.evaluate(()=>{const a=window.__OW_TEST_API;return a.visitors(a.special.active);}),['bruce']);
+  await page.evaluate(()=>{const a=window.__OW_TEST_API;a.presence.partner={who:'elena',scene:'nyc'};a.draw();});
+  assert.deepEqual(await page.evaluate(()=>{const a=window.__OW_TEST_API;return a.visitors(a.special.active);}),['bruce','elena']);
+  assert.equal(await page.evaluate(()=>window.__OW_TEST_API.meta().scene),'nyc');
+  await snapshot(page,'nyc-together');
+  await page.evaluate(()=>{const a=window.__OW_TEST_API;a.presence.partner.scene='dc';a.draw();});
+  assert.deepEqual(await page.evaluate(()=>{const a=window.__OW_TEST_API;return a.visitors(a.special.active);}),['bruce']);
+  await snapshot(page,'nyc-solo');
   // Native mobile pinch and drag, rather than synthetic DOM pointer events.
   const cdp=await context.newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:160,y:410,id:1},{x:270,y:410,id:2}]});
@@ -64,10 +70,8 @@ async function run(){
   const save=page.locator('[data-act="save-memory"]');assert(Math.abs(Number(await save.getAttribute('data-lat'))-expected.lat)<1e-8);assert(Math.abs(Number(await save.getAttribute('data-lng'))-expected.lng)<1e-8);
   await page.locator('#m-title').fill('Preview · placed in waterfront');await save.click();
   await page.waitForFunction(()=>window.__OW_TEST_API.state.memories.some(m=>m.title==='Preview · placed in waterfront'));
-  await page.locator('#specialBack').click();await settled(page,'nyc-area');
-  const restoredCamera=await page.evaluate(()=>({...window.__OW_TEST_API.special.camera}));
-  for(const k of ['u','v','scale'])assert(Math.abs(restoredCamera[k]-areaCamera[k])<1e-8,'waterfront Back restores the area camera');
   await page.locator('#specialBack').click();await settled(page,null);
+  assert.equal(await page.evaluate(()=>window.__OW_TEST_API.meta().scene),null);
   const returned=await page.evaluate(()=>window.__OW_TEST_API.pose());assert.deepEqual(returned,worldPose,'Back restores the exact original geographic camera');
   await snapshot(page,'returned-map');
   await page.evaluate(()=>window.__OW_TEST_API.fly(38.8895,-77.0353,8.5));await page.waitForTimeout(250);
@@ -99,6 +103,6 @@ async function run(){
   await failure.unroute('**/art/world/regions/dc-area.webp');await p.locator('[data-act="region-open"]').click();await settled(p,'dc-area');
   await p.evaluate(()=>window.__OW_TEST_API.zoom(-.3,{x:215,y:400}));await settled(p,null);assert.deepEqual(await p.evaluate(()=>window.__OW_TEST_API.pose()),before,'zooming out of a special scene returns to the saved map');
   await failure.close();await browser.close();assert.deepEqual(errors,[]);
-  console.log('ok: NYC → waterfront → exact return; DC round-trip; real touch pan/pinch; marker placement and Add memory; no visit/remote writes; resize; preload failure/retry; reduced motion.');
+  console.log('ok: single NYC/DC close-ups; solo/shared/different-city visitors; cleared scene metadata on exit; exact return; touch pan/pinch; Add memory; resize; failure recovery; reduced motion.');
 }
 run().catch(e=>{console.error(e);process.exit(1);});
