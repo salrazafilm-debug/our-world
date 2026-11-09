@@ -164,40 +164,46 @@ function cloudBands(z){return[
  {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
 ];}
 function drawSkyClouds(z,target){
- var sky=target||ctx,list=[],sprite=artLoad('story-cloud'),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
+ var sky=target||ctx,list=[];
  /* Opaque cloud-shadow backing prevents any unknown terrain leaking through
     sprite gaps or zoom crossfades. All relief still belongs to world cells. */
- sky.save();sky.globalAlpha=1;sky.fillStyle='#c7a0d0';sky.fillRect(0,0,W,H);sky.restore();
+ sky.save();sky.globalAlpha=1;sky.fillStyle='#ddc2db';sky.fillRect(0,0,W,H);sky.restore();
+ /* A quiet opaque cloud deck provides cover without hundreds of silhouettes.
+    Broad world-space tonal regions, rendered once into the cached fog canvas. */
+ var step=8,c=document.createElement('canvas');c.width=Math.ceil(W/step);c.height=Math.ceil(H/step);
+ var cg=c.getContext('2d'),image=cg.createImageData(c.width,c.height),palette=[[218,188,215],[224,195,219],[231,203,222],[237,212,226],[243,222,231],[247,230,235]];
+ for(var py=0;py<c.height;py++)for(var px=0;px<c.width;px++){
+  var geo=unproj(px*step,py*step),n=terNoise(geo.lng/1.8,geo.lat/1.8)*.8+terNoise(geo.lng/.6,geo.lat/.6)*.2;
+  var col=palette[Math.min(palette.length-1,Math.floor(n*palette.length))],k=(py*c.width+px)*4;
+  image.data[k]=col[0];image.data[k+1]=col[1];image.data[k+2]=col[2];image.data[k+3]=255;
+ }
+ cg.putImageData(image,0,0);sky.save();sky.imageSmoothingEnabled=false;sky.drawImage(c,0,0,c.width*step,c.height*step);sky.restore();
  cloudBands(z).forEach(function(band){
   if(band.alpha<.001)return;
   /* Broad, irregular banks, not a small cloud stamped into every grid square.
      The hidden lattice only bounds work; full-cell jitter, independent sizes
-     and clustered companions break its rows. Two depth passes keep larger,
+     and sparse companions break its rows. Two depth passes keep larger,
      quieter banks behind the occasional smaller foreground silhouette. */
   var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360;
   [0,1].forEach(function(depth){
-   var sx=cell*(depth?4.1:2.5),sy=cell*(depth?3.1:1.45),seed=band.seed+depth*31;
+   var sx=cell*(depth?5.2:3.7),sy=cell*(depth?4.2:2.5),seed=band.seed+depth*31;
+   var name='cloud-calm',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:2.6;
    var margin=Math.max(700,cellPx*6*aspect),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
    var y0=Math.floor(Math.min(tl.lat,br.lat)/sy)-1,y1=Math.ceil(Math.max(tl.lat,br.lat)/sy)+1;
    var x0=Math.floor(Math.min(tl.lng,br.lng)/sx)-1,x1=Math.ceil(Math.max(tl.lng,br.lng)/sx)+1;
    for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
-    if(depth&&terHash(gx,gy,seed+8)<.32)continue;
+    if(depth&&terHash(gx,gy,seed+8)<.68)continue;
     var lat=(gy+.5+(terHash(gx,gy,seed+1)-.5)*1.6)*sy;
     var lng=(gx+.5+(terHash(gx,gy,seed+2)-.5)*1.6)*sx;
-    var count=depth&&terHash(gx,gy,seed+9)>.5?2:1;
-    for(var j=0;j<count;j++){
-     var clat=lat+(j?(terHash(gx,gy,seed+10)-.5)*sy*.9:0);
-     var clng=lng+(j?(terHash(gx,gy,seed+11)-.5)*sx*.7:0),p=proj(clat,clng);
-     var h=cellPx*(depth?1.7+terHash(gx,gy,seed+3+j)*1.9:2.3+terHash(gx,gy,seed+3)*2);
-     var w=h*aspect*(.85+terHash(gx,gy,seed+5+j)*.35);
-     if(p.x-w/2>W||p.x+w/2<0||p.y-h/2>H||p.y+h/2<0)continue;
-     list.push({id:band.seed+':'+depth+':'+gx+':'+gy+':'+j,lat:clat,lng:clng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha,depth:depth,flip:terHash(gx,gy,seed+6+j)>.5});
-    }
+    var p=proj(lat,lng),h=cellPx*(depth?1.2+terHash(gx,gy,seed+3)*1.1:.9+terHash(gx,gy,seed+3)*1.4);
+    var w=h*aspect*((depth?.9:1.15)+terHash(gx,gy,seed+5)*.35);
+    if(p.x-w/2>W||p.x+w/2<0||p.y-h/2>H||p.y+h/2<0)continue;
+    list.push({id:band.seed+':'+depth+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*(depth?1:.7),depth:depth,name:name,aspect:aspect,flip:terHash(gx,gy,seed+6)>.5});
    }
   });
  });
  list.sort(function(a,b){return a.depth-b.depth||a.y-b.y;});CLOUD_DEBUG=list;
- list.forEach(function(c){sky.save();sky.globalAlpha=c.alpha;sky.translate(c.x,c.y);sky.scale((c.flip?-1:1)*c.w/(c.h*aspect),1);drawArt(sky,'story-cloud',0,c.h/2,c.h,1);sky.restore();});
+ list.forEach(function(c){sky.save();sky.globalAlpha=c.alpha;sky.translate(c.x,c.y);sky.scale((c.flip?-1:1)*c.w/(c.h*c.aspect),1);drawArt(sky,c.name,0,c.h/2,c.h,1);sky.restore();});
 }
 
 

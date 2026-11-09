@@ -15,6 +15,7 @@ function artLoad(name) {
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 artLoad('story-cloud');
+artLoad('cloud-calm');
 artLoad('story-nyc');
 artLoad('map-airplane');
 artLoad('blue-cottage-map');

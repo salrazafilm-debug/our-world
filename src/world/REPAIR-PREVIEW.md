@@ -8,12 +8,17 @@ These clearings never change discovery records. Added alpha-coverage checks
 confirm unknown terrain cannot show through. The plane and markers remain above
 fog. Updated screenshots and the touch-motion video use this cloud preference.
 
-Natural-cloud revision: replaced the uniform small-cloud lattice with two depth
-passes of broad, irregular banks and sparser clustered companions. Full-cell
-seeded jitter, varied scale/aspect and mirrored silhouettes break up repeated
-rows. Random-looking placement remains reproducible across sessions and camera
-changes; no frame-time randomness, new assets or extra fog canvas was introduced.
-Tests additionally assert both depth passes and meaningful size/silhouette variety.
+Calmer-cloud approval candidate: the previous randomized banks still looked
+crowded. Added a new original rounded cumulus sprite with gentler shading and
+less internal detail, preserved in `art-src/world/calm-cloud-rounded.png`.
+`tools/prepare-calm-clouds.js` removes disconnected matte debris, exports a
+nearest-neighbor palette PNG and records dimensions/anchor/crop in its manifest.
+Sparse, irregular banks sit above an opaque low-contrast world-space cloud deck,
+leaving breathing room without revealing unknown ground. Both passes stay in the
+existing cached fog output; no landscape overlay or screen-locked frame.
+Random-looking placement remains reproducible across sessions/camera changes.
+Tests assert bounded phone cloud density, varied sizes/silhouettes, complete
+unknown-ground opacity, pan/return identity and stationary-cache reuse.
 
 Branch: `codex/map-foundation-repair`. Local changes only. No push, merge,
 deployment, database change, memory-coordinate edit or auth change.

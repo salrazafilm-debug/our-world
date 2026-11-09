@@ -1469,7 +1469,7 @@ var CLOUD_SHAPES = [
 ];
 var FOG_RENDER={key:'',builds:0};
 function drawFog() {
-  var rs=allRegions(),cloudReady=artLoad('story-cloud').ok;
+  var rs=allRegions(),cloudReady=artLoad('cloud-calm').ok;
   var key=[S.center.lat,S.center.lng,S.zoom,W,H,cloudReady,rs.map(function(r){return r.id+':'+r.lat+':'+r.lng+':'+r.r;}).join('|'),S.memories.concat(S.plans||[]).map(function(m){return m.id+':'+m.lat+':'+m.lng;}).join('|'),S.me?S.me.lat+':'+S.me.lng:''].join('/');
   if(key===FOG_RENDER.key)return;
   FOG_RENDER.key=key;FOG_RENDER.builds++;
