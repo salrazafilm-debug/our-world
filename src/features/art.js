@@ -16,6 +16,7 @@ function artLoad(name) {
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 artLoad('story-cloud');
 artLoad('story-nyc');
+artLoad('map-airplane');
 ['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
 ['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 
@@ -43,4 +44,14 @@ function drawArt(g, name, x, y, h, res) {
   g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh + pad), w, hh);
   g.restore();
   return { x: x - w / 2, y: y - hh, w: w, h: hh };
+}
+var FLIGHT_HEADING=null;
+function drawFlightAircraft(p){
+  var sprite=artSized('map-airplane',40,DPR);
+  if(!sprite){drawSprite(ctx,SP.plane,PAL.plane,p.x,p.y+SP.plane.length*p.scale/2,p.scale,'#6E2549');return;}
+  var target=p.heading;
+  if(FLIGHT_HEADING===null||reduceMotion)FLIGHT_HEADING=target;
+  else FLIGHT_HEADING+=Math.atan2(Math.sin(target-FLIGHT_HEADING),Math.cos(target-FLIGHT_HEADING))*.18;
+  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(FLIGHT_HEADING+Math.PI/2);ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(sprite,-sprite.width/DPR/2,-sprite.height/DPR/2,sprite.width/DPR,sprite.height/DPR);ctx.restore();
 }

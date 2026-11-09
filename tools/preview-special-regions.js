@@ -14,7 +14,7 @@ async function createContext(browser,reduce,record){
 }
 async function ready(page){await page.goto(origin);await page.waitForFunction(()=>window.__OW_TEST_API&&window.__OW_TEST_API.state.who);await page.waitForTimeout(700);if(await page.locator('#quote').isVisible())await page.locator('#quote').click();await page.addStyleTag({content:'#toasts{display:none!important}'});}
 async function settled(page,id){await page.waitForFunction(id=>{const s=window.__OW_TEST_API.special;return(s.active?s.active.id:null)===id&&!s.busy&&!s.animation;},id,{timeout:25000});}
-async function choose(page,id){await page.locator('#hopName').click();await page.locator('[data-act="region-card"][data-region="'+id+'"]').click();await page.locator('[data-act="region-open"]').click();await settled(page,id);}
+async function choose(page,id){await page.locator('#btnPlaces').click();await page.locator('[data-d="places"]').click();await page.locator('[data-act="region-card"][data-region="'+id+'"]').click();await page.locator('[data-act="region-open"]').click();await settled(page,id);}
 async function snapshot(page,name){await page.screenshot({path:path.join(out,'special-preview-'+name+'.png')});}
 async function memoryHit(page,id){return page.evaluate(id=>window.__OW_TEST_API.hits().find(h=>h.item.kind==='memory'&&h.item.id===id),id);}
 async function canvasTap(page,x,y){const box=await page.locator('#map').boundingBox();await page.touchscreen.tap(box.x+x,box.y+y);}
@@ -91,7 +91,7 @@ async function run(){
   // Failed preloads retain the old view and allow retry; reduced motion is instant.
   const failure=await createContext(browser,true,false),p=await failure.newPage();await ready(p);
   const before=await p.evaluate(()=>window.__OW_TEST_API.pose());await failure.route('**/art/world/regions/dc-area.webp',r=>r.abort());
-  await p.locator('#hopName').click();await p.locator('[data-act="region-card"][data-region="dc-area"]').click();await p.locator('[data-act="region-open"]').click();
+  await p.locator('#btnPlaces').click();await p.locator('[data-d="places"]').click();await p.locator('[data-act="region-card"][data-region="dc-area"]').click();await p.locator('[data-act="region-open"]').click();
   await p.waitForFunction(()=>!window.__OW_TEST_API.special.busy);assert.equal(await p.evaluate(()=>window.__OW_TEST_API.special.active),null);assert.deepEqual(await p.evaluate(()=>window.__OW_TEST_API.pose()),before);
   await failure.unroute('**/art/world/regions/dc-area.webp');await p.locator('[data-act="region-open"]').click();await settled(p,'dc-area');
   await p.evaluate(()=>window.__OW_TEST_API.zoom(-.3,{x:215,y:400}));await settled(p,null);assert.deepEqual(await p.evaluate(()=>window.__OW_TEST_API.pose()),before,'zooming out of a special scene returns to the saved map');

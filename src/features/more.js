@@ -72,6 +72,9 @@ function dashEnsure() {
     else if (d === 'dreams') ACTIONS['mn-dream']();
     else if (d === 'set') ACTIONS['mn-set']();
     else if (d === 'add') openAddMenu();
+    else if (d === 'places') openPlaces();
+    else if (d === 'discover') document.getElementById('btnDiscover').click();
+    else if (d === 'mapview' && ['local','dmv','earth','space'].indexOf(b.dataset.view)!==-1)document.querySelector('#views [data-view="'+b.dataset.view+'"]').click();
     else if (d === 'today') mailOpen({ room: true, tab: 'note' });
   });
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dashEl.classList.contains('on')) dashClose(); });
@@ -96,6 +99,7 @@ function openMenu() {
       return '<button type="button" class="d-tile" data-d="' + t[0] + '"><span class="art"><img src="' + t[1] + '" alt=""></span><span class="lbl">' + esc(t[2]) + '</span>' + (bd ? '<span class="badge">' + esc(bd) + '</span>' : '') + '</button>';
     }).join('') + '</div>' +
     '<div class="d-more"><button class="pxbtn" type="button" data-d="add">Add something</button><button class="pxbtn" type="button" data-d="dreams">Dreams</button><button class="pxbtn" type="button" data-d="set">Settings</button></div>' +
+    '<nav class="d-more" aria-label="Map views"><button class="pxbtn" type="button" data-d="mapview" data-view="dmv">DMV</button><button class="pxbtn" type="button" data-d="mapview" data-view="earth">Earth</button><button class="pxbtn" type="button" data-d="mapview" data-view="space">Space</button><button class="pxbtn" type="button" data-d="places">Places</button><button class="pxbtn" type="button" data-d="discover">Discover</button></nav>' +
     '</div>';
   dashEl.classList.add('on'); dashEl.scrollTop = 0;
 }
@@ -141,7 +145,7 @@ ACTIONS['mn-us'] = function () {
   var them = whoName(other(S.who)).replace('Princess ', '');
   subPage('Us', them + (PR.partner ? ' is online now' : ' is offline'),
     moreRow('together-map', '🏘️', 'Show us together', 'Both homes on one map') +
-    moreRow('find-me', '🧭', 'Find me', 'Clear the area where I am') +
+    moreRow('find-me', '🧭', 'Find me', 'Centre the map on my GPS location') +
     moreRow('share-loc', '📍', PR.mine.sharing ? 'Live location is on' : 'Share live location', PR.mine.sharing ? 'Tap to stop' : 'Meet on the map when you are both out') +
     moreRow('walk', '👣', WALK.rec ? 'Stop recording the walk' : 'Record a walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : 'Warms up our heat trail') +
     moreRow('avatars', '👗', 'Outfits', 'Change what you are wearing') +

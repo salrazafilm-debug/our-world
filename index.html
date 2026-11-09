@@ -710,6 +710,27 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 </style>
 
+<style>
+/* Compact map controls: one home view and a three-button right-hand dock. */
+#views{left:12px;right:auto;top:12px;transform:none;padding:0;background:none;max-width:none}
+#views .pxbtn{display:none!important}
+#views .pxbtn[data-view=local]{display:flex!important;align-items:center;justify-content:center;min-width:78px;height:44px;padding:8px 14px;background:var(--cream);border:3px solid var(--wood-dk);border-bottom-width:6px;clip-path:var(--px-step);font-size:14px;color:var(--berry-dk)}
+#views .pxbtn[data-view=local][aria-pressed=true]{background:#f6d3dc}
+#hop{display:none!important}
+#actions{left:auto;right:max(12px,env(safe-area-inset-right));top:50%;bottom:auto;transform:translateY(-50%);display:flex;flex-direction:column;width:56px;max-width:none;margin:0;gap:12px;pointer-events:none}
+#actions .row{display:flex;flex-direction:column;flex-wrap:nowrap;gap:12px;margin:0;width:56px}
+#actions .icon{display:grid!important;place-items:center;width:56px;height:56px;min-width:56px;padding:7px;margin:0;background:var(--cream);border:3px solid var(--wood-dk);border-bottom-width:7px;clip-path:var(--px-step);pointer-events:auto;transition:transform .1s,border-bottom-width .1s}
+#actions .icon:hover{background:#fff7ec;transform:translateY(-2px)}
+#actions .icon:active{transform:translateY(3px);border-bottom-width:4px}
+#actions .icon:focus-visible,#views .pxbtn:focus-visible{outline:3px solid var(--berry);outline-offset:3px}
+#actions .icon svg{display:block;width:28px;height:28px;shape-rendering:crispEdges}
+#actions .lbl{display:none!important}
+#actions #btnMemory{order:0}#actions #btnLocate{order:1}#actions #btnPlaces{order:2}
+#actions #btnDiscover{display:none!important}
+#actions .icon[disabled]{opacity:.65;cursor:wait}
+@media(prefers-reduced-motion:reduce){#actions .icon{transition:none}}
+</style>
+
 <script>document.body.classList.add('locked')</script>
 <div id="app">
   <header id="top">
@@ -761,13 +782,13 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
     <div id="actions">
       <div class="row">
         <button class="pxbtn icon" id="btnPlaces" title="Menu" aria-label="Menu">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="lbl">Menu</span>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#6b3d3a" d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z"/></svg><span class="lbl">Menu</span>
         </button>
-        <button class="pxbtn icon" id="btnMemory" title="Add something" aria-label="Add something">
-          <img class="px-ico" src="art/heart.png" alt=""><span class="lbl">Add</span>
+        <button class="pxbtn icon" id="btnMemory" title="Add a memory" aria-label="Add a memory">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#6e2945" d="M2 2h4v1h4V2h4v1h1v6h-1v2h-2v2h-2v2H6v-2H4v-2H2V9H1V3h1z"/><path fill="#df879f" d="M3 3h2v1h2v1h2V4h2V3h2v1h1v4h-1v2h-2v2H9v1H7v-1H5v-2H3V8H2V4h1z"/><path fill="#ffdce1" d="M3 4h2v2H3z"/></svg><span class="lbl">Memory</span>
         </button>
-        <button class="pxbtn icon" id="btnLocate" title="Find me" aria-label="Find me">
-          <img class="px-ico" src="art/pin.png" alt="">
+        <button class="pxbtn icon" id="btnLocate" title="Go to my GPS location" aria-label="Go to my GPS location">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#6b3d3a" d="M5 1h6v1h2v2h1v6h-2v2h-2v2H9v1H7v-1H6v-2H4v-2H2V4h1V2h2z"/><path fill="#e4ad7e" d="M5 3h6v1h1v5h-2v2H9v2H7v-2H6V9H4V4h1z"/><path fill="#fff2df" d="M6 4h4v1h1v3h-1v1H6V8H5V5h1z"/></svg>
         </button>
       </div>
       <div hidden>
@@ -2327,14 +2348,9 @@ function drawMapOverlays() {
     var py2 = iu * iu * fp[seg].y + 2 * iu * u * ctrl[seg].y + u * u * fp[seg + 1].y;
     if (px2 < -60 || py2 < -60 || px2 > W + 60 || py2 > H + 60) return;
 
-    var psc = z > 5.0 ? 3 : 2, ph = SP.plane.length * psc;
-    var lift = reduceMotion ? 0 : Math.round(Math.sin(cloudPhase / 19) * psc);
-    var pg = ctx.createRadialGradient(px2, py2, 0, px2, py2, ph * 1.1);
-    pg.addColorStop(0, 'rgba(255,255,255,.75)');
-    pg.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = pg;
-    ctx.beginPath(); ctx.arc(px2, py2, ph * 1.1, 0, 7); ctx.fill();
-    PAINTED.plane={x:px2,y:py2+ph/2+lift,scale:psc};
+    var vx=2*iu*(ctrl[seg].x-fp[seg].x)+2*u*(fp[seg+1].x-ctrl[seg].x);
+    var vy=2*iu*(ctrl[seg].y-fp[seg].y)+2*u*(fp[seg+1].y-ctrl[seg].y);
+    PAINTED.plane={x:px2,y:py2,scale:z>5?3:2,heading:Math.atan2(vy,vx)};
   })();
 
   runHooks('terrain');
@@ -2551,7 +2567,7 @@ function draw() {
   drawMapOverlays();
   ctx.save();paintedClipOutside();lakeCityClipAtmosphere();runHooks('afterOverlays');ctx.restore();
   drawPaintedAvatars();
-  if(PAINTED.plane)drawSprite(ctx,SP.plane,PAL.plane,PAINTED.plane.x,PAINTED.plane.y,PAINTED.plane.scale,'#6E2549');
+  if(PAINTED.plane)drawFlightAircraft(PAINTED.plane);
   specialDrawFade();
 }
 
@@ -2973,12 +2989,14 @@ document.getElementById('btnDiscover').addEventListener('click', function () {
 
 document.getElementById('btnLocate').addEventListener('click', function () {
   if (!navigator.geolocation || frameBlocked() === true) { locationHelp({ code: 1 }); return; }
-
+  var button=this;button.disabled=true;button.setAttribute('aria-busy','true');
+  function done(){button.disabled=false;button.removeAttribute('aria-busy');}
   navigator.geolocation.getCurrentPosition(function (pos) {
     S.me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    specialLeaveForNavigation();
     flyTo(S.me.lat, S.me.lng, Math.max(S.zoom, 11.4));
-    checkNearby();
-  }, locationHelp, { enableHighAccuracy: true, timeout: 12000 });
+    done();
+  }, function(err){done();locationHelp(err);}, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
 });
 
 document.getElementById('btnTogether').addEventListener('click', function () {
@@ -3155,7 +3173,7 @@ function placeAt(ll) {
   else if (p.kind === 'plan') planForm(ll);
   else surpriseForm(ll);
 }
-document.getElementById('btnMemory').addEventListener('click', function () { openAddMenu(); });
+document.getElementById('btnMemory').addEventListener('click', function () { startPlacing('memory'); });
 document.getElementById('btnSurprise').addEventListener('click', function () { startPlacing('surprise'); });
 
 /* ============================== forms ============================== */
@@ -3876,6 +3894,7 @@ function artLoad(name) {
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 artLoad('story-cloud');
 artLoad('story-nyc');
+artLoad('map-airplane');
 ['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
 ['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 
@@ -3903,6 +3922,16 @@ function drawArt(g, name, x, y, h, res) {
   g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh + pad), w, hh);
   g.restore();
   return { x: x - w / 2, y: y - hh, w: w, h: hh };
+}
+var FLIGHT_HEADING=null;
+function drawFlightAircraft(p){
+  var sprite=artSized('map-airplane',40,DPR);
+  if(!sprite){drawSprite(ctx,SP.plane,PAL.plane,p.x,p.y+SP.plane.length*p.scale/2,p.scale,'#6E2549');return;}
+  var target=p.heading;
+  if(FLIGHT_HEADING===null||reduceMotion)FLIGHT_HEADING=target;
+  else FLIGHT_HEADING+=Math.atan2(Math.sin(target-FLIGHT_HEADING),Math.cos(target-FLIGHT_HEADING))*.18;
+  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(FLIGHT_HEADING+Math.PI/2);ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(sprite,-sprite.width/DPR/2,-sprite.height/DPR/2,sprite.width/DPR,sprite.height/DPR);ctx.restore();
 }
 
 /* ---- world/region-math.js ---- */
@@ -7655,6 +7684,9 @@ function dashEnsure() {
     else if (d === 'dreams') ACTIONS['mn-dream']();
     else if (d === 'set') ACTIONS['mn-set']();
     else if (d === 'add') openAddMenu();
+    else if (d === 'places') openPlaces();
+    else if (d === 'discover') document.getElementById('btnDiscover').click();
+    else if (d === 'mapview' && ['local','dmv','earth','space'].indexOf(b.dataset.view)!==-1)document.querySelector('#views [data-view="'+b.dataset.view+'"]').click();
     else if (d === 'today') mailOpen({ room: true, tab: 'note' });
   });
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dashEl.classList.contains('on')) dashClose(); });
@@ -7679,6 +7711,7 @@ function openMenu() {
       return '<button type="button" class="d-tile" data-d="' + t[0] + '"><span class="art"><img src="' + t[1] + '" alt=""></span><span class="lbl">' + esc(t[2]) + '</span>' + (bd ? '<span class="badge">' + esc(bd) + '</span>' : '') + '</button>';
     }).join('') + '</div>' +
     '<div class="d-more"><button class="pxbtn" type="button" data-d="add">Add something</button><button class="pxbtn" type="button" data-d="dreams">Dreams</button><button class="pxbtn" type="button" data-d="set">Settings</button></div>' +
+    '<nav class="d-more" aria-label="Map views"><button class="pxbtn" type="button" data-d="mapview" data-view="dmv">DMV</button><button class="pxbtn" type="button" data-d="mapview" data-view="earth">Earth</button><button class="pxbtn" type="button" data-d="mapview" data-view="space">Space</button><button class="pxbtn" type="button" data-d="places">Places</button><button class="pxbtn" type="button" data-d="discover">Discover</button></nav>' +
     '</div>';
   dashEl.classList.add('on'); dashEl.scrollTop = 0;
 }
@@ -7724,7 +7757,7 @@ ACTIONS['mn-us'] = function () {
   var them = whoName(other(S.who)).replace('Princess ', '');
   subPage('Us', them + (PR.partner ? ' is online now' : ' is offline'),
     moreRow('together-map', '🏘️', 'Show us together', 'Both homes on one map') +
-    moreRow('find-me', '🧭', 'Find me', 'Clear the area where I am') +
+    moreRow('find-me', '🧭', 'Find me', 'Centre the map on my GPS location') +
     moreRow('share-loc', '📍', PR.mine.sharing ? 'Live location is on' : 'Share live location', PR.mine.sharing ? 'Tap to stop' : 'Meet on the map when you are both out') +
     moreRow('walk', '👣', WALK.rec ? 'Stop recording the walk' : 'Record a walk', WALK.rec ? walkKm(WALK.pts).toFixed(2) + ' km so far' : 'Warms up our heat trail') +
     moreRow('avatars', '👗', 'Outfits', 'Change what you are wearing') +
