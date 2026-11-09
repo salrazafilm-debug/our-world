@@ -1,5 +1,13 @@
 # Foundation repair — approval preview 1
 
+Latest cloud preference: unknown areas are now fully opaque cloud cover, not
+sparse banks. The same cached, world-anchored fog canvas has a cloud-shadow
+backing and densely overlapping sprites; clear masks preserve discovered areas,
+known landmark footprints, saved memories/plans and an ephemeral current GPS fix.
+These clearings never change discovery records. Added alpha-coverage checks
+confirm unknown terrain cannot show through. The plane and markers remain above
+fog. Updated screenshots and the touch-motion video use this cloud preference.
+
 Branch: `codex/map-foundation-repair`. Local changes only. No push, merge,
 deployment, database change, memory-coordinate edit or auth change.
 
@@ -21,7 +29,7 @@ landmark and memory footprints.
 All viewport-corner cloud rendering is removed. One seeded world-coordinate
 field in `terrain.js` uses permanent bands with smooth zoom weights, no drift,
 screen-edge opacity, camera-latitude-dependent size or all-or-nothing cell cap.
-Discovery behavior is retained. Whole banks avoid known ground and important
+Discovery behavior is retained. Clear windows protect known ground and important
 artwork. A cached fog canvas redraws on camera, resize, cloud load or relevant
 data changes; stationary animation frames do not rebuild clouds.
 

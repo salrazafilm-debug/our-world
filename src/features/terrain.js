@@ -153,9 +153,6 @@ function terGrain() {
 }
 HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fillRect(0, 0, baseCv.width, baseCv.height); });
 
-/* Soft clouds over the ground we have not explored yet. They sit on the world
-   (drifting very slowly), gather thickest at the edges of the screen and thin
-   out toward the middle, so the view is framed like the reference art. */
 /* A single world-anchored cloud field. Permanent seeded bands crossfade with
    zoom. Neither positions nor opacity depend on screen edges or animation time. */
 var CLOUD_DEBUG=[];
@@ -167,24 +164,20 @@ function cloudBands(z){return[
  {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
 ];}
 function drawSkyClouds(z,target){
- var sky=target||ctx,list=[],regions=allRegions(),protectedBoxes=REPAIR.boxes.slice();
- S.memories.forEach(function(m){var p=proj(m.lat,m.lng);protectedBoxes.push({x:p.x-35,y:p.y-75,w:70,h:85});});
- LANDMARKS.forEach(function(l){var p=l[0]==='dc'?repairPoint('dc'):proj(l[2],l[3]);protectedBoxes.push({x:p.x-70,y:p.y-135,w:140,h:150});});
- function overlaps(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+ var sky=target||ctx,list=[],sprite=artLoad('story-cloud'),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
+ /* Opaque cloud-shadow backing prevents any unknown terrain leaking through
+    sprite gaps or zoom crossfades. All relief still belongs to world cells. */
+ sky.save();sky.globalAlpha=1;sky.fillStyle='#c7a0d0';sky.fillRect(0,0,W,H);sky.restore();
  cloudBands(z).forEach(function(band){
   if(band.alpha<.001)return;
-  var cell=band.cell,margin=500,tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
+  var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360,margin=Math.max(500,cellPx*1.8*aspect),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
   var y0=Math.floor(Math.min(tl.lat,br.lat)/cell),y1=Math.ceil(Math.max(tl.lat,br.lat)/cell);
   var x0=Math.floor(Math.min(tl.lng,br.lng)/cell),x1=Math.ceil(Math.max(tl.lng,br.lng)/cell);
-  var cellPx=cell*256*Math.pow(2,z)/360;
   for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
-   if(terHash(gx,gy,band.seed)>.40)continue;
    var lat=(gy+.2+terHash(gx,gy,band.seed+1)*.6)*cell,lng=(gx+.2+terHash(gx,gy,band.seed+2)*.6)*cell;
-   var p=proj(lat,lng),w=Math.max(110,Math.min(440,cellPx*3))*(.85+terHash(gx,gy,band.seed+3)*.3),h=w*.33;
+   var p=proj(lat,lng),w=Math.max(110,Math.min(440,cellPx*3))*(.85+terHash(gx,gy,band.seed+3)*.3),h=Math.max(w*.45,cellPx*1.6)*(.9+terHash(gx,gy,band.seed+4)*.2);w=h*aspect;
    var box={x:p.x-w/2,y:p.y-h/2,w:w,h:h};
    if(box.x>W||box.x+w<0||box.y>H||box.y+h<0)continue;
-   if(protectedBoxes.some(function(b){return overlaps(box,b);}))continue;
-   if(regions.some(function(r){var q=proj(r.lat,r.lng),radius=r.r/kmPerPx(r.lat,z)*1.15,dx=Math.max(0,Math.abs(q.x-p.x)-w/2),dy=Math.max(0,Math.abs(q.y-p.y)-h/2);return dx*dx+dy*dy<radius*radius;}))continue;
    list.push({id:band.seed+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*.96});
   }
  });
