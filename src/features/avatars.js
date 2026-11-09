@@ -95,7 +95,7 @@ function avSized(who, o, px) {
   if (AVSIZED[key]) return AVSIZED[key];
   var pw = Math.max(4, Math.round(src.width * px / src.height));
   var c = document.createElement('canvas'); c.width = pw; c.height = px;
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   g.drawImage(src, 0, 0, pw, px);
   var id = g.getImageData(0, 0, pw, px);
   for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 110 ? 255 : 0;

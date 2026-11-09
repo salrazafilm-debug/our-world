@@ -32,8 +32,8 @@ HOOKS.terrain.unshift(function () {
   }
   links.forEach(function (l, i) {
     var bow = i % 2 ? 0.14 : -0.12;
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(245,216,142,.38)'; ctx.lineWidth = 8; ctx.stroke();
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(231,183,101,.9)'; ctx.lineWidth = 2.2; ctx.stroke();
+    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(132,99,64,.38)'; ctx.lineWidth = 7; ctx.stroke();
+    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = '#d9bc87'; ctx.lineWidth = 4; ctx.stroke();
   });
   ctx.restore();
 });

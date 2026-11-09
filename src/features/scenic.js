@@ -50,7 +50,7 @@ function scenicWaterfall(g, place) {
   if (!isRevealed(place.lat,place.lng,1.1)) return;
   var p=proj(place.lat,place.lng);
   if (p.x<-60||p.x>W+60||p.y<-60||p.y>H+60) return;
-  drawArt(g,'story-bridge',p.x,p.y+30,Math.max(42,Math.min(95,30+S.zoom*6)),1);
+  drawArt(g,'pack-bridge',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
 }
 function scenicPier(g, place) {
   var p=proj(place.lat,place.lng);
@@ -98,8 +98,11 @@ function scenicCoast(g) {
 }
 /* Geographic relief is sampled in world coordinates, so its ridges and
    meadows stay attached to the same ground through every camera movement. */
+var SCENIC_PATTERNS={};
+function scenicTexture(g,name){var a=artLoad(name);if(!a.ok)return null;if(!SCENIC_PATTERNS[name])SCENIC_PATTERNS[name]=g.createPattern(a.img,'repeat');return SCENIC_PATTERNS[name];}
 function scenicGround(g) {
   var z=S.zoom, step=6;
+  var grass=scenicTexture(g,'pack-grass-medium'),moss=scenicTexture(g,'pack-forest-floor');
   for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
     if(!scenicLand(x,y))continue;
     var p=unproj(x,y), detail=Math.max(0,Math.min(1,(z-5)/3));
@@ -108,8 +111,10 @@ function scenicGround(g) {
     var broad=terNoise(p.lng/.65,p.lat/.65)*detail+continental*(1-detail);
     var ridge=Math.sin(p.lng*13+p.lat*9+ broad*5)*.5+.5;
     var shade=(n*.4+broad*.6);
-    g.fillStyle=shade>.58?'rgba(31,85,58,.28)':shade<.43?'rgba(243,220,133,.32)':'rgba(102,143,66,.10)';
+    g.fillStyle=shade>.5?'rgba(31,85,58,'+Math.min(.26,(shade-.5)*.8)+')':'rgba(243,220,133,'+Math.min(.22,(.5-shade)*.7)+')';
     g.fillRect(x,y,step,step);
+    var texture=grove(p.lat,p.lng)>.45?moss:grass;
+    if(texture){g.save();g.globalAlpha=.14;g.fillStyle=texture;g.fillRect(x,y,step,step);g.restore();}
     /* Narrow contour bands form shaded terraces with a lit grass rim. */
     var band=(shade*12)%1;
     if(S.zoom>9.5&&band<.025&&broad>.58){
@@ -130,10 +135,10 @@ function drawScenic() {
   var local = Math.max(0, Math.min(1, (z - 8.9) / 1.15));
   /* Two persistent grids fade across the regional/local transition. */
   var regional=Math.max(0,Math.min(1,(z-6.8)/1.2));
-  scenicVegetation(g,tl,br,1.68,Math.max(0,Math.min(1,(6-z)/1.5)),100,false);
-  scenicVegetation(g,tl,br,.42,(1-regional)*Math.max(0,Math.min(1,(z-4.5)/1.3)),120,false);
-  scenicVegetation(g,tl,br,.105,(1-local)*regional,145,false);
-  scenicVegetation(g,tl,br,.012,local,500,true);
+  scenicVegetation(g,tl,br,1.68,Math.max(0,Math.min(1,(6-z)/1.5)),32,false);
+  scenicVegetation(g,tl,br,.42,(1-regional)*Math.max(0,Math.min(1,(z-4.5)/1.3)),28,false);
+  scenicVegetation(g,tl,br,.105,(1-local)*regional,24,false);
+  scenicVegetation(g,tl,br,.012,local,22,true);
   if(z<9.3){
     [[35.6,-83.5],[37.1,-80.3],[38.5,-79.4],[40.0,-77.7],[41.8,-75.3],
       [36.5,-106.1],[39.3,-106.3],[42.8,-109.2],[46.7,-112.1],[51.2,-116.4]].forEach(function(a){
@@ -152,14 +157,25 @@ function drawScenic() {
     scenicWaterfall(g,{lat:38.9976,lng:-77.2530});
   }
 }
-function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
+function scenicCellWeight(gx,gy,cell,z,spacing) {
+  /* Screen-density budget depends only on zoom, never the visible item count.
+     A persistent cell fades in rather than vanishing when the viewport moves
+     or when a large screen crosses the old all-or-nothing 7,500-cell cutoff. */
+  var pixels=cell*256*Math.pow(2,z)/360;
+  var rate=Math.min(1,Math.pow(pixels/spacing,2));
+  if(rate>=1)return 1;
+  return Math.max(0,Math.min(1,(rate*1.18-scenicRand(gx,gy,76))/Math.max(.00001,rate*.18)));
+}
+function scenicVegetation(g,tl,br,cell,alpha,spacing,fine) {
   if(alpha<.01)return;
   g.save(); g.globalAlpha=alpha;
   var y0 = Math.floor(Math.min(tl.lat, br.lat) / cell), y1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
   var x0 = Math.floor(Math.min(tl.lng, br.lng) / cell), x1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
-  if ((y1-y0+1)*(x1-x0+1) > 7500) {g.restore();return;}
   var items = [], z=S.zoom, local=Math.max(0,Math.min(1,(z-8.9)/1.15));
   for (var gy = y0; gy <= y1; gy++) for (var gx = x0; gx <= x1; gx++) {
+    var weight=scenicCellWeight(gx,gy,cell,z,spacing);
+    if(weight<.005)continue;
+    g.globalAlpha=alpha*weight;
     var lat = (gy + .25 + scenicRand(gx,gy,71)*.5)*cell;
     var lng = (gx + .25 + scenicRand(gx,gy,72)*.5)*cell;
     var p = proj(lat,lng), r = scenicRand(gx,gy,73);
@@ -167,9 +183,8 @@ function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
     var land = scenicLand(p.x,p.y), meadow = grove(lat,lng);
     if (!land) {
       if (r < .23) { scenicMark(g,p.x,p.y,'#d7f3f2',8,2); scenicMark(g,p.x+4,p.y+4,'#8ad7ee',5,2); }
-      if (r > .985) scenicBloom(g,p.x,p.y,5,false);
       if(fine&&r>.995&&terrainAt(p.x+16,p.y)==='water'&&terrainAt(p.x-16,p.y)==='water')
-        drawArt(g,'boat',p.x,p.y,32,1);
+        drawArt(g,'pack-boat',p.x,p.y,30,1);
       continue;
     }
     if (scenicAvoid(p.x,p.y,Math.max(35,homeArtH(z)*.62))) continue;
@@ -178,19 +193,20 @@ function scenicVegetation(g,tl,br,cell,alpha,cap,fine) {
       scenicMark(g,p.x+3,p.y+2,'#bbd47b',8,2);
     }
     if (r > .68 && r < .9) {
-      for(var fl=0;fl<(fine?4:1);fl++)scenicBloom(g,p.x+fl*5-8,p.y+(fl%2)*4,4+local*2,r>.78);
+      if(fine)drawArt(g,r>.82?'pack-bush':'pack-flowers',p.x,p.y,10+Math.round(local*5),1);
+      else scenicBloom(g,p.x,p.y,4,r>.78);
     }
     var density = Math.max(fine?.18:.05, Math.min(fine?.85:.32, meadow*(fine?1.3:.34)));
     if (r < density) {
       var h = (fine ? 34 + 22*local : 17 + z*1.3) * (.8+scenicRand(gx,gy,74)*.4);
-      items.push({x:p.x,y:p.y,h:h,blossom:scenicRand(gx,gy,75)<(local>.3?.24:.17),key:scenicRand(gx,gy,76)});
+      items.push({x:p.x,y:p.y,h:h,blossom:scenicRand(gx,gy,75)<(fine?.24:.17),species:scenicRand(gx,gy,81),weight:weight});
     }
   }
-  if (items.length > cap) items = items.filter(function (it) { return it.key < cap / items.length; });
   items.sort(function (a,b) { return a.y-b.y; });
   items.forEach(function (it) {
+    g.globalAlpha=alpha*it.weight;
     if (S.zoom>2.5) {
-      var kind=it.blossom?'story-cherry':(it.key<.48?'story-pine':'story-oak');
+      var kind=it.blossom?'pack-cherry':it.species<.04?'pack-crimson':it.species<.5?'pack-pine':it.species<.7?'pack-pine-tall':'pack-oak';
       drawArt(g,kind,it.x,it.y,Math.round(it.h/4)*4,1);
     } else scenicTree(g,it.x,it.y,it.h,it.blossom);
   });
