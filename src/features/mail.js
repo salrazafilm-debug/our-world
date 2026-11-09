@@ -32,9 +32,10 @@ function shortName(k) { return whoName(k).replace('Princess ', ''); }
 
 /* ---------------- on the map ---------------- */
 var MAILBOX = null;
+var MAIL_MAP_BUILDING = false; /* Mail is available from Menu; only the two homes occupy the home map. */
 HOOKS.beforePins.push(function () {
   MAILBOX = null;
-  if (S.mode !== 'map' || !S.who) return;
+  if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
   var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */
   var p = proj(MAIL_POS.lat, MAIL_POS.lng);
   var h = Math.round(homeArtH(z) * 0.8), w = h * 449 / 314;
@@ -46,7 +47,7 @@ HOOKS.beforePins.push(function () {
     g.addColorStop(0, 'rgba(255,214,140,.55)'); g.addColorStop(1, 'rgba(255,214,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.45, w * 0.55, 0, 6.283); ctx.fill();
   }
-  var box = drawArt(ctx, 'mail/postoffice', p.x, p.y, h, DPR);
+  var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
     if (unread) {                                          /* the floating envelope with a red dot */

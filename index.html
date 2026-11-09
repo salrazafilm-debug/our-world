@@ -493,7 +493,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 @media (max-width:720px){
   #views{flex-direction:row; left:10px; top:10px; gap:5px}
   #views .pxbtn{min-width:0; padding:8px 12px; font-size:13px}
-  #views .pxbtn:not([data-view="local"]){display:none}      /* phones: just Local; the other views stay on bigger screens */
+  #views .pxbtn[data-view="space"]{display:none}
   #zoomer{display:none}                                       /* pinch to zoom on a phone */
   #actions #btnLocate{display:none}                                    /* Find me lives in the Us menu on a phone */
   #actions .icon{width:auto; min-width:44px; padding:0 12px; gap:7px; grid-auto-flow:column; align-items:center}
@@ -508,6 +508,26 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
   #credits{display:none}
   #brand h1{font-size:20px}
   #where{display:none}
+}
+/* Storybook map HUD: compact controls leave the middle of the world visible. */
+#top{background:#fbe9da; border-bottom:4px solid var(--wood-dk); padding:7px 12px; box-shadow:inset 0 -3px #d79d84}
+#brand h1{font-family:var(--ftitle); color:var(--berry); text-shadow:2px 2px #fff4df}
+#brand h1 .w{color:var(--berry)}
+#views .pxbtn,#zoomer .pxbtn,#actions .pxbtn,#hop button{background:var(--cream); color:var(--berry-dk); border:3px solid var(--wood-dk); border-bottom-width:6px; box-shadow:none; clip-path:var(--px-step)}
+#views .pxbtn[aria-pressed="true"]{background:#f3c5d2; border-color:var(--berry-dk)}
+#actions>.primary{background:#a35b44; color:#fff5df; border-color:#573321; border-bottom-width:7px; padding:10px 16px}
+#actions>.primary:hover{background:#b56b4e}
+#hop{background:none; box-shadow:none}
+@media (max-width:720px){
+  #top{padding:6px 10px}
+  #brand h1{font-size:19px}
+  #views{top:9px; left:9px; gap:4px}
+  #views .pxbtn{font-size:13px; padding:7px 11px; min-width:65px; text-align:center}
+  #actions{bottom:calc(8px + env(safe-area-inset-bottom)); gap:5px}
+  #actions .row{flex-direction:row; align-self:flex-end; gap:5px}
+  #actions .icon{height:38px; padding:0 9px}
+  #actions>.primary{align-self:flex-end; font-size:13px; padding:8px 12px}
+  #hop{bottom:calc(100px + env(safe-area-inset-bottom)); left:9px; max-width:calc(100vw - 18px)}
 }
 @media (min-width:900px){
   #sheet{
@@ -661,11 +681,42 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 .memphoto{cursor:zoom-in}
 .cal-item img{cursor:zoom-in}
+#specialHud{position:absolute;z-index:6;top:62px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;pointer-events:none}
+#specialHud button{pointer-events:auto;min-height:44px;font-size:13px;white-space:nowrap}
+#specialName{background:var(--cream);color:var(--berry-dk);padding:7px 10px;font-family:var(--fdisp);font-size:13px;border:2px solid var(--wood);max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#top{display:grid;grid-template-columns:94px minmax(0,1fr) 94px;gap:8px;align-items:center;padding:8px 12px;background:#f8e8d1;border-bottom:3px solid #634439}
+#avatarDock{display:flex;gap:6px}
+#avatarDock button{width:42px;height:46px;border:3px solid #755343;background:#e4d1b9;padding:1px;position:relative;box-shadow:0 3px #4b3540;clip-path:var(--px-step);overflow:hidden}
+#avatarDock img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;image-rendering:pixelated;filter:grayscale(1);opacity:.32}
+#avatarDock button.online{background:#fff0d9;border-color:#a66f51}
+#avatarDock button.online img{filter:none;opacity:1}
+#brand{justify-content:center}#brand h1{font-size:20px}#brand .crown,#where,#mechip{display:none}
+#topright{margin:0;justify-self:end}#worldchip{width:34px;height:34px;min-width:34px;padding:0;justify-content:center;border:2px solid #86614a;background:#fff0d9}
+#worldnam{display:none}#partnerchip{display:none!important}
+#views{left:50%;transform:translateX(-50%);top:12px;flex-direction:row;gap:0;padding:3px;background:#624538;max-width:calc(100% - 24px)}
+#views .pxbtn{min-width:65px;height:38px;text-align:center;border:0;border-bottom:3px solid #b98b69;clip-path:none;padding:8px 12px;font-size:13px}
+#views .pxbtn[aria-pressed=true]{background:#e7b2c3;border-bottom-color:#8e3a57}
+#actions{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:8px;align-items:stretch;max-width:520px;margin:auto}
+#actions .row{display:contents}#actions .icon,#actions>.primary{height:46px;width:100%;min-width:0;margin:0;padding:0 8px;font-size:13px;align-self:stretch;display:flex;justify-content:center;align-items:center;gap:6px}
+#actions #btnPlaces{grid-column:1;grid-row:1}#actions>.primary{grid-column:2;grid-row:1;background:#966249}
+#actions #btnMemory{grid-column:3;grid-row:1}#actions #btnLocate{display:none}#actions .lbl{display:inline}
+#actions .px-ico,#actions svg{display:none}
+#hop{bottom:calc(76px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:520px;display:grid;grid-template-columns:42px 1fr 42px;box-sizing:border-box}
+#hop button{height:40px;font-size:13px}#hopName{justify-content:center}
+@media (max-width:720px){
+  #hop{bottom:calc(76px + env(safe-area-inset-bottom));max-width:calc(100% - 24px);left:50%;transform:translateX(-50%)}
+  #views .pxbtn[data-view=earth]{display:block}#views .pxbtn[data-view=space]{display:none}
+  #actions .row{margin-bottom:0}
+}
 </style>
 
 <script>document.body.classList.add('locked')</script>
 <div id="app">
   <header id="top">
+    <div id="avatarDock" aria-label="Who is in our world">
+      <button type="button" data-explorer="bruce" aria-label="Bruce · offline"><img src="avatars/bruce.png" alt="Bruce"></button>
+      <button type="button" data-explorer="elena" aria-label="Elena · offline"><img src="avatars/elena.png" alt="Elena"></button>
+    </div>
     <div id="brand">
       <h1><img class="crown" src="art/crown.png" alt="" width="34" height="26">Our <span class="w">World</span></h1>
       <span id="where">Loading the map&hellip;</span>
@@ -678,6 +729,10 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 
   <div id="stage">
     <canvas id="map"></canvas>
+    <div id="specialHud" hidden>
+      <button class="pxbtn" id="specialBack" type="button">‹ Back to map</button>
+      <span id="specialName"></span>
+    </div>
     <svg id="crosshair" viewBox="0 0 46 46" aria-hidden="true">
       <g fill="none" stroke="#9F3D6D" stroke-width="3">
         <path d="M23 2v11M23 33v11M2 23h11M33 23h11"/>
@@ -719,7 +774,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
         <button id="btnHere" type="button"></button><button id="btnCalendar" type="button"></button><button id="btnTogether" type="button"></button>
         <button id="btnSurprise" type="button"></button><button id="btnMore" type="button"></button>
       </div>
-      <button class="pxbtn primary" id="btnDiscover">Discover this area ✦</button>
+      <button class="pxbtn primary" id="btnDiscover">Discover ✦</button>
     </div>
 
     <div id="placing">
@@ -1250,7 +1305,7 @@ var HOMES = {
 var REVEAL_KM = 20;          // a discovery clears a region this wide
 var UNLOCK_KM = 3;           // how close you must be for a sealed letter to open
 var PIXEL = 3;               // map pixel-art block size (css px)
-var FOGPIXEL = 6;            // chunkier clouds
+var FOGPIXEL = 2;            // preserve the illustrated clouds' clustered shading
 
 /* No pre-placed landmarks. Every mark on this map is one of ours. */
 
@@ -1267,7 +1322,7 @@ var PARKS = [
 /* Places worth a proper icon. Drawn only once the area around them is cleared. */
 var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u2615', mountain: '\u26f0\ufe0f', sun: '\u2728', liberty: '\ud83d\uddfd', skyline: '\ud83c\udfd9\ufe0f', lighthouse: '\u26f5' };
 /* a few landmarks use the new art; the rest keep their pixel sprites */
-var LM_ART = { mountain: 'mountain', skyline: 'city', lighthouse: 'lighthouse' };
+var LM_ART = { liberty: 'story-nyc', mountain: 'story-mountain', skyline: 'city', lighthouse: 'story-lighthouse' };
 function lmDraw(type, x, y, sc) {
   var a = LM_ART[type];
   if (a) { var h = SP[type].length * sc * 1.5, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
@@ -1633,6 +1688,7 @@ function blobPath(ctx, cx, cy, r, radii) {
 /* ============================== canvas setup ============================== */
 var cv = document.getElementById('map'), ctx = cv.getContext('2d');
 var baseCv = document.createElement('canvas'), baseCtx = baseCv.getContext('2d');
+var scenicCv = document.createElement('canvas'), scenicCtx = scenicCv.getContext('2d');
 var fogCv  = document.createElement('canvas'), fogCtx  = fogCv.getContext('2d');
 var W = 0, H = 0, DPR = 1, baseDirty = true;
 var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1645,6 +1701,7 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   baseCv.width  = Math.max(1, Math.ceil(W / PIXEL));    baseCv.height = Math.max(1, Math.ceil(H / PIXEL));
+  scenicCv.width = Math.max(1, Math.ceil(W / 2)); scenicCv.height = Math.max(1, Math.ceil(H / 2));
   fogCv.width   = Math.max(1, Math.ceil(W / FOGPIXEL)); fogCv.height  = Math.max(1, Math.ceil(H / FOGPIXEL));
   baseDirty = true;
   draw();
@@ -1653,6 +1710,7 @@ window.addEventListener('resize', resize);
 
 /* screen <-> world helpers for the current map view */
 function proj(lat, lng) {
+  if(typeof SPECIAL!=='undefined'&&SPECIAL.active)return specialProject(lat,lng);
   var z = S.zoom;
   return {
     x: lngToWX(lng, z) - lngToWX(S.center.lng, z) + W / 2,
@@ -1660,6 +1718,7 @@ function proj(lat, lng) {
   };
 }
 function unproj(x, y) {
+  if(typeof SPECIAL!=='undefined'&&SPECIAL.active)return specialUnproject(x,y);
   var z = S.zoom;
   return {
     lng: wxToLng(lngToWX(S.center.lng, z) + x - W / 2, z),
@@ -1677,7 +1736,7 @@ function drawBase() {
   /* water: a pastel wash, then chunky wave dashes pinned to the world so they
      stay put as you pan rather than swimming about */
   var grad = g.createLinearGradient(0, 0, 0, bh);
-  grad.addColorStop(0, '#91DCF7'); grad.addColorStop(0.55, C.waterlite); grad.addColorStop(1, C.water);
+  grad.addColorStop(0, '#2995C7'); grad.addColorStop(0.55, '#36ACD2'); grad.addColorStop(1, '#237FB5');
   g.fillStyle = grad; g.fillRect(0, 0, bw, bh);
 
   var z = S.zoom;
@@ -1700,6 +1759,16 @@ function drawBase() {
 
   /* the rest of the planet: coarse world land sits under the detailed states so
      the map never runs out of ground when you zoom out or pan away */
+  /* In the detailed coastal coverage, the coarse world silhouette would fill
+     the Chesapeake and Delaware estuaries back in. Let the shoreline-clipped
+     county geometry own that area at regional and local scales. */
+  g.save();
+  if (GEO.states.length) {
+    var coastNW=P(-77.4,41.6), coastSE=P(-71.5,34.0);
+    g.beginPath(); g.rect(0,0,bw,bh);
+    g.rect(coastNW[0],coastNW[1],coastSE[0]-coastNW[0],coastSE[1]-coastNW[1]);
+    g.clip('evenodd');
+  }
   var wr, wskip, wj, wprev;
   for (k = 0; k < GEO.world.length; k++) {
     wr = GEO.world[k]; wskip = false; wprev = wr[0];
@@ -1718,6 +1787,7 @@ function drawBase() {
     g.fillStyle = C.landmuted; g.fill();
   }
 
+  g.restore();
   /* foam where water meets land */
   g.strokeStyle = 'rgba(255,255,255,.62)';
   g.lineWidth = 2.2; g.lineJoin = 'round';
@@ -1774,7 +1844,9 @@ function drawBase() {
       p = P(ring[j], ring[j+1]);
       if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]);
     }
-    g.stroke();
+    var riverWidth=Math.max(.5,.5+(z-6)*.22);
+    g.strokeStyle='#c3c78e';g.lineWidth=riverWidth+1.4;g.stroke();
+    g.strokeStyle=C.water;g.lineWidth=riverWidth;g.stroke();
   }
   /* routes */
   if (z > 6.6) {
@@ -1782,11 +1854,11 @@ function drawBase() {
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (i = 0; i < RT.length; i++) {
       var pts = RT[i][1];
-      g.strokeStyle = 'rgba(194,126,61,.55)'; g.lineWidth = wgt + 1.5;
+      g.strokeStyle = 'rgba(139,105,68,.55)'; g.lineWidth = wgt + 1.5;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
-      g.strokeStyle = 'rgba(255,226,139,.98)'; g.lineWidth = wgt;
+      g.strokeStyle = '#d9bd8d'; g.lineWidth = wgt;
       g.beginPath();
       for (j = 0; j < pts.length; j++) { p = P(pts[j][1], pts[j][0]); if (j === 0) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
       g.stroke();
@@ -2113,12 +2185,21 @@ function tryLabel(x, y, text, opts) {
   return true;
 }
 
+function homeDisplayPos(k, z) {
+  var h = HOMES[k], p = proj(h.lat, h.lng);
+  /* Homes stay on Maryland's western shore. Never spread them east across
+     the bay to make room for labels. The geographic coordinate is unchanged. */
+  if (terrainAt(p.x,p.y)!=='land') {
+    for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){p.x-=dx;break;}
+  }
+  return p;
+}
 function drawMapOverlays() {
   hitboxes = [];
   labelBoxes = [];
   var z = S.zoom, i, p;
 
-  /* gold discovery borders */
+  /* Quiet illustrated discovery boundaries; no animated border sparkles. */
   var rs = allRegions();
   for (i = 0; i < rs.length; i++) {
     var reg = rs[i]; p = proj(reg.lat, reg.lng);
@@ -2126,31 +2207,14 @@ function drawMapOverlays() {
     if (r < 6) continue;
     ctx.save();
     blobPath(ctx, p.x, p.y, r, blobFor(reg.id));
-    ctx.strokeStyle = 'rgba(231,183,101,.80)'; ctx.lineWidth = 3; ctx.stroke();
-    ctx.strokeStyle = 'rgba(245,216,142,.45)'; ctx.lineWidth = 9; ctx.stroke();
+    ctx.strokeStyle = 'rgba(175,184,122,.35)'; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.restore();
-    /* a few slow twinkles riding the border */
-    if (!reduceMotion) {
-      var radii = blobFor(reg.id);
-      for (var sp = 0; sp < 5; sp++) {
-        var ang = (sp / 5) * Math.PI * 2 + cloudPhase / 260 + i;
-        var idx = Math.floor(((ang / (Math.PI * 2)) % 1 + 1) % 1 * radii.length);
-        var rr3 = r * radii[idx];
-        var tw = Math.sin(cloudPhase / 14 + sp * 1.7 + i) * 0.5 + 0.5;
-        if (tw < 0.45) continue;
-        var sx = p.x + Math.cos(ang) * rr3, sy = p.y + Math.sin(ang) * rr3;
-        var sz = 2 + Math.round(tw * 2);
-        ctx.fillStyle = 'rgba(255,245,214,' + (tw * 0.95) + ')';
-        ctx.fillRect(sx - sz / 2, sy - 1, sz, 2);
-        ctx.fillRect(sx - 1, sy - sz / 2, 2, sz);
-      }
-    }
   }
 
   /* reserve the ground under each landmark first, so no town label lands on it */
   for (i = 0; i < LANDMARKS.length; i++) {
     var rl = LANDMARKS[i];
-    if (!rl[8] && !isRevealed(rl[2], rl[3], 1.06)) continue;
+    if (!specialForCity(rl[0]) && !rl[8] && !isRevealed(rl[2], rl[3], 1.06)) continue;
     var rp2 = proj(rl[2], rl[3]);
     var rsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * (rl[6] || 1)));
     var gr = SP[rl[4]], gw = gr[0].length * rsc, gh = gr.length * rsc;
@@ -2158,7 +2222,7 @@ function drawMapOverlays() {
   }
 
   ['bruce', 'elena'].forEach(function (hk) {
-    var hh = HOMES[hk], hq = proj(hh.lat, hh.lng);
+    var hh = HOMES[hk], hq = homeDisplayPos(hk, z);
     var hsc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var hg = hk === 'elena' ? SP.castle : SP.cottage;
     var hw = homeArtH(z) * 1.15, hh2 = homeArtH(z) + 18;
@@ -2166,7 +2230,7 @@ function drawMapOverlays() {
   });
 
   /* state names — how you find your way around when zoomed out */
-  if (z < 8.8) {
+  if (z < 8.8 && z > 5.2) {
     var SL = window.OW_STATES_LBL, fade = Math.max(0.28, Math.min(0.72, (8.8 - z) / 2.2));
     ctx.font = '600 ' + (z < 6.4 ? 13 : 16) + 'px "Pixelify Sans", monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -2174,9 +2238,9 @@ function drawMapOverlays() {
       p = proj(SL[i][1], SL[i][2]);
       if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 20) continue;
       ctx.save();
-      ctx.letterSpacing = '6px';
+      ctx.letterSpacing = '2px';
       ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
-      ctx.strokeStyle = 'rgba(110,100,120,' + (fade * 0.35) + ')';
+      ctx.strokeStyle = 'rgba(75,70,53,' + Math.min(1,fade+.2) + ')';
       ctx.strokeText(SL[i][0], p.x, p.y);
       ctx.fillStyle = 'rgba(255,255,255,' + Math.min(0.95, fade + 0.3) + ')';
       ctx.fillText(SL[i][0], p.x, p.y);
@@ -2222,6 +2286,7 @@ function drawMapOverlays() {
   /* the flight out — a dashed hop from home to Chicago and up the shore to Milwaukee,
      with a small plane drifting along it. Nothing here is cleared ground; it is just the plan. */
   (function drawFlight() {
+    if(z<6.2||z>9.6)return;
     var fp = [], fi;
     for (fi = 0; fi < FLIGHT.length; fi++) fp.push(proj(FLIGHT[fi][0], FLIGHT[fi][1]));
     /* one control point per leg, bowed north so the hop arcs instead of ruling a line */
@@ -2278,14 +2343,15 @@ function drawMapOverlays() {
 
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
-    var lm = LANDMARKS[i];
+    if(z<6.1)continue;
+    var lm = LANDMARKS[i],special=specialForCity(lm[0]);
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
-    if (!planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
+    if (!special && !planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
-    if (z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
+    if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
     var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * 1.4 * (lm[6] || 1)));   /* places are about 1.4x bigger than before */
     var gh2 = SP[lm[4]].length * lsc;
     if (planned) {
@@ -2341,21 +2407,27 @@ function drawMapOverlays() {
       ctx.fillStyle = 'rgba(165,225,229,' + (0.16 + shim * 0.16) + ')';
       ctx.beginPath(); ctx.arc(p.x, p.y - 8 * lsc, 11 * lsc, 0, 7); ctx.fill();
     }
-    var lb = lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc);
-    if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 12, fg: C.deep, border: C.gold, force: 1 });
+    var lb = (special&&drawArt(ctx,special.worldIcon,p.x,p.y,Math.min(120,58+(z-7)*13),DPR)) || (lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc));
+    if(special){ctx.save();ctx.font='600 14px "Pixelify Sans",monospace';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#6f6854';ctx.strokeText(lm[1],p.x,lb.y-8);ctx.fillStyle='#fff3dc';ctx.fillText(lm[1],p.x,lb.y-8);ctx.restore();}
+    else if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 13, fg: C.deep, border: C.gold, force: 1 });
     labelBoxes.push({ x: lb.x - 4, y: lb.y - 4, w: lb.w + 8, h: lb.h + 8 });
     addHit({ x: lb.x - 8, y: lb.y - 20, w: lb.w + 16, h: lb.h + 26 }, { kind: 'landmark', id: lm[0] });
   }
 
   /* homes */
   HOMEBOXES = {};
-  ['bruce', 'elena'].forEach(function (k) {
-    var h = HOMES[k]; var q = proj(h.lat, h.lng);
+  ['elena', 'bruce'].forEach(function (k) {
+    if(z<6.1)return;
+    var h = HOMES[k]; var q = homeDisplayPos(k, z), actual = proj(h.lat,h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
-    var box = (k === 'elena' ? drawArt(ctx, 'castle-pink', q.x, q.y, hz, DPR) : drawArt(ctx, 'cottage', q.x, q.y, hz * 0.84, DPR)) ||
+    if (z < 9.5) {
+      ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle = '#fff3d8'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(actual.x,actual.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.restore();
+    }
+    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'story-cottage', q.x, q.y, hz * 1.04, DPR)) ||
       (k === 'elena'
         ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
         : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));
@@ -2379,22 +2451,7 @@ function drawMapOverlays() {
 
   /* memories — pins sharing a spot fan out in a ring so none hides another */
   runHooks('beforePins');
-  var pinCount = {}, pinSeen = {};
-  for (i = 0; i < S.memories.length; i++) {
-    var pk0 = S.memories[i].lat.toFixed(4) + ',' + S.memories[i].lng.toFixed(4);
-    pinCount[pk0] = (pinCount[pk0] || 0) + 1;
-  }
-  for (i = 0; i < S.memories.length; i++) {
-    var m = S.memories[i];
-    if (!isRevealed(m.lat, m.lng, 1.06)) continue;
-    p = proj(m.lat, m.lng);
-    var pk = m.lat.toFixed(4) + ',' + m.lng.toFixed(4), pn = pinCount[pk], pi = pinSeen[pk] || 0;
-    pinSeen[pk] = pi + 1;
-    if (pn > 1) { var pa = pi / pn * 6.2832 - 1.5708; var pr = z > 9.2 ? 46 : 24; p = { x: p.x + Math.cos(pa) * pr, y: p.y + Math.sin(pa) * pr }; }
-    if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
-    var b = polaroidPin(m, p, z) || drawSprite(ctx, SP.heart, PAL.heartP, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
-    addHit({ x: b.x - 7, y: b.y - 7, w: b.w + 14, h: b.h + 14 }, { kind: 'memory', id: m.id });
-  }
+  drawMemoryMarkers(false);
 
   /* starter suggestions (local only, until someone writes one) */
   if (z > 8.6) {
@@ -2413,7 +2470,7 @@ function drawMapOverlays() {
       p = proj(st[2], st[3]);
       if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
       ctx.globalAlpha = 0.62;
-      var sb = drawSprite(ctx, SP.heart, PAL.heartG, p.x, p.y, 2, '#FFFFFF');
+      var sb = drawSprite(ctx, SP.mapPin, PAL.mapPin, p.x, p.y, 2, '#FFFFFF');
       ctx.globalAlpha = 1;
       ctx.save();
       ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(159,61,109,.5)'; ctx.lineWidth = 2;
@@ -2449,12 +2506,25 @@ function drawMapOverlays() {
 }
 
 /* ============================== main draw ============================== */
+function drawMemoryMarkers(inScene){
+  var pinCount={},pinSeen={},z=S.zoom;
+  S.memories.forEach(function(m){var k=m.lat.toFixed(4)+','+m.lng.toFixed(4);pinCount[k]=(pinCount[k]||0)+1;});
+  S.memories.forEach(function(m){
+    if(inScene?!specialContains(m.lat,m.lng):!isRevealed(m.lat,m.lng,1.06))return;
+    var p=proj(m.lat,m.lng),pk=m.lat.toFixed(4)+','+m.lng.toFixed(4),pn=pinCount[pk],pi=pinSeen[pk]||0;pinSeen[pk]=pi+1;
+    if(pn>1){var a=pi/pn*6.2832-1.5708,r=z>9.2?46:24;p={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r};}
+    if(p.x<-40||p.y<-50||p.x>W+40||p.y>H+30)return;
+    var b=polaroidPin(m,p,z)||drawSprite(ctx,SP.mapPin,PAL.mapPin,p.x,p.y,z>9?3:2,'#FFFFFF');
+    addHit({x:b.x-7,y:b.y-7,w:b.w+14,h:b.h+14},{kind:'memory',id:m.id});
+  });
+}
 function draw() {
   if (!W) return;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.imageSmoothingEnabled = false;
   if ('textRendering' in ctx) ctx.textRendering = 'optimizeSpeed';     /* no joined "fi" in map labels */
   ctx.clearRect(0, 0, W, H);
+  if(drawSpecialRegion()){specialDrawFade();return;}
 
   if (S.mode === 'globe') {
     drawGlobe();
@@ -2463,12 +2533,14 @@ function draw() {
     return;
   }
 
-  if (baseDirty) { drawBase(); runHooks('afterBase'); }
+  if (baseDirty) { drawBase(); runHooks('afterBase'); drawScenic(); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
+  ctx.drawImage(scenicCv, 0, 0, scenicCv.width, scenicCv.height, 0, 0, W, H);
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
   runHooks('afterOverlays');
+  specialDrawFade();
 }
 
 var lastTick = 0;
@@ -2486,6 +2558,7 @@ var drag = null, pinch = null;
 function evPos(e) { var r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 
 cv.addEventListener('pointerdown', function (e) {
+  specialCancelPending();
   cv.setPointerCapture(e.pointerId);
   drag = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, t: Date.now() };
   cv.classList.add('dragging');
@@ -2495,6 +2568,8 @@ cv.addEventListener('pointermove', function (e) {
   var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   if (Math.abs(e.clientX - drag.sx) + Math.abs(e.clientY - drag.sy) > 5) drag.moved = true;
   drag.x = e.clientX; drag.y = e.clientY;
+  if(SPECIAL.active){specialPan(dx,dy);return;}
+  if(SPECIAL.animation)return;
   if (S.mode === 'globe') {
     S.globe.lon -= dx * 0.35 / Math.max(0.4, S.globe.scale);
     S.globe.lat = Math.max(-88, Math.min(88, S.globe.lat + dy * 0.35 / Math.max(0.4, S.globe.scale)));
@@ -2543,16 +2618,18 @@ cv.addEventListener('pointerup', clearPt);
 cv.addEventListener('pointercancel', clearPt);
 
 function zoomBy(d, at) {
+  if(SPECIAL.active){specialZoom(d,at);return;}
+  if(SPECIAL.animation)return;
   if (S.mode === 'globe') {
     if (performance.now() - lastModeSwitch < 350) return;      /* a switch has just happened: let it settle */
     S.globe.scale = Math.max(0.62, Math.min(1.55, S.globe.scale * (1 + d * 0.55)));
-    if (S.globe.scale > 1.50) { enterMap(S.globe.lat, S.globe.lon, 5.2); return; }
+    if (S.globe.scale > 1.50) { enterMap(S.globe.lat, S.globe.lon, 3.6); return; }
     setViewButtons(S.globe.scale < 0.7 ? 'space' : 'earth');
     draw(); return;
   }
   var before = at ? unproj(at.x, at.y) : null;
-  var nz = Math.max(4.6, Math.min(14.5, S.zoom + d * 3));
-  if (nz <= 4.62 && d < 0) { if (performance.now() - lastModeSwitch < 350) return; enterGlobe(); return; }
+  var nz = Math.max(2.8, Math.min(14.5, S.zoom + d * 3));
+  if (nz <= 2.82 && d < 0) { if (performance.now() - lastModeSwitch < 350) return; enterGlobe(); return; }
   S.zoom = nz;
   if (before && at) {
     var after = unproj(at.x, at.y);
@@ -2565,6 +2642,7 @@ function zoomBy(d, at) {
 }
 
 function handleTap(pos) {
+  if(SPECIAL.animation||SPECIAL.active)return;
   if (S.placing) { placeAt(unproj(pos.x, pos.y)); return; }
   for (var i = hitboxes.length - 1; i >= 0; i--) {
     var h = hitboxes[i], b = h.b;
@@ -2582,6 +2660,9 @@ function setViewButtons(v) {
   updateWhere();
 }
 function flyTo(lat, lng, z) {
+  if(SPECIAL.animation)return;
+  if(SPECIAL.active&&specialContains(lat,lng)){specialFocus(lat,lng,z);return;}
+  specialLeaveForNavigation();
   S.mode = 'map'; S.center.lat = lat; S.center.lng = lng; S.zoom = z;
   baseDirty = true; setViewButtons(z >= 9.6 ? 'local' : 'dmv'); draw();
 }
@@ -2592,6 +2673,8 @@ function enterMap(lat, lng, z) {
 }
 var lastModeSwitch = 0;
 function enterGlobe(scale) {
+  if(SPECIAL.animation)return;
+  specialLeaveForNavigation();
   S.mode = 'globe';
   S.globe.lon = S.center.lng; S.globe.lat = S.center.lat;
   S.globe.scale = scale || 1.2;           /* arrive a little under the exit threshold */
@@ -2602,6 +2685,8 @@ function enterGlobe(scale) {
 [].forEach.call(document.querySelectorAll('#views .pxbtn'), function (b) {
   b.addEventListener('click', function () {
     var v = b.dataset.view;
+    if(SPECIAL.animation)return;
+    specialLeaveForNavigation();
     if (v === 'local') { var h = HOMES[S.who] || HOMES.bruce; flyTo(h.lat, h.lng, 11.2); }
     else if (v === 'dmv') flyTo(38.93, -76.95, 7.8);     /* the home base, framed like the reference art */
     else if (v === 'earth') enterGlobe(1.05);
@@ -3039,6 +3124,7 @@ function sparkle() {
 var placingEl = document.getElementById('placing');
 var crossEl = document.getElementById('crosshair');
 function startPlacing(kind, starterId) {
+  if(SPECIAL.active)specialLeaveForNavigation();
   S.placing = { kind: kind, starterId: starterId || null };
   document.getElementById('placingText').textContent =
     kind === 'memory' ? 'Tap where this happened' : (kind === 'plan' ? 'Tap where you want to go' : 'Tap where you want to hide it');
@@ -3233,6 +3319,7 @@ function listHtml(items, empty) {
 
 function openItem(item) {
   S.selected = item;
+  if(item.kind==='scene-point'){specialOpenPoint(item.id);return;}
   if (item.kind === 'mail') { mailOpen(); return; }
   if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
   if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
@@ -3252,6 +3339,7 @@ function openItem(item) {
     return;
   }
   if (item.kind === 'landmark') {
+    var region=specialForCity(item.id);if(region){specialLanding(region.id);return;}
     var lm = null;
     for (var q = 0; q < LANDMARKS.length; q++) if (LANDMARKS[q][0] === item.id) lm = LANDMARKS[q];
     if (!lm) return;
@@ -3491,10 +3579,11 @@ function renderHop() {
   var rows = placesList(), n = rows.length;
   var nameEl = document.getElementById('hopName');
   if (!n) { document.getElementById('hop').style.display = 'none'; return; }
-  document.getElementById('hop').style.display = 'flex';
+  document.getElementById('hop').style.display = 'grid';
   if (hopIdx >= n) hopIdx = 0;
   nameEl.innerHTML = '<span class="ic">' + rows[hopIdx].ic + '</span><span>' + esc(rows[hopIdx].t) + '</span>';
   nameEl.title = 'See all ' + n + ' places';
+  if(SPECIAL.active)specialRefreshHud();
   document.getElementById('hopPrev').disabled = n < 2;
   document.getElementById('hopNext').disabled = n < 2;
 }
@@ -3523,6 +3612,7 @@ function openPlaces() {
         '<span class="ico">' + r.ic + '</span><span><span class="t">' + esc(r.t) + '</span><br>' +
         '<span class="s">' + esc(r.s) + '</span></span></button>';
     }).join('') + '</div>' +
+    '<h3 style="font-family:var(--fdisp)">Illustrated places</h3><div class="sheet-actions"><button class="pxbtn" data-act="region-card" data-region="nyc-area">New York City</button><button class="pxbtn" data-act="region-card" data-region="dc-area">Washington, DC</button></div>' +
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'
   );
 }
@@ -3648,6 +3738,7 @@ function paintIntroSprites() {
   });
 }
 function setWho(k) {
+  specialLeaveForNavigation();
   S.who = k;
   try { localStorage.setItem('ow.who', k); } catch (e) {}
   if (window.OWCloud && OWCloud.configured && OWCloud.who() !== k) OWCloud.setWho(k);
@@ -3750,6 +3841,10 @@ function hydrateLocal() {
   baseDirty = true;
 }
 
+/* ---- world/assets.generated.js ---- */
+/* Generated by tools/prepare-world-assets.js */
+var WORLD_ASSETS = {"pack-pine":{"path":"art/world/vegetation/pine.png","width":92,"height":128,"anchor":[0.5,1],"category":"vegetation","use":"world-coordinate decoration","source":"art-src/world/vegetation-sheet.png","crop":[70,220,285,330]},"pack-pine-tall":{"path":"art/world/vegetation/pine-tall.png","width":86,"height":128,"anchor":[0.5,1],"category":"vegetation","use":"world-coordinate decoration","source":"art-src/world/vegetation-sheet.png","crop":[375,140,310,410]},"pack-oak":{"path":"art/world/vegetation/oak.png","width":124,"height":128,"anchor":[0.5,1],"category":"vegetation","use":"world-coordinate decoration","source":"art-src/world/vegetation-sheet.png","crop":[695,170,355,380]},"pack-cherry":{"path":"art/world/vegetation/cherry.png","width":128,"height":111,"anchor":[0.5,1],"category":"vegetation","use":"world-coordinate decoration","source":"art-src/world/vegetation-sheet.png","crop":[1045,170,370,380]},"pack-crimson":{"path":"art/world/vegetation/crimson.png","width":128,"height":123,"anchor":[0.5,1],"category":"vegetation","use":"world-coordinate decoration","source":"art-src/world/vegetation-sheet.png","crop":[1430,180,345,360]},"pack-bush":{"path":"art/world/vegetation/bush.png","width":128,"height":80,"anchor":[0.5,1],"category":"vegetation","use":"world-coordinate decoration","source":"art-src/world/vegetation-sheet.png","crop":[1785,300,340,250]},"pack-flowers":{"path":"art/world/props/flowers.png","width":128,"height":81,"anchor":[0.5,1],"category":"props","use":"world-coordinate decoration","source":"art-src/world/props-sheet.png","crop":[0,225,355,300]},"pack-rocks":{"path":"art/world/props/rocks.png","width":128,"height":82,"anchor":[0.5,1],"category":"props","use":"world-coordinate decoration","source":"art-src/world/props-sheet.png","crop":[365,220,335,300]},"pack-bridge":{"path":"art/world/props/bridge.png","width":128,"height":72,"anchor":[0.5,1],"category":"props","use":"world-coordinate decoration","source":"art-src/world/props-sheet.png","crop":[700,200,400,330]},"pack-dock":{"path":"art/world/props/dock.png","width":128,"height":67,"anchor":[0.5,1],"category":"props","use":"world-coordinate decoration","source":"art-src/world/props-sheet.png","crop":[1100,230,430,300]},"pack-boat":{"path":"art/world/water/boat.png","width":119,"height":128,"anchor":[0.5,1],"category":"water","use":"world-coordinate decoration","source":"art-src/world/props-sheet.png","crop":[1530,180,355,360]},"pack-grass":{"path":"art/world/props/grass.png","width":128,"height":92,"anchor":[0.5,1],"category":"props","use":"world-coordinate decoration","source":"art-src/world/props-sheet.png","crop":[1880,250,290,280]},"pack-capitol":{"path":"art/world/landmarks/capitol.png","width":128,"height":106,"anchor":[0.5,1],"category":"landmarks","use":"world-coordinate decoration","source":"art-src/world/landmarks-sheet.png","crop":[70,100,600,530]},"pack-monument":{"path":"art/world/landmarks/monument.png","width":41,"height":128,"anchor":[0.5,1],"category":"landmarks","use":"world-coordinate decoration","source":"art-src/world/landmarks-sheet.png","crop":[750,90,230,540]},"pack-jefferson":{"path":"art/world/landmarks/jefferson.png","width":128,"height":91,"anchor":[0.5,1],"category":"landmarks","use":"world-coordinate decoration","source":"art-src/world/landmarks-sheet.png","crop":[1055,170,570,450]},"pack-liberty":{"path":"art/world/landmarks/liberty.png","width":81,"height":128,"anchor":[0.5,1],"category":"landmarks","use":"world-coordinate decoration","source":"art-src/world/landmarks-sheet.png","crop":[1740,70,370,560]},"pack-grass-light":{"path":"art/world/ground/grass-light.png","width":64,"height":64,"anchor":[0,0],"category":"ground","use":"low-contrast seamless region texture","source":"art-src/world/pack-reference-derived.png","crop":[35,45,64,64]},"pack-grass-medium":{"path":"art/world/ground/grass-medium.png","width":64,"height":64,"anchor":[0,0],"category":"ground","use":"low-contrast seamless region texture","source":"art-src/world/pack-reference-derived.png","crop":[172,44,64,64]},"pack-forest-floor":{"path":"art/world/ground/forest-floor.png","width":64,"height":64,"anchor":[0,0],"category":"ground","use":"low-contrast seamless region texture","source":"art-src/world/pack-reference-derived.png","crop":[294,44,64,64]},"pack-dirt":{"path":"art/world/ground/dirt.png","width":60,"height":60,"anchor":[0,0],"category":"ground","use":"low-contrast seamless region texture","source":"art-src/world/pack-reference-derived.png","crop":[673,44,60,60]},"pack-sand":{"path":"art/world/ground/sand.png","width":60,"height":60,"anchor":[0,0],"category":"ground","use":"low-contrast seamless region texture","source":"art-src/world/pack-reference-derived.png","crop":[788,42,60,60]},"pack-water-shallow":{"path":"art/world/ground/water-shallow.png","width":48,"height":48,"anchor":[0,0],"category":"ground","use":"low-contrast seamless region texture","source":"art-src/world/pack-reference-derived.png","crop":[1240,45,48,48]},"pack-water-deep":{"path":"art/world/ground/water-deep.png","width":60,"height":60,"anchor":[0,0],"category":"ground","use":"low-contrast seamless region texture","source":"art-src/world/pack-reference-derived.png","crop":[1335,45,60,60]},"nyc-area":{"path":"art/world/regions/nyc-area.webp","width":996,"height":1579,"anchor":[0.5,0.5],"category":"region","use":"clean authored scene; independent geographic markers","source":"art-src/world/nyc-area-clean.png"},"nyc-waterfront":{"path":"art/world/regions/nyc-waterfront.webp","width":928,"height":1695,"anchor":[0.5,0.5],"category":"region","use":"clean authored scene; independent geographic markers","source":"art-src/world/nyc-waterfront-clean.png"},"dc-area":{"path":"art/world/regions/dc-area.webp","width":923,"height":1704,"anchor":[0.5,0.5],"category":"region","use":"clean authored scene; independent geographic markers","source":"art-src/world/dc-area-clean.png"}};
+
 /* ---- features/art.js ---- */
 /* The art pack: sprites cut from the new texture sheet (art/*.png). Each is
    shrunk once to the exact pixel height it is drawn at, so it stays sharp at
@@ -3759,14 +3854,18 @@ var ART = {}, ARTSIZED = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
   var e = ART[name] = { ok: false }, im = new Image();
-  im.onload = function () { e.img = im; e.ok = true; };
+  im.onload = function () { e.img = im; e.ok = true; if (typeof baseDirty !== 'undefined') baseDirty = true; };
   im.onerror = function () { e.bad = true; };
-  im.src = 'art/' + name + '.png';
+  im.src = (typeof WORLD_ASSETS!=='undefined'&&WORLD_ASSETS[name])?WORLD_ASSETS[name].path:'art/' + name + '.png';
   return e;
 }
 ['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
+artLoad('story-cloud');
+artLoad('story-nyc');
+['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
+['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 
 function artSized(name, h, res) {
   var e = artLoad(name);
@@ -3775,42 +3874,482 @@ function artSized(name, h, res) {
   if (ARTSIZED[key]) return ARTSIZED[key];
   var pw = Math.max(4, Math.round(e.img.width * px / e.img.height));
   var c = document.createElement('canvas'); c.width = pw; c.height = px;
-  /* shrinking: smooth (keeps detail); enlarging: chunky nearest-neighbour (keeps the pixel-art look) */
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = px < e.img.height; g.imageSmoothingQuality = 'high';
+  /* Pixel assets retain hard edges at every scale, including downsampling. */
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   g.drawImage(e.img, 0, 0, pw, px);
   var id = g.getImageData(0, 0, pw, px);
   for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 100 ? 255 : 0;
   g.putImageData(id, 0, 0);
   return (ARTSIZED[key] = c);
 }
-/* A soft-focus copy for the cinematic edges: shrink, then stretch back with
-   smoothing. Works in every browser (no canvas filters needed). */
-function artSoft(name, h, res) {
-  var sharp = artSized(name, h, res);
-  if (!sharp) return null;
-  var key = name + '@' + sharp.height + '~soft';
-  if (ARTSIZED[key]) return ARTSIZED[key];
-  /* a clear margin all round so the soft edge fades out instead of being cut off square */
-  var pad = Math.ceil(sharp.height * 0.18), W2 = sharp.width + pad * 2, H2 = sharp.height + pad * 2;
-  var sw = Math.max(2, Math.round(W2 / 3)), sh = Math.max(2, Math.round(H2 / 3));
-  var t = document.createElement('canvas'); t.width = sw; t.height = sh;
-  var tg = t.getContext('2d'); tg.imageSmoothingEnabled = true; tg.imageSmoothingQuality = 'high';
-  tg.drawImage(sharp, pad * sw / W2, pad * sh / H2, sharp.width * sw / W2, sharp.height * sh / H2);
-  var c = document.createElement('canvas'); c.width = W2; c.height = H2;
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(t, 0, 0, W2, H2);
-  c.pad = pad;
-  return (ARTSIZED[key] = c);
-}
 /* stands on (x, y), h tall (css px); returns its box, or null while the art loads */
-function drawArt(g, name, x, y, h, res, soft) {
-  var c = soft ? artSoft(name, h, res) : artSized(name, h, res);
+function drawArt(g, name, x, y, h, res) {
+  var c = artSized(name, h, res);
   if (!c) return null;
   var w = c.width / (res || 1), hh = c.height / (res || 1), pad = (c.pad || 0) / (res || 1);
-  g.save(); g.imageSmoothingEnabled = !!soft;
+  g.save(); g.imageSmoothingEnabled = false;
   g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh + pad), w, hh);
   g.restore();
   return { x: x - w / 2, y: y - hh, w: w, h: hh };
 }
+
+/* ---- world/region-math.js ---- */
+/* Pure geographic/artwork transforms. Existing memory coordinates never change. */
+var RegionMath = (function () {
+  function geo(lat,lng){var s=Math.sin(Math.max(-85,Math.min(85,lat))*Math.PI/180);return{x:(lng+180)/360*256,y:256*(.5-Math.log((1+s)/(1-s))/(4*Math.PI))};}
+  function ll(x,y){var n=Math.PI-2*Math.PI*y/256;return{lng:x/256*360-180,lat:180/Math.PI*Math.atan(Math.sinh(n))};}
+  function calibrate(points){
+    var p=points.map(function(p){var a=geo(p.lat,p.lng);return{x:a.x,y:a.y,u:p.u,v:p.v};});
+    var x1=p[1].x-p[0].x,y1=p[1].y-p[0].y,x2=p[2].x-p[0].x,y2=p[2].y-p[0].y;
+    var det=x1*y2-x2*y1;if(Math.abs(det)<1e-10)throw new Error('Region control points must not be collinear.');
+    var u1=p[1].u-p[0].u,u2=p[2].u-p[0].u,v1=p[1].v-p[0].v,v2=p[2].v-p[0].v;
+    var a=(u1*y2-u2*y1)/det,b=(x1*u2-x2*u1)/det,c=(v1*y2-v2*y1)/det,d=(x1*v2-x2*v1)/det;
+    var inverse=a*d-b*c;if(Math.abs(inverse)<1e-9)throw new Error('Artwork control points must not be collinear.');
+    return{a:a,b:b,c:c,d:d,tx:p[0].u-a*p[0].x-b*p[0].y,ty:p[0].v-c*p[0].x-d*p[0].y,det:inverse};
+  }
+  function project(m,lat,lng){var p=geo(lat,lng);return{u:m.a*p.x+m.b*p.y+m.tx,v:m.c*p.x+m.d*p.y+m.ty};}
+  function unproject(m,u,v){var x=u-m.tx,y=v-m.ty;return ll((m.d*x-m.b*y)/m.det,(-m.c*x+m.a*y)/m.det);}
+  function clamp(n,a,b){return Math.max(a,Math.min(b,n));}
+  return{geo:geo,ll:ll,calibrate:calibrate,project:project,unproject:unproject,clamp:clamp};
+})();
+
+/* ---- world/region-configs.js ---- */
+/* Artwork is a stylized interpretation. Named tie points explicitly calibrate
+   the illustration; this is not an aerial-image/navigation overlay. */
+var SPECIAL_REGIONS = {
+  'nyc-area': {
+    id:'nyc-area',city:'nyc',name:'New York City',level:'area',asset:'nyc-area',worldIcon:'story-nyc',
+    anchor:{lat:40.7580,lng:-73.9855},worldZoom:10.6,zoomRange:[1,3],focus:{u:.5,v:.5},
+    points:[
+      {id:'empire',name:'Empire State Building',lat:40.7484,lng:-73.9857,u:.77,v:.43},
+      {id:'liberty',name:'Statue of Liberty',lat:40.6892,lng:-74.0445,u:.81,v:.555},
+      {id:'waterfront',name:'NYC waterfront',lat:40.7061,lng:-73.9969,u:.63,v:.49}
+    ],
+    portals:[{point:'waterfront',target:'nyc-waterfront',label:'Explore the waterfront'}],
+    ripples:[{u:.87,v:.68},{u:.73,v:.80}],waterfall:{u:.23,v:.65}
+  },
+  'nyc-waterfront': {
+    id:'nyc-waterfront',city:'nyc',name:'NYC waterfront',level:'closeup',asset:'nyc-waterfront',
+    anchor:{lat:40.7061,lng:-73.9969},worldZoom:11.3,zoomRange:[1,3],focus:{u:.5,v:.5},
+    points:[
+      {id:'empire',name:'Empire State Building',lat:40.7484,lng:-73.9857,u:.59,v:.32},
+      {id:'liberty',name:'Statue of Liberty',lat:40.6892,lng:-74.0445,u:.87,v:.30},
+      {id:'bridge',name:'Brooklyn Bridge',lat:40.7061,lng:-73.9969,u:.79,v:.46}
+    ],portals:[],ripples:[{u:.83,v:.62},{u:.76,v:.76}],waterfall:{u:.12,v:.66}
+  },
+  'dc-area': {
+    id:'dc-area',city:'dc',name:'Washington, DC',level:'area',asset:'dc-area',worldIcon:'pack-capitol',
+    anchor:{lat:38.8895,lng:-77.0353},worldZoom:10.6,zoomRange:[1,3],focus:{u:.5,v:.5},
+    points:[
+      {id:'capitol',name:'US Capitol',lat:38.8899,lng:-77.0091,u:.65,v:.34},
+      {id:'monument',name:'Washington Monument',lat:38.8895,lng:-77.0353,u:.18,v:.31},
+      {id:'jefferson',name:'Jefferson Memorial',lat:38.8814,lng:-77.0365,u:.90,v:.445}
+    ],portals:[],ripples:[{u:.86,v:.70},{u:.75,v:.76}],waterfall:{u:.15,v:.69}
+  }
+};
+/* One approved close-up per city. No nested destinations after entry. */
+var nycCloseup=SPECIAL_REGIONS['nyc-waterfront'];
+['asset','points','ripples','waterfall'].forEach(function(key){SPECIAL_REGIONS['nyc-area'][key]=nycCloseup[key];});
+SPECIAL_REGIONS['nyc-area'].portals=[];
+delete SPECIAL_REGIONS['nyc-waterfront'];
+SPECIAL_REGIONS['nyc-area'].visitors={u:.40,v:.59};
+SPECIAL_REGIONS['dc-area'].visitors={u:.44,v:.59};
+Object.keys(SPECIAL_REGIONS).forEach(function(id){
+  SPECIAL_REGIONS[id].artworkBounds={u0:0,v0:0,u1:1,v1:1};
+  SPECIAL_REGIONS[id].projection='affine-mercator';
+  SPECIAL_REGIONS[id].transition={cameraMs:650,blendMs:350,returnMs:900};
+});
+
+/* ---- world/special-regions.js ---- */
+/* Deliberate special-region entry. Ordinary zoom thresholds never enter scenes.
+   Scene camera and geography are connected by an invertible calibrated affine
+   transform. There are no writes to memories, discoveries, or cloud storage. */
+var SPECIAL = { active:null,camera:null,stack:[],assets:{},maps:{},busy:false,animation:false,fade:null,token:0 };
+function specialForCity(id){return Object.keys(SPECIAL_REGIONS).map(function(k){return SPECIAL_REGIONS[k];}).filter(function(c){return c.city===id&&c.level==='area';})[0];}
+Object.keys(SPECIAL_REGIONS).forEach(function(k){var c=SPECIAL_REGIONS[k];if(c.level==='area'&&!LANDMARKS.some(function(l){return l[0]===c.city;}))LANDMARKS.push([c.city,c.name,c.anchor.lat,c.anchor.lng,'skyline','An illustrated view of '+c.name+'.',1]);});
+function specialMap(config){return SPECIAL.maps[config.id]||(SPECIAL.maps[config.id]=RegionMath.calibrate(config.points));}
+function specialPose(){return{center:{lat:S.center.lat,lng:S.center.lng},zoom:S.zoom,mode:S.mode,view:S.view,globe:Object.assign({},S.globe)};}
+function specialSetPose(p){S.center={lat:p.center.lat,lng:p.center.lng};S.zoom=p.zoom;S.mode=p.mode;S.view=p.view;if(p.globe)S.globe=Object.assign({},p.globe);baseDirty=true;}
+function specialGeometry(config,camera){
+  var image=SPECIAL.assets[config.asset],fit=Math.max(W/image.naturalWidth,H/image.naturalHeight),s=fit*camera.scale;
+  return{w:image.naturalWidth*s,h:image.naturalHeight*s,x:W/2-camera.u*image.naturalWidth*s,y:H/2-camera.v*image.naturalHeight*s};
+}
+function specialClamp(){
+  if(!SPECIAL.active)return;
+  var g=specialGeometry(SPECIAL.active,SPECIAL.camera),c=SPECIAL.camera;
+  c.u=RegionMath.clamp(c.u,Math.min(.5,W/(2*g.w)),Math.max(.5,1-W/(2*g.w)));
+  c.v=RegionMath.clamp(c.v,Math.min(.5,H/(2*g.h)),Math.max(.5,1-H/(2*g.h)));
+  var ll=RegionMath.unproject(specialMap(SPECIAL.active),c.u,c.v);S.center={lat:ll.lat,lng:ll.lng};
+  S.zoom=12+Math.log(c.scale)/Math.LN2;
+}
+function specialProject(lat,lng){var uv=RegionMath.project(specialMap(SPECIAL.active),lat,lng),g=specialGeometry(SPECIAL.active,SPECIAL.camera);return{x:g.x+uv.u*g.w,y:g.y+uv.v*g.h};}
+function specialUnproject(x,y){var g=specialGeometry(SPECIAL.active,SPECIAL.camera);return RegionMath.unproject(specialMap(SPECIAL.active),(x-g.x)/g.w,(y-g.y)/g.h);}
+function specialContains(lat,lng){if(!SPECIAL.active)return false;var p=RegionMath.project(specialMap(SPECIAL.active),lat,lng);return p.u>=0&&p.u<=1&&p.v>=0&&p.v<=1;}
+function specialPreload(config){
+  if(SPECIAL.assets[config.asset])return Promise.resolve(SPECIAL.assets[config.asset]);
+  return new Promise(function(resolve,reject){
+    var im=new Image(),timer=setTimeout(function(){im.onload=im.onerror=null;reject(new Error('Artwork took too long to load.'));},15000);
+    im.onload=function(){clearTimeout(timer);var done=function(){SPECIAL.assets[config.asset]=im;resolve(im);};if(im.decode)im.decode().then(done,function(){done();});else done();};
+    im.onerror=function(){clearTimeout(timer);reject(new Error('Artwork could not be loaded.'));};
+    im.src=WORLD_ASSETS[config.asset].path;
+  });
+}
+function specialCapture(){var c=document.createElement('canvas');c.width=cv.width;c.height=cv.height;c.getContext('2d').drawImage(cv,0,0);return c;}
+function specialAnimate(duration,step){return new Promise(function(resolve){var start=performance.now();function tick(now){var t=duration?Math.min(1,(now-start)/duration):1;step(t,t*t*(3-2*t));if(t<1)requestAnimationFrame(tick);else resolve();}requestAnimationFrame(tick);});}
+function specialRefreshHud(){
+  if(typeof pushPresence==='function')pushPresence(false);
+  var hud=document.getElementById('specialHud');hud.hidden=!SPECIAL.active;
+  if(SPECIAL.active){document.getElementById('specialName').textContent=SPECIAL.active.name;var parent=SPECIAL.stack[SPECIAL.stack.length-1];document.getElementById('specialBack').textContent=parent&&parent.active?'‹ Back to '+parent.active.name:'‹ Back to map';var h=document.getElementById('hopName');h.textContent=SPECIAL.active.name;h.title='Choose another place';}
+}
+function specialCancelPending(){if(SPECIAL.busy&&!SPECIAL.animation){SPECIAL.token++;SPECIAL.busy=false;}}
+async function specialEnter(id,button){
+  var config=SPECIAL_REGIONS[id];if(!config||SPECIAL.busy)return;
+  var token=++SPECIAL.token;SPECIAL.busy=true;
+  var oldText=button&&button.textContent;if(button){button.disabled=true;button.textContent='Loading artwork…';}
+  try{await specialPreload(config);}catch(e){if(button){button.disabled=false;button.textContent=oldText;}if(token===SPECIAL.token){SPECIAL.busy=false;toast(e.message+' The current map is still here.','☁',4000);}return;}
+  if(token!==SPECIAL.token){if(button){button.disabled=false;button.textContent=oldText;}return;}
+  var previous={pose:specialPose(),active:SPECIAL.active,camera:SPECIAL.camera?Object.assign({},SPECIAL.camera):null};
+  SPECIAL.stack.push(previous);closeSheet();stopPlacing();SPECIAL.animation=true;
+  var camera={u:config.focus.u,v:config.focus.v,scale:1},from;
+  if(!previous.active&&!reduceMotion){
+    S.mode='map';
+    var endZoom=Math.min(12.2,Math.max(config.worldZoom,S.zoom+.6));
+    var geometry=specialGeometry(config,camera),uv=RegionMath.project(specialMap(config),config.anchor.lat,config.anchor.lng);
+    var endX=lngToWX(config.anchor.lng,endZoom)-(geometry.x+uv.u*geometry.w-W/2);
+    var endY=latToWY(config.anchor.lat,endZoom)-(geometry.y+uv.v*geometry.h-H/2);
+    var endCenter={lng:wxToLng(endX,endZoom),lat:wyToLat(endY,endZoom)},start=previous.pose;
+    await specialAnimate(config.transition.cameraMs,function(t,e){S.center.lat=start.center.lat+(endCenter.lat-start.center.lat)*e;S.center.lng=start.center.lng+(endCenter.lng-start.center.lng)*e;S.zoom=start.zoom+(endZoom-start.zoom)*e;baseDirty=true;draw();});
+  }else if(previous.active&&!reduceMotion){
+    var sourceCamera=previous.camera,goal=RegionMath.project(specialMap(previous.active),config.anchor.lat,config.anchor.lng);
+    var nextScale=Math.min(3,sourceCamera.scale*1.35);
+    await specialAnimate(config.transition.cameraMs,function(t,e){SPECIAL.camera.u=sourceCamera.u+(goal.u-sourceCamera.u)*e;SPECIAL.camera.v=sourceCamera.v+(goal.v-sourceCamera.v)*e;SPECIAL.camera.scale=sourceCamera.scale+(nextScale-sourceCamera.scale)*e;specialClamp();draw();});
+  }
+  previous.entryPose=specialPose();previous.transitionCamera=SPECIAL.camera?Object.assign({},SPECIAL.camera):null;
+  from=specialCapture();SPECIAL.active=config;SPECIAL.camera=camera;S.mode='map';specialClamp();specialRefreshHud();
+  await specialAnimate(reduceMotion?0:config.transition.blendMs,function(t){SPECIAL.fade={image:from,alpha:1-t};draw();});
+  SPECIAL.fade=null;SPECIAL.busy=false;SPECIAL.animation=false;draw();
+}
+async function specialBack(){
+  if(SPECIAL.busy&&!SPECIAL.animation)specialCancelPending();
+  if(!SPECIAL.active||SPECIAL.busy)return;
+  var previous=SPECIAL.stack.pop();if(!previous)return;
+  var image=specialCapture(),near=specialPose();SPECIAL.busy=true;SPECIAL.animation=true;
+  SPECIAL.active=previous.active;SPECIAL.camera=previous.camera;specialRefreshHud();
+  if(previous.active){
+    var source=previous.transitionCamera||previous.camera,target=previous.camera;
+    SPECIAL.camera=Object.assign({},source);specialClamp();
+    await specialAnimate(reduceMotion?0:900,function(t,e){SPECIAL.camera.u=source.u+(target.u-source.u)*e;SPECIAL.camera.v=source.v+(target.v-source.v)*e;SPECIAL.camera.scale=source.scale+(target.scale-source.scale)*e;specialClamp();SPECIAL.fade={image:image,alpha:Math.max(0,1-t*2.6)};draw();});
+    specialSetPose(previous.pose);specialClamp();
+  }else{
+    S.mode='map';
+    // Begin at the scene's geographic anchor, then return to the saved camera.
+    var entry=previous.entryPose||near,lat=RegionMath.clamp(entry.center.lat,5,62),lng=entry.center.lng;
+    await specialAnimate(reduceMotion?0:900,function(t,e){S.center.lat=lat+(previous.pose.center.lat-lat)*e;S.center.lng=lng+(previous.pose.center.lng-lng)*e;S.zoom=entry.zoom+(previous.pose.zoom-entry.zoom)*e;baseDirty=true;SPECIAL.fade={image:image,alpha:Math.max(0,1-t*2.6)};draw();});
+    specialSetPose(previous.pose);setViewButtons(previous.pose.view);renderHop();
+  }
+  SPECIAL.fade=null;SPECIAL.busy=false;SPECIAL.animation=false;draw();
+}
+function specialLeaveForNavigation(){
+  specialCancelPending();if(!SPECIAL.active||SPECIAL.animation)return;
+  var first=SPECIAL.stack[0];SPECIAL.active=null;SPECIAL.camera=null;SPECIAL.stack=[];SPECIAL.fade=null;
+  if(first)specialSetPose(first.pose);specialRefreshHud();renderHop();
+}
+function specialPan(dx,dy){if(SPECIAL.animation)return;var g=specialGeometry(SPECIAL.active,SPECIAL.camera);SPECIAL.camera.u-=dx/g.w;SPECIAL.camera.v-=dy/g.h;specialClamp();draw();}
+function specialZoom(d,at){
+  if(SPECIAL.busy)return;
+  var next=SPECIAL.camera.scale*Math.exp(d*1.2);
+  if(d<0&&next<.88){specialBack();return;}
+  var ll=at?specialUnproject(at.x,at.y):null;
+  SPECIAL.camera.scale=RegionMath.clamp(next,SPECIAL.active.zoomRange[0],SPECIAL.active.zoomRange[1]);
+  if(at&&ll){var p=specialProject(ll.lat,ll.lng),g=specialGeometry(SPECIAL.active,SPECIAL.camera);SPECIAL.camera.u+=(p.x-at.x)/g.w;SPECIAL.camera.v+=(p.y-at.y)/g.h;}
+  specialClamp();draw();
+}
+function specialFocus(lat,lng,z){var p=RegionMath.project(specialMap(SPECIAL.active),lat,lng);SPECIAL.camera.u=p.u;SPECIAL.camera.v=p.v;if(typeof z==='number')SPECIAL.camera.scale=RegionMath.clamp(Math.pow(2,z-12),1,3);specialClamp();draw();}
+function specialPoint(config,id){return config.points.filter(function(p){return p.id===id;})[0];}
+function specialLanding(id){
+  var config=SPECIAL_REGIONS[id];if(!config)return;
+  var memories=nearbyList(config.anchor.lat,config.anchor.lng,10);
+  openSheet(head(config.name,'A closer view of our world')+'<p class="note">Explore the illustrated '+(config.level==='closeup'?'waterfront':'region')+', pan around, and revisit memories at their mapped locations.</p>'+listHtml(memories,'No memories here yet.')+'<div class="sheet-actions"><button class="pxbtn primary" data-act="region-open" data-region="'+id+'">Explore Closer</button><button class="pxbtn" data-act="close">Close</button></div>');
+}
+function specialOpenPoint(id){
+  var config=SPECIAL.active,p=specialPoint(config,id);if(!p)return;
+  var portal=config.portals.filter(function(p){return p.point===id;})[0];
+  openSheet(head(p.name,config.name)+'<div class="sheet-actions">'+(portal?'<button class="pxbtn primary" data-act="region-open" data-region="'+portal.target+'">Explore Closer</button>':'')+'<button class="pxbtn" data-act="mem-at" data-lat="'+p.lat+'" data-lng="'+p.lng+'">Add a memory here</button><button class="pxbtn" data-act="close">Close</button></div>');
+}
+function specialRipples(config,g){
+  if(reduceMotion)return;
+  ctx.save();ctx.strokeStyle='rgba(255,236,213,.25)';ctx.lineWidth=1.5;
+  config.ripples.forEach(function(p,i){var phase=(cloudPhase/32+i*.4)%1,x=g.x+p.u*g.w,y=g.y+p.v*g.h;ctx.globalAlpha=Math.sin(phase*Math.PI)*.5;ctx.beginPath();ctx.ellipse(x,y,8+phase*12,2+phase*3,0,0,Math.PI*2);ctx.stroke();});
+  if(config.waterfall){var w=config.waterfall,x=g.x+w.u*g.w,y=g.y+w.v*g.h;ctx.fillStyle='#e7faff';for(var i=0;i<3;i++){ctx.globalAlpha=.16;ctx.fillRect(x+(i%2)*3,y+(cloudPhase*.8+i*7)%23,6,2);}}
+  ctx.restore();
+}
+function drawSpecialRegion(){
+  if(!SPECIAL.active)return false;
+  specialClamp();var config=SPECIAL.active,g=specialGeometry(config,SPECIAL.camera);
+  ctx.imageSmoothingEnabled=false;ctx.drawImage(SPECIAL.assets[config.asset],g.x,g.y,g.w,g.h);
+  hitboxes=[];labelBoxes=[];HOMEBOXES={};specialRipples(config,g);
+  /* Final scenic view: no location pins, memory overlays, or deeper hotspots.
+     Records remain untouched and available on the ordinary world map. */
+  drawSpecialVisitors(config,g);return true;
+}
+function specialVisitorList(config){
+  var visitors=S.who?[S.who]:[];
+  if(typeof PR!=='undefined'&&PR.partner&&PR.partner.scene===config.city)visitors.push(other(S.who));
+  return visitors;
+}
+function drawSpecialVisitors(config,g){
+  if(!config.visitors)return;
+  var people=specialVisitorList(config),height=Math.min(116,g.h*.105),gap=height*.60;
+  people.sort(function(a,b){return a==='bruce'?-1:b==='bruce'?1:0;});
+  people.forEach(function(who,i){
+    var x=g.x+config.visitors.u*g.w+(i-(people.length-1)/2)*gap,y=g.y+config.visitors.v*g.h;
+    drawAvatar(ctx,who,x,y,height,null,{res:DPR});
+  });
+}
+function specialDrawFade(){if(SPECIAL.fade){ctx.save();ctx.globalAlpha=SPECIAL.fade.alpha;ctx.imageSmoothingEnabled=false;ctx.drawImage(SPECIAL.fade.image,0,0,SPECIAL.fade.image.width,SPECIAL.fade.image.height,0,0,W,H);ctx.restore();}}
+ACTIONS['region-open']=function(b){specialEnter(b.dataset.region,b);};
+ACTIONS['region-card']=function(b){specialLanding(b.dataset.region);};
+document.getElementById('specialBack').addEventListener('click',specialBack);
+document.addEventListener('click',function(e){if(e.target.closest('[data-act="close"]'))specialCancelPending();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){specialCancelPending();if(SPECIAL.active&&!sheet.classList.contains('open')&&!S.placing&&!lbEl.classList.contains('on')&&!calEl.classList.contains('open'))specialBack();}});
+
+/* ---- features/scenic.js ---- */
+/* Storybook scenery is anchored to geography, cached with the base map, and
+   painted behind labels and interactive places. All ornament is decorative. */
+window.OW_SCENIC = true;
+function scenicRand(a, b, seed) { return terHash(a, b, seed); }
+function scenicLand(x, y) { return terrainAt(x, y) === 'land'; }
+function scenicAvoid(x, y, radius) {
+  var places = [HOMES.bruce, HOMES.elena].concat(HOMEBASE).concat(
+    LANDMARKS.map(function (l) { return { lat: l[2], lng: l[3] }; }), S.memories, S.plans || []);
+  for (var i = 0; i < places.length; i++) {
+    var p = proj(places[i].lat, places[i].lng), dx = x - p.x, dy = (y - p.y) * 1.2;
+    if (dx * dx + dy * dy < radius * radius) return true;
+  }
+  return false;
+}
+function scenicClearing(g, place, radius, kind) {
+  var p = place.who?homeDisplayPos(place.who,S.zoom):proj(place.lat, place.lng);
+  if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
+  if(kind==='castle'||kind==='cottage'){
+    var terraceDepth=kind==='castle'?27:12;
+    for(var ledge=terraceDepth;ledge>=3;ledge-=3){
+      g.fillStyle=ledge>12?'#716077':ledge>6?'#a08487':'#c4a88b';
+      g.beginPath();g.ellipse(p.x,p.y+ledge,radius,radius*.30,0,0,7);g.fill();
+    }
+    for(var stone=0;stone<8;stone++){
+      scenicMark(g,p.x-radius+stone*radius/4,p.y+9+(stone%2)*3,'#d0b7a1',3,9);
+    }
+    if(kind==='castle')for(var stair=0;stair<6;stair++){
+      scenicMark(g,p.x+radius*.5-stair*3,p.y+10+stair*4,'#7c645a',18,5);
+      scenicMark(g,p.x+radius*.5-stair*3,p.y+9+stair*4,'#f0d9a6',18,3);
+    }
+  }
+  g.fillStyle = kind === 'castle' ? '#e8d5a3' : '#e6d599';
+  g.beginPath(); g.ellipse(p.x, p.y-3, radius, radius*.30, 0, 0, 7); g.fill();
+  g.strokeStyle = '#bba773'; g.lineWidth = 3;
+  g.beginPath(); g.ellipse(p.x, p.y-3, radius, radius*.30, 0, .08, 3.07); g.stroke();
+  for (var i=0;i<7;i++) {
+    var a=(i/7)*6.283, x=p.x+Math.cos(a)*radius*.85, y=p.y+Math.sin(a)*radius*.25;
+    scenicBloom(g,x,y,4,i%2===0);
+  }
+  if(kind==='cottage'){
+    for(var post=0;post<5;post++){
+      var xx=p.x-radius+post*8, yy=p.y+8;
+      scenicMark(g,xx,yy,'#634a3e',3,11);
+      scenicMark(g,xx,yy,'#e0bd84',2,8);
+      scenicMark(g,xx,yy+5,'#af8055',8,2);
+    }
+  }
+}
+function scenicWaterfall(g, place) {
+  if (!isRevealed(place.lat,place.lng,1.1)) return;
+  var p=proj(place.lat,place.lng);
+  if (p.x<-60||p.x>W+60||p.y<-60||p.y>H+60) return;
+  drawArt(g,'pack-bridge',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
+}
+function scenicPier(g, place) {
+  var p=proj(place.lat,place.lng);
+  if (p.x<-80||p.x>W+80||p.y<-80||p.y>H+80) return;
+  var shore=null;
+  for(var i=24;i<78;i+=6) if(terrainAt(p.x+i,p.y+i*.36)==='water'){shore={x:p.x+i,y:p.y+i*.36};break;}
+  if(!shore)return;
+  drawArt(g,'story-pier',shore.x+20,shore.y+25,S.zoom>9.3?76:48,1);
+}
+function scenicMark(g, x, y, color, w, h) {
+  g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), w, h);
+}
+function scenicTree(g, x, y, h, blossom) {
+  var w = h * (blossom ? .95 : .66);
+  scenicMark(g, x - 2, y - h * .28, '#60452f', 4, h * .28);
+  g.fillStyle = '#384b3d'; g.beginPath(); g.ellipse(x + 2, y, w * .44, h * .075, 0, 0, 7); g.fill();
+  var cols = blossom ? ['#703e5a','#bd5c87','#ec8bb3','#ffd0df'] : ['#274f4c','#30735b','#4c9363','#8cba71'];
+  for (var i = 0; i < 4; i++) {
+    var yy = y - h * (.20 + i * .17), ww = w * (1 - i * .19);
+    scenicMark(g, x - ww / 2 - 2, yy - h * .12 + 3, cols[0], ww + 4, h * .17);
+    scenicMark(g, x - ww / 2, yy - h * .13, cols[1], ww, h * .16);
+    scenicMark(g, x - ww * .31, yy - h * .15, cols[2], ww * .48, h * .07);
+    scenicMark(g, x + ww * .14, yy - h * .08, cols[3], ww * .13, h * .035);
+  }
+}
+function scenicBloom(g, x, y, s, pink) {
+  scenicMark(g, x, y, '#37765b', 2, s + 2);
+  scenicMark(g, x - s / 2, y - 2, pink ? '#c85889' : '#f4cc78', s, 3);
+  scenicMark(g, x - 2, y - s / 2, pink ? '#f4a9c8' : '#ffe5a1', 3, s);
+  scenicMark(g, x, y, '#fff3d4', 2, 2);
+}
+function scenicCoast(g) {
+  /* A stepped, two-tone lip follows the actual geographic coast pixels. */
+  for (var y = 4; y < H - 4; y += 5) for (var x = 4; x < W - 4; x += 5) {
+    if (!scenicLand(x, y)) continue;
+    if (terrainAt(x + 7, y) !== 'water' && terrainAt(x, y + 7) !== 'water') continue;
+    var depth=S.zoom>9?18:7;
+    scenicMark(g, x+2, y+2, '#736477', 5, depth);
+    scenicMark(g, x+2, y+2, '#a98272', 3, depth-2);
+    scenicMark(g, x+2, y+depth, '#d4b398', 4, 2);
+    scenicMark(g, x, y + 2, '#a36b4d', 5, 3);
+    scenicMark(g, x, y, '#e6ad71', 5, 2);
+    if (terrainAt(x + 10, y + 4) === 'water') scenicMark(g, x + 8, y + 4, '#d8f5e7', 4, 2);
+  }
+}
+/* Geographic relief is sampled in world coordinates, so its ridges and
+   meadows stay attached to the same ground through every camera movement. */
+var SCENIC_PATTERNS={};
+function scenicTexture(g,name){var a=artLoad(name);if(!a.ok)return null;if(!SCENIC_PATTERNS[name])SCENIC_PATTERNS[name]=g.createPattern(a.img,'repeat');return SCENIC_PATTERNS[name];}
+function scenicGround(g) {
+  var z=S.zoom, step=6;
+  var grass=scenicTexture(g,'pack-grass-medium'),moss=scenicTexture(g,'pack-forest-floor');
+  for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
+    if(!scenicLand(x,y))continue;
+    var p=unproj(x,y), detail=Math.max(0,Math.min(1,(z-5)/3));
+    var continental=terNoise(p.lng/3,p.lat/3);
+    var n=terNoise(p.lng/.12,p.lat/.12)*detail+continental*(1-detail);
+    var broad=terNoise(p.lng/.65,p.lat/.65)*detail+continental*(1-detail);
+    var ridge=Math.sin(p.lng*13+p.lat*9+ broad*5)*.5+.5;
+    var shade=(n*.4+broad*.6);
+    g.fillStyle=shade>.5?'rgba(31,85,58,'+Math.min(.26,(shade-.5)*.8)+')':'rgba(243,220,133,'+Math.min(.22,(.5-shade)*.7)+')';
+    g.fillRect(x,y,step,step);
+    var texture=grove(p.lat,p.lng)>.45?moss:grass;
+    if(texture){g.save();g.globalAlpha=.14;g.fillStyle=texture;g.fillRect(x,y,step,step);g.restore();}
+    /* Narrow contour bands form shaded terraces with a lit grass rim. */
+    var band=(shade*12)%1;
+    if(S.zoom>9.5&&band<.025&&broad>.58){
+      g.fillStyle='#706c68';g.fillRect(x,y+2,step,5);
+      g.fillStyle='#ac9470';g.fillRect(x,y,step,3);
+      g.fillStyle='#d2ce8b';g.fillRect(x,y-2,step,2);
+    }
+    if(ridge>.88&&broad>.5){g.fillStyle='rgba(49,86,66,.13)';g.fillRect(x,y+step-2,step,2);}
+  }
+}
+function drawScenic() {
+  var g = scenicCtx, z = S.zoom;
+  g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
+  if (!TER.on) return;
+  scenicGround(g);
+  scenicCoast(g);
+  var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
+  var local = Math.max(0, Math.min(1, (z - 8.9) / 1.15));
+  /* Two persistent grids fade across the regional/local transition. */
+  var regional=Math.max(0,Math.min(1,(z-6.8)/1.2));
+  scenicVegetation(g,tl,br,1.68,Math.max(0,Math.min(1,(6-z)/1.5)),32,false);
+  scenicVegetation(g,tl,br,.42,(1-regional)*Math.max(0,Math.min(1,(z-4.5)/1.3)),28,false);
+  scenicVegetation(g,tl,br,.105,(1-local)*regional,24,false);
+  scenicVegetation(g,tl,br,.012,local,22,true);
+  if(z<9.3){
+    [[35.6,-83.5],[37.1,-80.3],[38.5,-79.4],[40.0,-77.7],[41.8,-75.3],
+      [36.5,-106.1],[39.3,-106.3],[42.8,-109.2],[46.7,-112.1],[51.2,-116.4]].forEach(function(a){
+      var p=proj(a[0],a[1]);
+      if(p.x>-70&&p.x<W+70&&p.y>-60&&p.y<H+70&&scenicLand(p.x,p.y))
+        drawArt(g,'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
+    });
+  }
+  if (z > 9) {
+    scenicClearing(g,HOMES.bruce,Math.min(56,homeArtH(z)*.52),'cottage');
+    scenicClearing(g,HOMES.elena,Math.min(62,homeArtH(z)*.55),'castle');
+    scenicPier(g,HOMES.bruce);
+  }
+  if (z > 8) {
+    scenicWaterfall(g,{lat:41.1165,lng:-75.0121});
+    scenicWaterfall(g,{lat:38.9976,lng:-77.2530});
+  }
+}
+function scenicCellWeight(gx,gy,cell,z,spacing) {
+  /* Screen-density budget depends only on zoom, never the visible item count.
+     A persistent cell fades in rather than vanishing when the viewport moves
+     or when a large screen crosses the old all-or-nothing 7,500-cell cutoff. */
+  var pixels=cell*256*Math.pow(2,z)/360;
+  var rate=Math.min(1,Math.pow(pixels/spacing,2));
+  if(rate>=1)return 1;
+  return Math.max(0,Math.min(1,(rate*1.18-scenicRand(gx,gy,76))/Math.max(.00001,rate*.18)));
+}
+function scenicVegetation(g,tl,br,cell,alpha,spacing,fine) {
+  if(alpha<.01)return;
+  g.save(); g.globalAlpha=alpha;
+  var y0 = Math.floor(Math.min(tl.lat, br.lat) / cell), y1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
+  var x0 = Math.floor(Math.min(tl.lng, br.lng) / cell), x1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
+  var items = [], z=S.zoom, local=Math.max(0,Math.min(1,(z-8.9)/1.15));
+  for (var gy = y0; gy <= y1; gy++) for (var gx = x0; gx <= x1; gx++) {
+    var weight=scenicCellWeight(gx,gy,cell,z,spacing);
+    if(weight<.005)continue;
+    g.globalAlpha=alpha*weight;
+    var lat = (gy + .25 + scenicRand(gx,gy,71)*.5)*cell;
+    var lng = (gx + .25 + scenicRand(gx,gy,72)*.5)*cell;
+    var p = proj(lat,lng), r = scenicRand(gx,gy,73);
+    if (p.x < -45 || p.x > W+45 || p.y < -45 || p.y > H+45) continue;
+    var land = scenicLand(p.x,p.y), meadow = grove(lat,lng);
+    if (!land) {
+      if (r < .23) { scenicMark(g,p.x,p.y,'#d7f3f2',8,2); scenicMark(g,p.x+4,p.y+4,'#8ad7ee',5,2); }
+      if(fine&&r>.995&&terrainAt(p.x+16,p.y)==='water'&&terrainAt(p.x-16,p.y)==='water')
+        drawArt(g,'pack-boat',p.x,p.y,30,1);
+      continue;
+    }
+    if (scenicAvoid(p.x,p.y,Math.max(35,homeArtH(z)*.62))) continue;
+    if (r < .33) {
+      scenicMark(g,p.x-8,p.y-3,'#8ab967',13,3);
+      scenicMark(g,p.x+3,p.y+2,'#bbd47b',8,2);
+    }
+    if (r > .68 && r < .9) {
+      if(fine)drawArt(g,r>.82?'pack-bush':'pack-flowers',p.x,p.y,10+Math.round(local*5),1);
+      else scenicBloom(g,p.x,p.y,4,r>.78);
+    }
+    var density = Math.max(fine?.18:.05, Math.min(fine?.85:.32, meadow*(fine?1.3:.34)));
+    if (r < density) {
+      var h = (fine ? 34 + 22*local : 17 + z*1.3) * (.8+scenicRand(gx,gy,74)*.4);
+      items.push({x:p.x,y:p.y,h:h,blossom:scenicRand(gx,gy,75)<(fine?.24:.17),species:scenicRand(gx,gy,81),weight:weight});
+    }
+  }
+  items.sort(function (a,b) { return a.y-b.y; });
+  items.forEach(function (it) {
+    g.globalAlpha=alpha*it.weight;
+    if (S.zoom>2.5) {
+      var kind=it.blossom?'pack-cherry':it.species<.04?'pack-crimson':it.species<.5?'pack-pine':it.species<.7?'pack-pine-tall':'pack-oak';
+      drawArt(g,kind,it.x,it.y,Math.round(it.h/4)*4,1);
+    } else scenicTree(g,it.x,it.y,it.h,it.blossom);
+  });
+  g.restore();
+}
+/* Clouds sit in the foreground corners without covering the central places. */
+HOOKS.afterOverlays.push(function () {
+  if(S.mode!=='map')return;
+  var wide=Math.max(0,Math.min(1,(9-S.zoom)/3));
+  var h=Math.min(190,W*(.29+wide*.15));
+  ctx.save();ctx.globalAlpha=.94;
+  drawArt(ctx,'story-cloud',12,H+h*.15,h,1);
+  drawArt(ctx,'story-cloud',W+20,H+h*.25,h*1.08,1);
+  if(wide>.1){
+    ctx.globalAlpha=wide*.94;
+    drawArt(ctx,'story-cloud',-45,h*.65,h*.85,1);
+    drawArt(ctx,'story-cloud',W+65,h*.72,h*.9,1);
+  }
+  ctx.restore();
+  if(S.zoom<5.3){
+    [['CANADA',53,-105],['UNITED STATES',39,-98],['MEXICO',24,-103]].forEach(function(a){
+      var p=proj(a[1],a[2]);
+      if(p.x>40&&p.x<W-40&&p.y>50&&p.y<H-80)
+        tryLabel(p.x,p.y,a[0],{size:16,force:1,fg:'#fff5dc',bg:'#536f48',border:'#d7c18b'});
+    });
+  }
+});
 
 /* ---- features/homebase.js ---- */
 /* The home base, drawn like the reference art: big homes with heart badges,
@@ -3819,7 +4358,7 @@ function drawArt(g, name, x, y, h, res, soft) {
    out in the parts we have not explored yet. */
 
 var HOMEBASE = [
-  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'mountain', scale: 1.05 }
+  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'story-mountain', scale: 1.05 }
 ];
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
@@ -3827,7 +4366,7 @@ function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.i
 function homeArtH(z) { return Math.max(51, Math.min(117, 51 + (z - 6.9) * 15)); }   /* homes and the castle: big and easy to see, always well above the trees */
 
 var HBBOX = {};
-var HB_LABEL = { bruce: 'Calvert County' };
+var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };
 var HB_PILLS = { 'Northern Virginia': 1, 'Calvert County': 1 };
 var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], ['Philadelphia', 39.95, -75.17], ['Wilmington', 39.74, -75.55],
   ['Frederick', 39.41, -77.41], ['Fredericksburg', 38.30, -77.46], ['Harrisburg', 40.27, -76.88], ['Norfolk', 36.85, -76.29], ['Hagerstown', 39.64, -77.72]];
@@ -3847,8 +4386,8 @@ HOOKS.terrain.unshift(function () {
   }
   links.forEach(function (l, i) {
     var bow = i % 2 ? 0.14 : -0.12;
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(245,216,142,.38)'; ctx.lineWidth = 8; ctx.stroke();
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(231,183,101,.9)'; ctx.lineWidth = 2.2; ctx.stroke();
+    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(132,99,64,.38)'; ctx.lineWidth = 7; ctx.stroke();
+    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = '#d9bc87'; ctx.lineWidth = 4; ctx.stroke();
   });
   ctx.restore();
 });
@@ -3870,6 +4409,7 @@ HOOKS.terrain.push(function () {
   }
   HBBOX = {};
   HOMEBASE.forEach(function (h) {
+    if(z<6.1)return;
     var p = proj(h.lat, h.lng);
     if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 80) return;
     var b = drawArt(ctx, h.art, p.x, p.y, homeArtH(z) * h.scale, DPR);
@@ -3887,19 +4427,20 @@ function drawHeartBadge(x, y, color) {
   drawSprite(ctx, SP.heart, { h: color, o: '#6E2549' }, x, y + 7, 2, null);
 }
 function pill(x, y, text) { tryLabel(x, y, text, { size: 12, force: 1, bg: 'rgba(255,247,242,.96)', border: '#D9A3B8', fg: '#5B3046' }); }
+HOOKS.afterOverlays.push(function(){
+  if(S.mode!=='map')return;
+  var p=proj((HOMES.bruce.lat+HOMES.elena.lat)/2,(HOMES.bruce.lng+HOMES.elena.lng)/2);
+  if(p.x<0||p.x>W||p.y<30||p.y>H-80)return;
+  drawHeartBadge(p.x,p.y,C.pink);
+});
 HOOKS.beforePins.push(function () {
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;
-    var bx = b.x + b.w / 2, by = b.y - 16, o = HOMEBOXES[other(k)];
-    /* if the badge would land on the other home, tuck it beside this one instead */
-    if (o && bx + 12 > o.x && bx - 12 < o.x + o.w && by + 15 > o.y && by - 11 < o.y + o.h) { bx = b.x + b.w + 10; by = b.y + 6; }
-    drawHeartBadge(bx, by, C.pink);
     if (HB_LABEL[k]) pill(b.x + b.w / 2, b.y + b.h + 24, HB_LABEL[k]);
   });
   HOMEBASE.forEach(function (h) {
     var b = HBBOX[h.id]; if (!b) return;
-    if (h.heart) drawHeartBadge(b.x + b.w / 2, b.y - 16, h.heart);
     pill(b.x + b.w / 2, b.y + b.h + 24, h.name);
   });
 });
@@ -3960,6 +4501,7 @@ function focusAt(y) {
 }
 
 HOOKS.terrain.push(function () {
+  if (window.OW_SCENIC) return;
   if (S.mode !== 'map' || !TER.on || !TER.px) return;
   var z = S.zoom;
   if (z < 5.8) return;
@@ -4066,7 +4608,7 @@ function drawSkyClouds(z, target) {
   var sky = target || ctx;
   var list = [];
   var cloudLayers = [
-    { cell: 0.32, a: 1, seed: 500 },
+    { cell: z<5.5?5.12:z<7?1.28:0.32, a: 1, seed: 500 },
     { cell: 0.08, a: Math.max(0, Math.min(1, (z - 9.1) / 1.2)), seed: 600 }
   ];
   for (var li = 0; li < cloudLayers.length; li++) {
@@ -4080,7 +4622,7 @@ function drawSkyClouds(z, target) {
     var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
     for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
     var h0 = terHash(gx, gy, cl.seed + 31);
-    if (h0 > 0.42) continue;
+    if (h0 > 0.52) continue;
     var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
     var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
     var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
@@ -4090,9 +4632,9 @@ function drawSkyClouds(z, target) {
     var p = proj(lat, lng);
     var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
     edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.52) continue;
-    var w = Math.max(130, Math.min(280, px * (0.85 + terHash(gx, gy, cl.seed + 35) * 0.35)));
-    list.push({ x: p.x, y: p.y, h: w * 0.43, n: h0 < 0.22 ? 'cloud1' : 'cloud2', a: cl.a * (0.98 - 0.42 * edge) });
+    if (edge > 0.68) continue;
+    var w = Math.max(190, Math.min(360, px * (0.9 + terHash(gx, gy, cl.seed + 35) * 0.32)));
+    list.push({ x: p.x, y: p.y, h: w * 0.30, n: 'story-cloud', a: cl.a * (0.95 - 0.55 * edge) });
     }
   }
   list.sort(function (a, b) { return a.y - b.y; });
@@ -4177,7 +4719,7 @@ HOOKS.afterOverlays.push(function () {
   var fade = Math.max(0, Math.min(1, (8.6 - S.zoom) / 1.4));
   ctx.imageSmoothingEnabled = false;
   beaconSpots().forEach(function (sp) {
-    if (sp.home) return;                 /* home has its own heart badges now */
+    if (sp.home) return;
     var p = proj(sp.lat, sp.lng);
     if (p.x < -30 || p.y < -40 || p.x > W + 30 || p.y > H + 30) return;
     ctx.globalAlpha = fade;
@@ -4425,7 +4967,7 @@ function avSized(who, o, px) {
   if (AVSIZED[key]) return AVSIZED[key];
   var pw = Math.max(4, Math.round(src.width * px / src.height));
   var c = document.createElement('canvas'); c.width = pw; c.height = px;
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
   g.drawImage(src, 0, 0, pw, px);
   var id = g.getImageData(0, 0, pw, px);
   for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 110 ? 255 : 0;
@@ -4462,7 +5004,7 @@ function drawTogetherPair(g, x, y, h, res) {
       b = drawAvatar(g, 'elena', x + we / 2 + gap, y, h, null, { res: res, lift: 0 });
   if (!a || !b) return null;
   var bob = 0;
-  drawSprite(g, SP.heart, PAL.heartP, x, Math.round(y - h - 3 + bob), Math.max(1, Math.min(4, Math.round(h / 40))), '#FFFFFF');
+  /* The shared heart belongs between the homes, rather than above each pair. */
   return { x: a.x, y: a.y - 8, w: b.x + b.w - a.x, h: h + 8 };
 }
 /* a slow breath while standing still */
@@ -4549,7 +5091,7 @@ try { PR.mine.sharing = localStorage.getItem('ow.share') === 'on'; } catch (e) {
 ROWHOOKS.seen = function (rows) { rows.forEach(function (r) { PR.seen[r.id] = r.at; }); paintPartner(); };
 
 function presMeta() {
-  return { who: S.who, at: Date.now(), sharing: PR.mine.sharing, lat: PR.mine.lat, lng: PR.mine.lng, acc: PR.mine.acc, together: PR.mine.together };
+  return { who: S.who, at: Date.now(), scene:typeof SPECIAL!=='undefined'&&SPECIAL.active?SPECIAL.active.city:null, sharing: PR.mine.sharing, lat: PR.mine.lat, lng: PR.mine.lng, acc: PR.mine.acc, together: PR.mine.together };
 }
 var pushTimer = null;
 function pushPresence(force) {
@@ -4575,6 +5117,7 @@ function agoText(ts) {
 /* ---------- the little status pill ---------- */
 var partnerChip = document.getElementById('partnerchip'), partnerNam = document.getElementById('partnernam');
 function paintPartner() {
+  paintAvatarDock();
   if (!S.who || !window.OWCloud || !OWCloud.configured) { partnerChip.hidden = true; return; }
   var them = other(S.who), n = whoName(them).replace('Princess ', '');
   partnerChip.hidden = false;
@@ -4583,6 +5126,18 @@ function paintPartner() {
   if (on) partnerNam.textContent = n + (PR.partner.sharing ? ' · live' : ' · online');
   else partnerNam.textContent = n + ' · offline' + (PR.seen[them] ? ' · ' + agoText(PR.seen[them]) : '');
 }
+function paintAvatarDock(){
+  document.querySelectorAll('#avatarDock [data-explorer]').forEach(function(b){
+    var who=b.dataset.explorer;
+    var online=who===S.who?!!(window.OWCloud&&OWCloud.configured):!!PR.partner;
+    b.classList.toggle('online',online);
+    b.setAttribute('aria-label',jrShortName(who)+(online?' · online':' · offline'));
+    b.title=b.getAttribute('aria-label');
+  });
+}
+document.querySelectorAll('#avatarDock [data-explorer]').forEach(function(b){
+  b.addEventListener('click',function(){openAvatarInfo(b.dataset.explorer);});
+});
 partnerChip.addEventListener('click', function () {
   var them = other(S.who);
   openSheet(head(whoName(them), PR.partner ? 'online right now' : 'offline') +
@@ -4722,7 +5277,16 @@ function besideHomes(x, y, w) {
   return x;
 }
 function drawFigure(who, x, y, h) {
-  return drawAvatar(ctx, who, besideHomes(x, y, avWidth(who, h)), y, h, null, { res: DPR });
+  var pt=avatarGroundPoint(besideHomes(x,y,avWidth(who,h)),y,avWidth(who,h));
+  return pt?drawAvatar(ctx,who,pt.x,pt.y,h,null,{res:DPR}):null;
+}
+function avatarGroundPoint(x,y,w) {
+  var candidates=[[0,0],[-w,0],[-w*1.6,0],[0,18],[-w,18],[w,0],[0,-18]];
+  for(var i=0;i<candidates.length;i++){
+    var xx=x+candidates[i][0],yy=y+candidates[i][1];
+    if(terrainAt(xx,yy)==='land'&&terrainAt(xx-w*.25,yy)==='land'&&terrainAt(xx+w*.25,yy)==='land')return{x:xx,y:yy};
+  }
+  return null;
 }
 HOOKS.afterOverlays.push(function () {
   if (S.mode !== 'map' || !S.who || !AV_ON) return;
@@ -4734,7 +5298,8 @@ HOOKS.afterOverlays.push(function () {
     var mid = midpoint(), g = worldGlide('pair', mid.lat, mid.lng);
     pt = proj(g.lat, g.lng);
     var pw = avWidth('bruce', h) + avWidth('elena', h);
-    box = drawTogetherPair(ctx, besideHomes(pt.x, pt.y, pw), pt.y, h, DPR);
+    var pairGround=avatarGroundPoint(besideHomes(pt.x,pt.y,pw),pt.y,pw);
+    box = pairGround?drawTogetherPair(ctx,pairGround.x,pairGround.y,h,DPR):null;
     if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(box.x + box.w / 2, box.y - 2, 'Together'); }
     return;
   }
@@ -4749,8 +5314,9 @@ HOOKS.afterOverlays.push(function () {
     } else if (online && HOMEBOXES[who] && S.zoom > 8.6) {
       /* waiting at home: standing beside the house, on its ground line, never moving */
       var hb = HOMEBOXES[who], w = avWidth(who, h);
-      var x = who === 'elena' ? hb.x - w / 2 - 1 : hb.x + hb.w + w / 2 + 1;
-      box = drawAvatar(ctx, who, x, hb.baseY, h, null, { res: DPR });
+      var x = hb.x - w / 2 - 6;
+      var ground=avatarGroundPoint(x,hb.baseY,w);
+      box = ground?drawAvatar(ctx, who, ground.x, ground.y, h, null, { res: DPR }):null;
       if (box) addHit(box, { kind: 'avatar', who: who });
     }
   });
@@ -6008,9 +6574,10 @@ function shortName(k) { return whoName(k).replace('Princess ', ''); }
 
 /* ---------------- on the map ---------------- */
 var MAILBOX = null;
+var MAIL_MAP_BUILDING = false; /* Mail is available from Menu; only the two homes occupy the home map. */
 HOOKS.beforePins.push(function () {
   MAILBOX = null;
-  if (S.mode !== 'map' || !S.who) return;
+  if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
   var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */
   var p = proj(MAIL_POS.lat, MAIL_POS.lng);
   var h = Math.round(homeArtH(z) * 0.8), w = h * 449 / 314;
@@ -6022,7 +6589,7 @@ HOOKS.beforePins.push(function () {
     g.addColorStop(0, 'rgba(255,214,140,.55)'); g.addColorStop(1, 'rgba(255,214,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.45, w * 0.55, 0, 6.283); ctx.fill();
   }
-  var box = drawArt(ctx, 'mail/postoffice', p.x, p.y, h, DPR);
+  var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
     if (unread) {                                          /* the floating envelope with a red dot */
@@ -7083,7 +7650,7 @@ ACTIONS['together-map'] = function () { closeSheet(); document.getElementById('b
 ACTIONS['discover-here'] = function () { closeSheet(); document.getElementById('btnHere').click(); };
 ACTIONS['trees-toggle'] = function () {
   TER.on = !TER.on; try { localStorage.setItem('ow.terrain', TER.on ? 'on' : 'off'); } catch (e) {}
-  openMenu(); draw();
+  baseDirty = true; openMenu(); draw();
 };
 ACTIONS['atmos'] = openAtmos;
 ACTIONS['poster'] = savePoster;
