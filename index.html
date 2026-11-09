@@ -2196,6 +2196,7 @@ function homeDisplayPos(k, z) {
   return p;
 }
 function drawMapOverlays() {
+  LAKE_CITY_BOXES=[];
   hitboxes = [];
   labelBoxes = [];
   var z = S.zoom, i, p;
@@ -2346,8 +2347,9 @@ function drawMapOverlays() {
 
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
-    if(z<6.1)continue;
     var lm = LANDMARKS[i],special=specialForCity(lm[0]);
+    if(z<6.1&&!LAKE_CITY_ART[lm[0]])continue;
+    if(LAKE_CITY_ART[lm[0]]){var cityPoint=proj(lm[2],lm[3]);if(cityPoint.x>-200&&cityPoint.x<W+200&&cityPoint.y>-180&&cityPoint.y<H+180&&drawLakeCity(lm,cityPoint))continue;}
     if(paintedBox(lm[0]))continue;
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
@@ -2547,7 +2549,7 @@ function draw() {
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
-  ctx.save();paintedClipOutside();runHooks('afterOverlays');ctx.restore();
+  ctx.save();paintedClipOutside();lakeCityClipAtmosphere();runHooks('afterOverlays');ctx.restore();
   drawPaintedAvatars();
   if(PAINTED.plane)drawSprite(ctx,SP.plane,PAL.plane,PAINTED.plane.x,PAINTED.plane.y,PAINTED.plane.scale,'#6E2549');
   specialDrawFade();
@@ -4201,6 +4203,31 @@ function drawPaintedAvatars(){
  [S.who,PR.partner?other(S.who):null].forEach(function(who){if(!who)return;var b=paintedBox(who);if(!b)return;var height=Math.min(80,b.h*.8),x=b.x-height*.35,y=b.baseY;var box=drawAvatar(ctx,who,x,y,height,null,{res:DPR});if(box)addHit(box,{kind:'avatar',who:who});});
 }
 
+/* ---- world/lake-cities.js ---- */
+/* Distinct ordinary-map landmark compositions. Existing anchors, planned-trip
+   status, landmark actions, and the Chicago → Milwaukee flight are unchanged. */
+var LAKE_CITY_ART={chicago:'map-chicago',milwaukee:'map-milwaukee'},LAKE_CITY_BOXES=[];
+Object.keys(LAKE_CITY_ART).forEach(function(id){artLoad(LAKE_CITY_ART[id]);});
+function drawLakeCity(lm,p){
+ var name=LAKE_CITY_ART[lm[0]];if(!name)return false;
+ var north=proj(43.0389,-87.9065),south=proj(41.8781,-87.6298);
+ var separation=Math.abs(north.y-south.y);
+ var h=Math.max(24,Math.min(190,102+(S.zoom-5.5)*28,separation*.78));
+ var box=drawArt(ctx,name,p.x,p.y,h,DPR);if(!box)return false;
+ LAKE_CITY_BOXES.push(box);labelBoxes.push({x:box.x-4,y:box.y-24,w:box.w+8,h:box.h+30});
+ if(S.zoom>5.2&&separation>85){
+  ctx.save();ctx.font='600 13px "Pixelify Sans",monospace';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#fff2df';ctx.strokeText(lm[1],p.x,box.y-8);ctx.fillStyle='#5e2238';ctx.fillText(lm[1],p.x,box.y-8);ctx.restore();
+ }
+ addHit({x:box.x-6,y:box.y-22,w:box.w+12,h:box.h+28},{kind:'landmark',id:lm[0]});
+ return true;
+}
+function lakeCityClipAtmosphere(){
+ if(!LAKE_CITY_BOXES.length)return;
+ ctx.beginPath();ctx.rect(0,0,W,H);
+ LAKE_CITY_BOXES.forEach(function(b){ctx.rect(b.x-6,b.y-24,b.w+12,b.h+30);});
+ ctx.clip('evenodd');
+}
+
 /* ---- features/scenic.js ---- */
 /* Storybook scenery is anchored to geography, cached with the base map, and
    painted behind labels and interactive places. All ornament is decorative. */
@@ -4810,6 +4837,8 @@ HOOKS.afterOverlays.push(function () {
   beaconSpots().forEach(function (sp) {
     if (sp.home) return;
     var p = proj(sp.lat, sp.lng);
+    /* The city artwork already owns this destination's visible hit area. */
+    if(typeof LAKE_CITY_BOXES!=='undefined'&&LAKE_CITY_BOXES.some(function(b){return p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h+2;}))return;
     if (p.x < -30 || p.y < -40 || p.x > W + 30 || p.y > H + 30) return;
     ctx.globalAlpha = fade;
     drawBeaconPin(ctx, p.x, p.y - 22, sp.home, 3);

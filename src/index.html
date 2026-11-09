@@ -1720,6 +1720,7 @@ function homeDisplayPos(k, z) {
   return p;
 }
 function drawMapOverlays() {
+  LAKE_CITY_BOXES=[];
   hitboxes = [];
   labelBoxes = [];
   var z = S.zoom, i, p;
@@ -1870,8 +1871,9 @@ function drawMapOverlays() {
 
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
-    if(z<6.1)continue;
     var lm = LANDMARKS[i],special=specialForCity(lm[0]);
+    if(z<6.1&&!LAKE_CITY_ART[lm[0]])continue;
+    if(LAKE_CITY_ART[lm[0]]){var cityPoint=proj(lm[2],lm[3]);if(cityPoint.x>-200&&cityPoint.x<W+200&&cityPoint.y>-180&&cityPoint.y<H+180&&drawLakeCity(lm,cityPoint))continue;}
     if(paintedBox(lm[0]))continue;
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
@@ -2071,7 +2073,7 @@ function draw() {
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
-  ctx.save();paintedClipOutside();runHooks('afterOverlays');ctx.restore();
+  ctx.save();paintedClipOutside();lakeCityClipAtmosphere();runHooks('afterOverlays');ctx.restore();
   drawPaintedAvatars();
   if(PAINTED.plane)drawSprite(ctx,SP.plane,PAL.plane,PAINTED.plane.x,PAINTED.plane.y,PAINTED.plane.scale,'#6E2549');
   specialDrawFade();
@@ -3381,6 +3383,7 @@ function hydrateLocal() {
 //#include world/region-configs.js
 //#include world/special-regions.js
 //#include world/authored-regions.js
+//#include world/lake-cities.js
 //#include features/scenic.js
 //#include features/homebase.js
 //#include features/terrain.js

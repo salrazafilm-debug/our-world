@@ -20,6 +20,16 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
  const next=await p.evaluate(()=>window.__PAINT_TEST.paint.plane);assert(next&&JSON.stringify(first)!==JSON.stringify(next));
  assert.deepEqual(await p.evaluate(()=>window.__PAINT_TEST.flight.slice(1)),[[41.8781,-87.6298],[43.0389,-87.9065]]);
  await p.evaluate(()=>window.__PAINT_TEST.phase(1550));await shot('flight-wisconsin',43.0389,-87.9065,7);
+ for(const [id,lat,lng] of [['chicago',41.8781,-87.6298],['milwaukee',43.0389,-87.9065]]){
+  await shot(id+'-design',lat,lng,7.8);
+  const h=await p.evaluate(id=>window.__PAINT_TEST.hits().find(h=>h.item.kind==='landmark'&&h.item.id===id),id);assert(h&&h.b.h>150,'city art is visible and substantial');
+  const map=await p.locator('#map').boundingBox();await p.touchscreen.tap(map.x+h.b.x+h.b.w/2,map.y+h.b.y+h.b.h/2);
+  const citySheet=await p.locator('#sheet').innerText();assert(/planned/i.test(citySheet),'existing planned-city behavior is preserved: '+citySheet);
+  assert.equal(await p.locator('[data-act="region-open"]').count(),0,'no new city close-up');await p.keyboard.press('Escape');
+ }
+ await shot('lake-cities-together',42.45,-87.75,6.5);
+ for(const id of ['chicago','milwaukee'])assert(await p.evaluate(id=>window.__PAINT_TEST.hits().some(h=>h.item.id===id),id),'both cities visible on the flight map');
+ await shot('flight-cities-wide',42.45,-87.75,5.6);
  await p.setViewportSize({width:390,height:844});await shot('maryland-390',38.86335,-76.51815,7.8);
  await p.setViewportSize({width:1440,height:900});await shot('maryland-desktop',38.86335,-76.51815,7.8);await shot('nyc-desktop',40.758,-73.9855,7.8);
  assert.equal(await p.evaluate(()=>JSON.stringify(window.__PAINT_TEST.state.memories)),original);assert.deepEqual(errors,[]);await b.close();console.log('ok: authored Maryland/NYC, home ordering, unchanged memories, NYC entry/return, moving three-stop flight, mobile/desktop');

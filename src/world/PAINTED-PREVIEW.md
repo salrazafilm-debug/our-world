@@ -1,5 +1,25 @@
 # Authored home regions — review branch
 
+## Chicago and Milwaukee addition
+
+At the owner's request, both flight destinations now have distinct city artwork
+on the ordinary map: Chicago's Willis/Hancock skyline, river bridge, Cloud Gate
+and Navy Pier; Milwaukee's white-winged Art Museum, City Hall, US Bank tower and
+harbor bridge. These are stylized landmark compositions, not additional scenes
+or additional saved destinations. Existing city coordinates, planned-trip state,
+detail actions and the three-stop flight are unchanged. City size is bounded by
+their projected separation so the two compositions remain visible at flight-map
+scale without colliding. Redundant beacon pins step aside; clouds cannot cover
+the city art. No automatic discovery or database writes were added.
+
+Original source: `art-src/painted/lake-city-sheet.png`. Run
+`node tools/prepare-lake-city-art.js` for mechanical alpha cleanup and
+nearest-neighbor exports; metadata is in `data/lake-city-assets.json`.
+The painted preview test includes mobile city screenshots, a combined wide view,
+and taps verifying the existing planned-city sheets, with no new Explore Closer
+action. These new cities expand the original Maryland/NYC-only preview scope;
+all work remains unpublished.
+
 `codex/authored-home-regions` starts from the live `main` version, not the
 rejected `codex/world-spacing-preview`. Nothing has been deployed or pushed.
 
