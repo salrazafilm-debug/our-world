@@ -2,6 +2,15 @@
 
 ## Chicago and Milwaukee addition
 
+Superseded by the owner's simplification: the active artwork is now ONLY three
+Chicago buildings and ONE Milwaukee winged Art Museum. No water, islands, boats,
+trees, bridges or scenic bases are rendered in these city icons. The renderer
+uses `city-chicago-simple` / `city-milwaukee-simple`, capped at 90px high and
+120px wide. The previous diorama assets are historical sources, not active art.
+Reproduce the current icons with `tools/prepare-simple-city-art.js`; metadata is
+`data/simple-city-assets.json`. City coordinates, clicks and flight are unchanged.
+The original addition's description below is retained as revision history.
+
 At the owner's request, both flight destinations now have distinct city artwork
 on the ordinary map: Chicago's Willis/Hancock skyline, river bridge, Cloud Gate
 and Navy Pier; Milwaukee's white-winged Art Museum, City Hall, US Bank tower and

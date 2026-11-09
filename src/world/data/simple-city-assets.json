@@ -1,0 +1,40 @@
+{
+  "source": "art-src/painted/simple-city-buildings.png",
+  "rendering": "nearest-neighbor",
+  "assets": {
+    "chicago": {
+      "path": "art/city-chicago-simple.png",
+      "width": 166,
+      "height": 192,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "category": "building-only",
+      "use": "compact city landmark; no terrain or water",
+      "crop": [
+        0,
+        0,
+        1086,
+        724
+      ]
+    },
+    "milwaukee": {
+      "path": "art/city-milwaukee-simple.png",
+      "width": 192,
+      "height": 114,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "category": "building-only",
+      "use": "compact city landmark; no terrain or water",
+      "crop": [
+        1086,
+        0,
+        1086,
+        724
+      ]
+    }
+  }
+}

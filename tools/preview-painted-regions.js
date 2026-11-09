@@ -22,7 +22,7 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
  await p.evaluate(()=>window.__PAINT_TEST.phase(1550));await shot('flight-wisconsin',43.0389,-87.9065,7);
  for(const [id,lat,lng] of [['chicago',41.8781,-87.6298],['milwaukee',43.0389,-87.9065]]){
   await shot(id+'-design',lat,lng,7.8);
-  const h=await p.evaluate(id=>window.__PAINT_TEST.hits().find(h=>h.item.kind==='landmark'&&h.item.id===id),id);assert(h&&h.b.h>150,'city art is visible and substantial');
+  const h=await p.evaluate(id=>window.__PAINT_TEST.hits().find(h=>h.item.kind==='landmark'&&h.item.id===id),id);assert(h&&h.b.h>=45&&h.b.h<=120&&h.b.w<=135,'compact building-only icon footprint');
   const map=await p.locator('#map').boundingBox();await p.touchscreen.tap(map.x+h.b.x+h.b.w/2,map.y+h.b.y+h.b.h/2);
   const citySheet=await p.locator('#sheet').innerText();assert(/planned/i.test(citySheet),'existing planned-city behavior is preserved: '+citySheet);
   assert.equal(await p.locator('[data-act="region-open"]').count(),0,'no new city close-up');await p.keyboard.press('Escape');
