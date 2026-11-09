@@ -156,45 +156,40 @@ HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fi
 /* Soft clouds over the ground we have not explored yet. They sit on the world
    (drifting very slowly), gather thickest at the edges of the screen and thin
    out toward the middle, so the view is framed like the reference art. */
-function drawSkyClouds(z, target) {
-  var sky = target || ctx;
-  var list = [];
-  var cloudLayers = [
-    { cell: z<5.5?5.12:z<7?1.28:0.32, a: 1, seed: 500 },
-    { cell: 0.08, a: Math.max(0, Math.min(1, (z - 9.1) / 1.2)), seed: 600 }
-  ];
-  for (var li = 0; li < cloudLayers.length; li++) {
-    var cl = cloudLayers[li];
-    if (cl.a <= 0.01) continue;
-    var cell = cl.cell, px = cell * 111 / kmPerPx(S.center.lat, z);
-    var tl = unproj(-px, -px), br = unproj(W + px, H + px);
-    var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
-    var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
-    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 700) continue;
-    var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
-    for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
-    var h0 = terHash(gx, gy, cl.seed + 31);
-    if (h0 > 0.52) continue;
-    var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
-    var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
-    var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
-    if (isRevealed(lat, lng0, 1.25) || isRevealed(lat, lng0 - half, 1.25) || isRevealed(lat, lng0 + half, 1.25) ||
-        isRevealed(lat + half * 0.5, lng0, 1.25) || isRevealed(lat - half * 0.5, lng0, 1.25)) continue;
-    var lng = lng0 + drift * (0.6 + terHash(gx, gy, cl.seed + 34) * 0.6);
-    var p = proj(lat, lng);
-    var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
-    edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.68) continue;
-    var w = Math.max(190, Math.min(360, px * (0.9 + terHash(gx, gy, cl.seed + 35) * 0.32)));
-    list.push({ x: p.x, y: p.y, h: w * 0.30, n: 'story-cloud', a: cl.a * (0.95 - 0.55 * edge) });
-    }
+/* A single world-anchored cloud field. Permanent seeded bands crossfade with
+   zoom. Neither positions nor opacity depend on screen edges or animation time. */
+var CLOUD_DEBUG=[];
+function cloudEase(a,b,z){var t=Math.max(0,Math.min(1,(z-a)/(b-a)));return t*t*(3-2*t);}
+function cloudBands(z){return[
+ {cell:5.12,alpha:1-cloudEase(4.8,6,z),seed:501},
+ {cell:1.28,alpha:cloudEase(4.8,6,z)*(1-cloudEase(6.5,7.7,z)),seed:502},
+ {cell:.32,alpha:cloudEase(6.5,7.7,z)*(1-cloudEase(9,10.2,z)),seed:503},
+ {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
+];}
+function drawSkyClouds(z,target){
+ var sky=target||ctx,list=[],regions=allRegions(),protectedBoxes=REPAIR.boxes.slice();
+ S.memories.forEach(function(m){var p=proj(m.lat,m.lng);protectedBoxes.push({x:p.x-35,y:p.y-75,w:70,h:85});});
+ LANDMARKS.forEach(function(l){var p=l[0]==='dc'?repairPoint('dc'):proj(l[2],l[3]);protectedBoxes.push({x:p.x-70,y:p.y-135,w:140,h:150});});
+ function overlaps(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+ cloudBands(z).forEach(function(band){
+  if(band.alpha<.001)return;
+  var cell=band.cell,margin=500,tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
+  var y0=Math.floor(Math.min(tl.lat,br.lat)/cell),y1=Math.ceil(Math.max(tl.lat,br.lat)/cell);
+  var x0=Math.floor(Math.min(tl.lng,br.lng)/cell),x1=Math.ceil(Math.max(tl.lng,br.lng)/cell);
+  var cellPx=cell*256*Math.pow(2,z)/360;
+  for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
+   if(terHash(gx,gy,band.seed)>.40)continue;
+   var lat=(gy+.2+terHash(gx,gy,band.seed+1)*.6)*cell,lng=(gx+.2+terHash(gx,gy,band.seed+2)*.6)*cell;
+   var p=proj(lat,lng),w=Math.max(110,Math.min(440,cellPx*3))*(.85+terHash(gx,gy,band.seed+3)*.3),h=w*.33;
+   var box={x:p.x-w/2,y:p.y-h/2,w:w,h:h};
+   if(box.x>W||box.x+w<0||box.y>H||box.y+h<0)continue;
+   if(protectedBoxes.some(function(b){return overlaps(box,b);}))continue;
+   if(regions.some(function(r){var q=proj(r.lat,r.lng),radius=r.r/kmPerPx(r.lat,z)*1.15,dx=Math.max(0,Math.abs(q.x-p.x)-w/2),dy=Math.max(0,Math.abs(q.y-p.y)-h/2);return dx*dx+dy*dy<radius*radius;}))continue;
+   list.push({id:band.seed+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*.96});
   }
-  list.sort(function (a, b) { return a.y - b.y; });
-  list.forEach(function (c) {
-    sky.save(); sky.globalAlpha = c.a;
-    drawArt(sky, c.n, c.x, c.y + c.h * 0.5, c.h, 1, false);
-    sky.restore();
-  });
+ });
+ list.sort(function(a,b){return a.y-b.y;});CLOUD_DEBUG=list;
+ list.forEach(function(c){sky.save();sky.globalAlpha=c.alpha;drawArt(sky,'story-cloud',c.x,c.y+c.h/2,c.h,1);sky.restore();});
 }
 
 

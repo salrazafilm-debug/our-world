@@ -1,13 +1,14 @@
 /* Storybook scenery is anchored to geography, cached with the base map, and
    painted behind labels and interactive places. All ornament is decorative. */
 window.OW_SCENIC = true;
+var SCENIC_AVOID=[];
 function scenicRand(a, b, seed) { return terHash(a, b, seed); }
 function scenicLand(x, y) { return terrainAt(x, y) === 'land'; }
 function scenicAvoid(x, y, radius) {
-  var places = [HOMES.bruce, HOMES.elena].concat(HOMEBASE).concat(
-    LANDMARKS.map(function (l) { return { lat: l[2], lng: l[3] }; }), S.memories, S.plans || []);
+  if(repairClear(x,y))return true;
+  var places = SCENIC_AVOID;
   for (var i = 0; i < places.length; i++) {
-    var p = proj(places[i].lat, places[i].lng), dx = x - p.x, dy = (y - p.y) * 1.2;
+    var p = places[i], dx = x - p.x, dy = (y - p.y) * 1.2;
     if (dx * dx + dy * dy < radius * radius) return true;
   }
   return false;
@@ -100,32 +101,44 @@ function scenicCoast(g) {
    meadows stay attached to the same ground through every camera movement. */
 var SCENIC_PATTERNS={};
 function scenicTexture(g,name){var a=artLoad(name);if(!a.ok)return null;if(!SCENIC_PATTERNS[name])SCENIC_PATTERNS[name]=g.createPattern(a.img,'repeat');return SCENIC_PATTERNS[name];}
+var SCENIC_GROUND=null,SCENIC_TEXTURE_PIXELS={};
+function scenicTexturePixels(name){
+ if(SCENIC_TEXTURE_PIXELS[name])return SCENIC_TEXTURE_PIXELS[name];
+ var a=artLoad(name);if(!a.ok)return null;
+ var c=document.createElement('canvas');c.width=a.img.width;c.height=a.img.height;
+ var g=c.getContext('2d');g.drawImage(a.img,0,0);
+ return SCENIC_TEXTURE_PIXELS[name]={data:g.getImageData(0,0,c.width,c.height).data,w:c.width,h:c.height};
+}
 function scenicGround(g) {
-  var z=S.zoom, step=6;
-  var grass=scenicTexture(g,'pack-grass-medium'),moss=scenicTexture(g,'pack-forest-floor');
-  for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
-    if(!scenicLand(x,y))continue;
-    var p=unproj(x,y), detail=Math.max(0,Math.min(1,(z-5)/3));
-    var continental=terNoise(p.lng/3,p.lat/3);
-    var n=terNoise(p.lng/.12,p.lat/.12)*detail+continental*(1-detail);
-    var broad=terNoise(p.lng/.65,p.lat/.65)*detail+continental*(1-detail);
-    var ridge=Math.sin(p.lng*13+p.lat*9+ broad*5)*.5+.5;
-    var shade=(n*.4+broad*.6);
-    g.fillStyle=shade>.5?'rgba(31,85,58,'+Math.min(.26,(shade-.5)*.8)+')':'rgba(243,220,133,'+Math.min(.22,(.5-shade)*.7)+')';
-    g.fillRect(x,y,step,step);
-    var texture=grove(p.lat,p.lng)>.45?moss:grass;
-    if(texture){g.save();g.globalAlpha=.14;g.fillStyle=texture;g.fillRect(x,y,step,step);g.restore();}
-    /* Narrow contour bands form shaded terraces with a lit grass rim. */
-    var band=(shade*12)%1;
-    if(S.zoom>9.5&&band<.025&&broad>.58){
-      g.fillStyle='#706c68';g.fillRect(x,y+2,step,5);
-      g.fillStyle='#ac9470';g.fillRect(x,y,step,3);
-      g.fillStyle='#d2ce8b';g.fillRect(x,y-2,step,2);
-    }
-    if(ridge>.88&&broad>.5){g.fillStyle='rgba(49,86,66,.13)';g.fillRect(x,y+step-2,step,2);}
+ var z=S.zoom,step=8,cols=Math.ceil(W/step),rows=Math.ceil(H/step),lats=[],lngs=[];
+ if(!SCENIC_GROUND){var cv=document.createElement('canvas');SCENIC_GROUND={cv:cv,g:cv.getContext('2d')};}
+ var raster=SCENIC_GROUND;if(!raster.image||raster.cv.width!==cols||raster.cv.height!==rows){raster.cv.width=cols;raster.cv.height=rows;raster.image=raster.g.createImageData(cols,rows);}
+ var pixels=raster.image.data;pixels.fill(0);
+ for(var yy=0;yy<H;yy+=step)lats.push(unproj(0,yy).lat);
+ for(var xx=0;xx<W;xx+=step)lngs.push(unproj(xx,0).lng);
+ var grass=scenicTexturePixels('pack-grass-medium'),moss=scenicTexturePixels('pack-forest-floor');
+ var left=lngToWX(S.center.lng,z)-W/2,top=latToWY(S.center.lat,z)-H/2,details=[];
+ var detail=Math.max(0,Math.min(1,(z-5)/3));
+ for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
+  if(!scenicLand(x,y))continue;
+  var lat=lats[y/step],lng=lngs[x/step],continental=terNoise(lng/3,lat/3);
+  var n=terNoise(lng/.12,lat/.12)*detail+continental*(1-detail),broad=terNoise(lng/.65,lat/.65)*detail+continental*(1-detail);
+  var shade=n*.4+broad*.6,dark=shade>.5,alpha=dark?Math.min(.26,(shade-.5)*.8):Math.min(.22,(.5-shade)*.7);
+  var r=dark?31:243,gr=dark?85:220,b=dark?58:133,texture=broad>.5?moss:grass;
+  if(texture){
+   var tx=((Math.floor(left+x)%texture.w)+texture.w)%texture.w,ty=((Math.floor(top+y)%texture.h)+texture.h)%texture.h,k=(ty*texture.w+tx)*4;
+   var ta=.14*texture.data[k+3]/255,a=ta+alpha*(1-ta);
+   r=(texture.data[k]*ta+r*alpha*(1-ta))/a;gr=(texture.data[k+1]*ta+gr*alpha*(1-ta))/a;b=(texture.data[k+2]*ta+b*alpha*(1-ta))/a;alpha=a;
   }
+  var i=((y/step)*cols+x/step)*4;pixels[i]=r;pixels[i+1]=gr;pixels[i+2]=b;pixels[i+3]=alpha*255;
+  var band=(shade*12)%1;if(z>9.5&&band<.025&&broad>.58)details.push({x:x,y:y});
+ }
+ raster.g.putImageData(raster.image,0,0);
+ g.save();g.imageSmoothingEnabled=false;g.drawImage(raster.cv,0,0,cols,rows,0,0,cols*step,rows*step);g.restore();
+ details.forEach(function(p){g.fillStyle='#706c68';g.fillRect(p.x,p.y+2,step,5);g.fillStyle='#ac9470';g.fillRect(p.x,p.y,step,3);g.fillStyle='#d2ce8b';g.fillRect(p.x,p.y-2,step,2);});
 }
 function drawScenic() {
+  SCENIC_AVOID=[HOMES.bruce,HOMES.elena].concat(HOMEBASE,LANDMARKS.map(function(l){return{lat:l[2],lng:l[3]};}),S.memories,S.plans||[]).map(function(p){return proj(p.lat,p.lng);});
   var g = scenicCtx, z = S.zoom;
   g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
   if (!TER.on) return;
@@ -212,20 +225,9 @@ function scenicVegetation(g,tl,br,cell,alpha,spacing,fine) {
   });
   g.restore();
 }
-/* Clouds sit in the foreground corners without covering the central places. */
+/* Country labels only. Clouds never attach to viewport corners. */
 HOOKS.afterOverlays.push(function () {
   if(S.mode!=='map')return;
-  var wide=Math.max(0,Math.min(1,(9-S.zoom)/3));
-  var h=Math.min(190,W*(.29+wide*.15));
-  ctx.save();ctx.globalAlpha=.94;
-  drawArt(ctx,'story-cloud',12,H+h*.15,h,1);
-  drawArt(ctx,'story-cloud',W+20,H+h*.25,h*1.08,1);
-  if(wide>.1){
-    ctx.globalAlpha=wide*.94;
-    drawArt(ctx,'story-cloud',-45,h*.65,h*.85,1);
-    drawArt(ctx,'story-cloud',W+65,h*.72,h*.9,1);
-  }
-  ctx.restore();
   if(S.zoom<5.3){
     [['CANADA',53,-105],['UNITED STATES',39,-98],['MEXICO',24,-103]].forEach(function(a){
       var p=proj(a[1],a[2]);

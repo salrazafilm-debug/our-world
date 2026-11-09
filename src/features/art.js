@@ -6,7 +6,7 @@ var ART = {}, ARTSIZED = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
   var e = ART[name] = { ok: false }, im = new Image();
-  im.onload = function () { e.img = im; e.ok = true; if (typeof baseDirty !== 'undefined') baseDirty = true; };
+  im.onload = function () { e.img = im; e.ok = true; if (typeof baseDirty !== 'undefined') baseDirty = true; if(typeof requestMapDraw==='function'&&W)requestMapDraw(); };
   im.onerror = function () { e.bad = true; };
   im.src = (typeof WORLD_ASSETS!=='undefined'&&WORLD_ASSETS[name])?WORLD_ASSETS[name].path:'art/' + name + '.png';
   return e;
@@ -17,6 +17,8 @@ function artLoad(name) {
 artLoad('story-cloud');
 artLoad('story-nyc');
 artLoad('map-airplane');
+artLoad('blue-cottage-map');
+artLoad('pack-capitol');
 ['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
 ['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 

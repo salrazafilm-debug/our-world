@@ -32,16 +32,15 @@ function shortName(k) { return whoName(k).replace('Princess ', ''); }
 
 /* ---------------- on the map ---------------- */
 var MAILBOX = null;
-var MAIL_MAP_BUILDING = false; /* Mail is available from Menu; only the two homes occupy the home map. */
+var MAIL_MAP_BUILDING = true;
 HOOKS.beforePins.push(function () {
-  if(paintedBox('mail'))return;
   MAILBOX = null;
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
-  var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */
-  var p = proj(MAIL_POS.lat, MAIL_POS.lng);
-  var h = Math.round(homeArtH(z) * 0.8), w = h * 449 / 314;
+  var z = S.zoom;
+  var p = repairPoint('mail');
+  var h = homeArtH(z) * .68, w = h * .83;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
-  var fade = Math.min(1, (z - 6.8) / 0.8), unread = mailUnread().length;
+  var fade = 1, unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;
   if (unread) {                                            /* a soft glow when mail is waiting */
     var g = ctx.createRadialGradient(p.x, p.y - h * 0.45, 0, p.x, p.y - h * 0.45, w * 0.55);

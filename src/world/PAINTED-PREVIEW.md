@@ -1,5 +1,10 @@
 # Authored home regions — review branch
 
+RETIRED: the painted-map renderer and its preview test were removed in
+`codex/map-foundation-repair` after the owner rejected overlapping landscape
+images. Source artwork remains archived; the ordinary map never loads it.
+Use `REPAIR-PREVIEW.md` and `tools/preview-map-repair.js` for current behavior.
+
 ## Chicago and Milwaukee addition
 
 Superseded by the owner's simplification: the active artwork is now ONLY three

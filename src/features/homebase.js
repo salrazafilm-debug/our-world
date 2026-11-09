@@ -9,7 +9,7 @@ var HOMEBASE = [
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(51, Math.min(117, 51 + (z - 6.9) * 15)); }   /* homes and the castle: big and easy to see, always well above the trees */
+function homeArtH(z) { return Math.max(28, Math.min(117, 51 + (z - 6.9) * 15)); }
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };
@@ -19,12 +19,11 @@ var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], [
 
 /* the gold paths between our places (drawn first, under the trees) */
 HOOKS.terrain.unshift(function () {
-  if (S.mode !== 'map' || S.zoom > 10.6) return;
+  if (S.mode !== 'map') return;
   var P = {
-    n: proj(HOMEBASE[0].lat, HOMEBASE[0].lng),
-    e: proj(HOMES.elena.lat, HOMES.elena.lng), b: proj(HOMES.bruce.lat, HOMES.bruce.lng)
+    n: repairPoint('hb-nova'),e:homeDisplayPos('elena',S.zoom),b:homeDisplayPos('bruce',S.zoom),m:repairPoint('mail'),d:repairPoint('dc')
   };
-  var links = [['e', 'b'], ['b', 'n'], ['n', 'e']];
+  var links = [['e','m'],['m','b'],['m','d'],['d','n']];
   ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   function path(a, b, bow) {
     var dx = b.x - a.x, dy = b.y - a.y;
@@ -55,8 +54,7 @@ HOOKS.terrain.push(function () {
   }
   HBBOX = {};
   HOMEBASE.forEach(function (h) {
-    if(z<6.1)return;
-    var p = proj(h.lat, h.lng);
+    var p = repairPoint(h.id)||proj(h.lat, h.lng);
     if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 80) return;
     var b = drawArt(ctx, h.art, p.x, p.y, homeArtH(z) * h.scale, DPR);
     if (b) { HBBOX[h.id] = b; addHit(b, { kind: 'beacon', lat: h.lat, lng: h.lng }); }
@@ -72,15 +70,14 @@ function drawHeartBadge(x, y, color) {
   ctx.restore();
   drawSprite(ctx, SP.heart, { h: color, o: '#6E2549' }, x, y + 7, 2, null);
 }
-function pill(x, y, text) { tryLabel(x, y, text, { size: 12, force: 1, bg: 'rgba(255,247,242,.96)', border: '#D9A3B8', fg: '#5B3046' }); }
+function pill(x, y, text) { if(S.zoom>9.4)tryLabel(x, y, text, { size: 13 }); }
 HOOKS.afterOverlays.push(function(){
   if(S.mode!=='map')return;
-  var p=proj((HOMES.bruce.lat+HOMES.elena.lat)/2,(HOMES.bruce.lng+HOMES.elena.lng)/2);
+  var p=repairPoint('mail');p={x:p.x+40,y:p.y-30};
   if(p.x<0||p.x>W||p.y<30||p.y>H-80)return;
   drawHeartBadge(p.x,p.y,C.pink);
 });
 HOOKS.beforePins.push(function () {
-  if(PAINTED.current&&PAINTED.alpha>.95)return;
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;
