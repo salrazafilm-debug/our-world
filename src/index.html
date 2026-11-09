@@ -671,6 +671,27 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 }
 </style>
 
+<style>
+/* Compact map controls: one home view and a three-button right-hand dock. */
+#views{left:12px;right:auto;top:12px;transform:none;padding:0;background:none;max-width:none}
+#views .pxbtn{display:none!important}
+#views .pxbtn[data-view=local]{display:flex!important;align-items:center;justify-content:center;min-width:78px;height:44px;padding:8px 14px;background:var(--cream);border:3px solid var(--wood-dk);border-bottom-width:6px;clip-path:var(--px-step);font-size:14px;color:var(--berry-dk)}
+#views .pxbtn[data-view=local][aria-pressed=true]{background:#f6d3dc}
+#hop{display:none!important}
+#actions{left:auto;right:max(12px,env(safe-area-inset-right));top:auto;bottom:calc(12px + env(safe-area-inset-bottom));transform:none;display:flex;flex-direction:column;width:56px;max-width:none;margin:0;gap:12px;pointer-events:none}
+#actions .row{display:flex;flex-direction:column;flex-wrap:nowrap;gap:12px;margin:0;width:56px}
+#actions .icon{display:grid!important;place-items:center;width:56px;height:56px;min-width:56px;padding:7px;margin:0;background:var(--cream);border:3px solid var(--wood-dk);border-bottom-width:7px;clip-path:var(--px-step);pointer-events:auto;transition:transform .1s,border-bottom-width .1s}
+#actions .icon:hover{background:#fff7ec;transform:translateY(-2px)}
+#actions .icon:active{transform:translateY(3px);border-bottom-width:4px}
+#actions .icon:focus-visible,#views .pxbtn:focus-visible{outline:3px solid var(--berry);outline-offset:3px}
+#actions .icon svg{display:block;width:28px;height:28px;shape-rendering:crispEdges}
+#actions .lbl{display:none!important}
+#actions #btnMemory{order:0}#actions #btnLocate{order:1}#actions #btnPlaces{order:2}
+#actions #btnDiscover{display:none!important}
+#actions .icon[disabled]{opacity:.65;cursor:wait}
+@media(prefers-reduced-motion:reduce){#actions .icon{transition:none}}
+</style>
+
 <script>document.body.classList.add('locked')</script>
 <div id="app">
   <header id="top">
@@ -722,13 +743,13 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
     <div id="actions">
       <div class="row">
         <button class="pxbtn icon" id="btnPlaces" title="Menu" aria-label="Menu">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span class="lbl">Menu</span>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#6b3d3a" d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z"/></svg><span class="lbl">Menu</span>
         </button>
-        <button class="pxbtn icon" id="btnMemory" title="Add something" aria-label="Add something">
-          <img class="px-ico" src="art/heart.png" alt=""><span class="lbl">Add</span>
+        <button class="pxbtn icon" id="btnMemory" title="Add a memory" aria-label="Add a memory">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#6e2945" d="M2 2h4v1h4V2h4v1h1v6h-1v2h-2v2h-2v2H6v-2H4v-2H2V9H1V3h1z"/><path fill="#df879f" d="M3 3h2v1h2v1h2V4h2V3h2v1h1v4h-1v2h-2v2H9v1H7v-1H5v-2H3V8H2V4h1z"/><path fill="#ffdce1" d="M3 4h2v2H3z"/></svg><span class="lbl">Memory</span>
         </button>
-        <button class="pxbtn icon" id="btnLocate" title="Find me" aria-label="Find me">
-          <img class="px-ico" src="art/pin.png" alt="">
+        <button class="pxbtn icon" id="btnLocate" title="Go to my GPS location" aria-label="Go to my GPS location">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#6b3d3a" d="M5 1h6v1h2v2h1v6h-2v2h-2v2H9v1H7v-1H6v-2H4v-2H2V4h1V2h2z"/><path fill="#e4ad7e" d="M5 3h6v1h1v5h-2v2H9v2H7v-2H6V9H4V4h1z"/><path fill="#fff2df" d="M6 4h4v1h1v3h-1v1H6V8H5V5h1z"/></svg>
         </button>
       </div>
       <div hidden>
@@ -1710,6 +1731,7 @@ function tryLabel(x, y, text, opts) {
 }
 
 function homeDisplayPos(k, z) {
+  if(typeof PAINTED!=='undefined'&&PAINTED.current){var painted=paintedBox(k);if(painted)return{x:painted.x+painted.w/2,y:painted.baseY};}
   var h = HOMES[k], p = proj(h.lat, h.lng);
   /* Homes stay on Maryland's western shore. Never spread them east across
      the bay to make room for labels. The geographic coordinate is unchanged. */
@@ -1719,6 +1741,7 @@ function homeDisplayPos(k, z) {
   return p;
 }
 function drawMapOverlays() {
+  LAKE_CITY_BOXES=[];
   hitboxes = [];
   labelBoxes = [];
   var z = S.zoom, i, p;
@@ -1810,9 +1833,9 @@ function drawMapOverlays() {
   /* the flight out — a dashed hop from home to Chicago and up the shore to Milwaukee,
      with a small plane drifting along it. Nothing here is cleared ground; it is just the plan. */
   (function drawFlight() {
-    if(z<6.2||z>9.6)return;
     var fp = [], fi;
     for (fi = 0; fi < FLIGHT.length; fi++) fp.push(proj(FLIGHT[fi][0], FLIGHT[fi][1]));
+    if(PAINTED.current==='maryland'&&PAINTED.alpha>.95)fp[0]=homeDisplayPos('bruce',z);
     /* one control point per leg, bowed north so the hop arcs instead of ruling a line */
     var ctrl = [], segLen = [], total = 0;
     for (fi = 0; fi < fp.length - 1; fi++) {
@@ -1823,6 +1846,7 @@ function drawMapOverlays() {
       segLen.push(len); total += len;
     }
     if (!total) return;
+    PAINTED.flight={points:fp,ctrl:ctrl};
 
     ctx.save();
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -1848,32 +1872,31 @@ function drawMapOverlays() {
     var py2 = iu * iu * fp[seg].y + 2 * iu * u * ctrl[seg].y + u * u * fp[seg + 1].y;
     if (px2 < -60 || py2 < -60 || px2 > W + 60 || py2 > H + 60) return;
 
-    var psc = z > 5.0 ? 3 : 2, ph = SP.plane.length * psc;
-    var lift = reduceMotion ? 0 : Math.round(Math.sin(cloudPhase / 19) * psc);
-    var pg = ctx.createRadialGradient(px2, py2, 0, px2, py2, ph * 1.1);
-    pg.addColorStop(0, 'rgba(255,255,255,.75)');
-    pg.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = pg;
-    ctx.beginPath(); ctx.arc(px2, py2, ph * 1.1, 0, 7); ctx.fill();
-    var pbox = drawSprite(ctx, SP.plane, PAL.plane, px2, py2 + ph / 2 + lift, psc, '#6E2549');
-    labelBoxes.push({ x: pbox.x - 4, y: pbox.y - 4, w: pbox.w + 8, h: pbox.h + 8 });
+    var vx=2*iu*(ctrl[seg].x-fp[seg].x)+2*u*(fp[seg+1].x-ctrl[seg].x);
+    var vy=2*iu*(ctrl[seg].y-fp[seg].y)+2*u*(fp[seg+1].y-ctrl[seg].y);
+    PAINTED.plane={x:px2,y:py2,scale:z>5?3:2,heading:Math.atan2(vy,vx)};
   })();
 
   runHooks('terrain');
-  drawFog();
+  if(!paintedFillsView())drawFog();
   ctx.save(); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
   ctx.restore();
+  drawPaintedRegion();
+  paintedFlightPath();
 
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
-    if(z<6.1)continue;
     var lm = LANDMARKS[i],special=specialForCity(lm[0]);
+    if(z<6.1&&!LAKE_CITY_ART[lm[0]])continue;
+    if(LAKE_CITY_ART[lm[0]]){var cityPoint=proj(lm[2],lm[3]);if(cityPoint.x>-200&&cityPoint.x<W+200&&cityPoint.y>-180&&cityPoint.y<H+180&&drawLakeCity(lm,cityPoint))continue;}
+    if(paintedBox(lm[0]))continue;
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
     if (!special && !planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
+    if(paintedCovers(p.x,p.y)){addHit({x:p.x-20,y:p.y-35,w:40,h:40},{kind:'landmark',id:lm[0]});continue;}
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
     var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * 1.4 * (lm[6] || 1)));   /* places are about 1.4x bigger than before */
@@ -1941,6 +1964,7 @@ function drawMapOverlays() {
   /* homes */
   HOMEBOXES = {};
   ['elena', 'bruce'].forEach(function (k) {
+    if(paintedBox(k))return;
     if(z<6.1)return;
     var h = HOMES[k]; var q = homeDisplayPos(k, z), actual = proj(h.lat,h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
@@ -1974,6 +1998,7 @@ function drawMapOverlays() {
   });
 
   /* memories — pins sharing a spot fan out in a ring so none hides another */
+  paintedRegister();
   runHooks('beforePins');
   drawMemoryMarkers(false);
 
@@ -2049,6 +2074,7 @@ function draw() {
   if ('textRendering' in ctx) ctx.textRendering = 'optimizeSpeed';     /* no joined "fi" in map labels */
   ctx.clearRect(0, 0, W, H);
   if(drawSpecialRegion()){specialDrawFade();return;}
+  paintedPrepare();PAINTED.plane=null;PAINTED.flight=null;
 
   if (S.mode === 'globe') {
     drawGlobe();
@@ -2057,13 +2083,15 @@ function draw() {
     return;
   }
 
-  if (baseDirty) { drawBase(); runHooks('afterBase'); drawScenic(); }
+  if (baseDirty) { drawBase(); runHooks('afterBase'); if(paintedFillsView()){scenicCtx.setTransform(1,0,0,1,0,0);scenicCtx.clearRect(0,0,scenicCv.width,scenicCv.height);}else drawScenic(); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
   ctx.drawImage(scenicCv, 0, 0, scenicCv.width, scenicCv.height, 0, 0, W, H);
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
-  runHooks('afterOverlays');
+  ctx.save();paintedClipOutside();lakeCityClipAtmosphere();runHooks('afterOverlays');ctx.restore();
+  drawPaintedAvatars();
+  if(PAINTED.plane)drawFlightAircraft(PAINTED.plane);
   specialDrawFade();
 }
 
@@ -2485,12 +2513,14 @@ document.getElementById('btnDiscover').addEventListener('click', function () {
 
 document.getElementById('btnLocate').addEventListener('click', function () {
   if (!navigator.geolocation || frameBlocked() === true) { locationHelp({ code: 1 }); return; }
-
+  var button=this;button.disabled=true;button.setAttribute('aria-busy','true');
+  function done(){button.disabled=false;button.removeAttribute('aria-busy');}
   navigator.geolocation.getCurrentPosition(function (pos) {
     S.me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    specialLeaveForNavigation();
     flyTo(S.me.lat, S.me.lng, Math.max(S.zoom, 11.4));
-    checkNearby();
-  }, locationHelp, { enableHighAccuracy: true, timeout: 12000 });
+    done();
+  }, function(err){done();locationHelp(err);}, { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
 });
 
 document.getElementById('btnTogether').addEventListener('click', function () {
@@ -2667,7 +2697,7 @@ function placeAt(ll) {
   else if (p.kind === 'plan') planForm(ll);
   else surpriseForm(ll);
 }
-document.getElementById('btnMemory').addEventListener('click', function () { openAddMenu(); });
+document.getElementById('btnMemory').addEventListener('click', function () { startPlacing('memory'); });
 document.getElementById('btnSurprise').addEventListener('click', function () { startPlacing('surprise'); });
 
 /* ============================== forms ============================== */
@@ -3370,6 +3400,8 @@ function hydrateLocal() {
 //#include world/region-math.js
 //#include world/region-configs.js
 //#include world/special-regions.js
+//#include world/authored-regions.js
+//#include world/lake-cities.js
 //#include features/scenic.js
 //#include features/homebase.js
 //#include features/terrain.js

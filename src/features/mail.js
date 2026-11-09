@@ -34,6 +34,7 @@ function shortName(k) { return whoName(k).replace('Princess ', ''); }
 var MAILBOX = null;
 var MAIL_MAP_BUILDING = false; /* Mail is available from Menu; only the two homes occupy the home map. */
 HOOKS.beforePins.push(function () {
+  if(paintedBox('mail'))return;
   MAILBOX = null;
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
   var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */

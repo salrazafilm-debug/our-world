@@ -1,0 +1,40 @@
+{
+  "source": "art-src/painted/lake-city-sheet.png",
+  "rendering": "nearest-neighbor",
+  "assets": {
+    "chicago": {
+      "path": "art/map-chicago.png",
+      "width": 490,
+      "height": 560,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "category": "city-composition",
+      "use": "Recognizable ordinary-map landmark; existing planned-city action",
+      "crop": [
+        0,
+        0,
+        790,
+        1024
+      ]
+    },
+    "milwaukee": {
+      "path": "art/map-milwaukee.png",
+      "width": 560,
+      "height": 525,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "category": "city-composition",
+      "use": "Recognizable ordinary-map landmark; existing planned-city action",
+      "crop": [
+        800,
+        0,
+        736,
+        1024
+      ]
+    }
+  }
+}

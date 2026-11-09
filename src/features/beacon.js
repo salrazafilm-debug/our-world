@@ -71,6 +71,8 @@ HOOKS.afterOverlays.push(function () {
   beaconSpots().forEach(function (sp) {
     if (sp.home) return;
     var p = proj(sp.lat, sp.lng);
+    /* The city artwork already owns this destination's visible hit area. */
+    if(typeof LAKE_CITY_BOXES!=='undefined'&&LAKE_CITY_BOXES.some(function(b){return p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h+2;}))return;
     if (p.x < -30 || p.y < -40 || p.x > W + 30 || p.y > H + 30) return;
     ctx.globalAlpha = fade;
     drawBeaconPin(ctx, p.x, p.y - 22, sp.home, 3);

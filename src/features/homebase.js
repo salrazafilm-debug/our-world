@@ -80,6 +80,7 @@ HOOKS.afterOverlays.push(function(){
   drawHeartBadge(p.x,p.y,C.pink);
 });
 HOOKS.beforePins.push(function () {
+  if(PAINTED.current&&PAINTED.alpha>.95)return;
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;
