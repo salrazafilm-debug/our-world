@@ -1,5 +1,11 @@
 # Illustrated world development milestone
 
+Latest approval: close-ups are final scenic views. Location/memory/plan/letter
+pins and avatar/landmark hotspots are hidden inside them, without deleting data.
+Taps on scenery do nothing. Add placement returns to the ordinary world map.
+Avatars, pan/magnification and Back remain; older interaction notes below are
+historical prototype behavior, not the current close-up contract.
+
 ## Approved simplification: single close-up and shared visitors
 
 NYC now opens directly into the waterfront illustration; DC opens its garden

@@ -125,14 +125,9 @@ function drawSpecialRegion(){
   specialClamp();var config=SPECIAL.active,g=specialGeometry(config,SPECIAL.camera);
   ctx.imageSmoothingEnabled=false;ctx.drawImage(SPECIAL.assets[config.asset],g.x,g.y,g.w,g.h);
   hitboxes=[];labelBoxes=[];HOMEBOXES={};specialRipples(config,g);
-  config.points.forEach(function(p){var q=specialProject(p.lat,p.lng);if(q.x<0||q.x>W||q.y<55||q.y>H-110)return;
-    var portal=config.portals.filter(function(g){return g.point===p.id;})[0];
-    if(portal){drawArt(ctx,'sign',q.x,q.y,35,DPR);tryLabel(q.x,q.y+22,'Waterfront · Explore Closer',{size:13,bg:'#fff0d7',border:'#8a5638',fg:'#654338'});}
-    if(portal)addHit({x:q.x-25,y:q.y-32,w:50,h:50},{kind:'scene-point',id:p.id});
-  });
-  (S.plans||[]).forEach(function(p){if(!specialContains(p.lat,p.lng))return;var q=specialProject(p.lat,p.lng);ctx.fillStyle='#fff0ba';ctx.strokeStyle='#855c3b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(q.x,q.y-10,13,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#8e3a57';ctx.font='18px "Pixelify Sans",monospace';ctx.textAlign='center';ctx.fillText('★',q.x,q.y-4);addHit({x:q.x-22,y:q.y-32,w:44,h:44},{kind:'plan',id:p.id});});
-  (S.surprises||[]).forEach(function(s){if(!specialContains(s.lat,s.lng))return;var q=specialProject(s.lat,s.lng),b=drawSprite(ctx,SP.envelope,PAL.env,q.x,q.y,3,'#fff2df');addHit({x:b.x-6,y:b.y-6,w:b.w+12,h:b.h+12},{kind:'surprise',id:s.id});});
-  drawSpecialVisitors(config,g);drawMemoryMarkers(true);return true;
+  /* Final scenic view: no location pins, memory overlays, or deeper hotspots.
+     Records remain untouched and available on the ordinary world map. */
+  drawSpecialVisitors(config,g);return true;
 }
 function specialVisitorList(config){
   var visitors=S.who?[S.who]:[];
@@ -145,8 +140,7 @@ function drawSpecialVisitors(config,g){
   people.sort(function(a,b){return a==='bruce'?-1:b==='bruce'?1:0;});
   people.forEach(function(who,i){
     var x=g.x+config.visitors.u*g.w+(i-(people.length-1)/2)*gap,y=g.y+config.visitors.v*g.h;
-    var box=drawAvatar(ctx,who,x,y,height,null,{res:DPR});
-    if(box)addHit(box,{kind:'avatar',who:who});
+    drawAvatar(ctx,who,x,y,height,null,{res:DPR});
   });
 }
 function specialDrawFade(){if(SPECIAL.fade){ctx.save();ctx.globalAlpha=SPECIAL.fade.alpha;ctx.imageSmoothingEnabled=false;ctx.drawImage(SPECIAL.fade.image,0,0,SPECIAL.fade.image.width,SPECIAL.fade.image.height,0,0,W,H);ctx.restore();}}
