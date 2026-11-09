@@ -51,6 +51,7 @@ async function run(){
   await page.evaluate(()=>{const a=window.__OW_TEST_API;a.presence.partner.scene='dc';a.draw();});
   assert.deepEqual(await page.evaluate(()=>{const a=window.__OW_TEST_API;return a.visitors(a.special.active);}),['bruce']);
   await snapshot(page,'nyc-solo');
+  await page.evaluate(()=>{window.__OW_TEST_API.presence.partner=null;});
   // Native mobile pinch and drag, rather than synthetic DOM pointer events.
   const cdp=await context.newCDPSession(page);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:160,y:410,id:1},{x:270,y:410,id:2}]});
