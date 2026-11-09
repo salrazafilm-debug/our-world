@@ -1710,6 +1710,7 @@ function tryLabel(x, y, text, opts) {
 }
 
 function homeDisplayPos(k, z) {
+  if(typeof PAINTED!=='undefined'&&PAINTED.current){var painted=paintedBox(k);if(painted)return{x:painted.x+painted.w/2,y:painted.baseY};}
   var h = HOMES[k], p = proj(h.lat, h.lng);
   /* Homes stay on Maryland's western shore. Never spread them east across
      the bay to make room for labels. The geographic coordinate is unchanged. */
@@ -1810,9 +1811,9 @@ function drawMapOverlays() {
   /* the flight out — a dashed hop from home to Chicago and up the shore to Milwaukee,
      with a small plane drifting along it. Nothing here is cleared ground; it is just the plan. */
   (function drawFlight() {
-    if(z<6.2||z>9.6)return;
     var fp = [], fi;
     for (fi = 0; fi < FLIGHT.length; fi++) fp.push(proj(FLIGHT[fi][0], FLIGHT[fi][1]));
+    if(PAINTED.current==='maryland'&&PAINTED.alpha>.95)fp[0]=homeDisplayPos('bruce',z);
     /* one control point per leg, bowed north so the hop arcs instead of ruling a line */
     var ctrl = [], segLen = [], total = 0;
     for (fi = 0; fi < fp.length - 1; fi++) {
@@ -1823,6 +1824,7 @@ function drawMapOverlays() {
       segLen.push(len); total += len;
     }
     if (!total) return;
+    PAINTED.flight={points:fp,ctrl:ctrl};
 
     ctx.save();
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -1855,25 +1857,28 @@ function drawMapOverlays() {
     pg.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = pg;
     ctx.beginPath(); ctx.arc(px2, py2, ph * 1.1, 0, 7); ctx.fill();
-    var pbox = drawSprite(ctx, SP.plane, PAL.plane, px2, py2 + ph / 2 + lift, psc, '#6E2549');
-    labelBoxes.push({ x: pbox.x - 4, y: pbox.y - 4, w: pbox.w + 8, h: pbox.h + 8 });
+    PAINTED.plane={x:px2,y:py2+ph/2+lift,scale:psc};
   })();
 
   runHooks('terrain');
-  drawFog();
+  if(!paintedFillsView())drawFog();
   ctx.save(); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
   ctx.restore();
+  drawPaintedRegion();
+  paintedFlightPath();
 
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
     if(z<6.1)continue;
     var lm = LANDMARKS[i],special=specialForCity(lm[0]);
+    if(paintedBox(lm[0]))continue;
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
     if (!special && !planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
+    if(paintedCovers(p.x,p.y)){addHit({x:p.x-20,y:p.y-35,w:40,h:40},{kind:'landmark',id:lm[0]});continue;}
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
     var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * 1.4 * (lm[6] || 1)));   /* places are about 1.4x bigger than before */
@@ -1941,6 +1946,7 @@ function drawMapOverlays() {
   /* homes */
   HOMEBOXES = {};
   ['elena', 'bruce'].forEach(function (k) {
+    if(paintedBox(k))return;
     if(z<6.1)return;
     var h = HOMES[k]; var q = homeDisplayPos(k, z), actual = proj(h.lat,h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
@@ -1974,6 +1980,7 @@ function drawMapOverlays() {
   });
 
   /* memories — pins sharing a spot fan out in a ring so none hides another */
+  paintedRegister();
   runHooks('beforePins');
   drawMemoryMarkers(false);
 
@@ -2049,6 +2056,7 @@ function draw() {
   if ('textRendering' in ctx) ctx.textRendering = 'optimizeSpeed';     /* no joined "fi" in map labels */
   ctx.clearRect(0, 0, W, H);
   if(drawSpecialRegion()){specialDrawFade();return;}
+  paintedPrepare();PAINTED.plane=null;PAINTED.flight=null;
 
   if (S.mode === 'globe') {
     drawGlobe();
@@ -2057,13 +2065,15 @@ function draw() {
     return;
   }
 
-  if (baseDirty) { drawBase(); runHooks('afterBase'); drawScenic(); }
+  if (baseDirty) { drawBase(); runHooks('afterBase'); if(paintedFillsView()){scenicCtx.setTransform(1,0,0,1,0,0);scenicCtx.clearRect(0,0,scenicCv.width,scenicCv.height);}else drawScenic(); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
   ctx.drawImage(scenicCv, 0, 0, scenicCv.width, scenicCv.height, 0, 0, W, H);
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
-  runHooks('afterOverlays');
+  ctx.save();paintedClipOutside();runHooks('afterOverlays');ctx.restore();
+  drawPaintedAvatars();
+  if(PAINTED.plane)drawSprite(ctx,SP.plane,PAL.plane,PAINTED.plane.x,PAINTED.plane.y,PAINTED.plane.scale,'#6E2549');
   specialDrawFade();
 }
 
@@ -3370,6 +3380,7 @@ function hydrateLocal() {
 //#include world/region-math.js
 //#include world/region-configs.js
 //#include world/special-regions.js
+//#include world/authored-regions.js
 //#include features/scenic.js
 //#include features/homebase.js
 //#include features/terrain.js
