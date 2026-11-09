@@ -10,13 +10,14 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
  const records=await p.evaluate(()=>JSON.stringify([window.__REPAIR_TEST.state.memories,window.__REPAIR_TEST.state.regions]));
  async function view(name,lat,lng,z){await p.evaluate(v=>window.__REPAIR_TEST.fly(...v),[lat,lng,z]);await p.waitForTimeout(250);if(name)await p.screenshot({path:path.join(out,'repair-'+name+'.png')});}
  await view('maryland-430',38.93,-76.95,7.8);
+ assert(await p.evaluate(()=>window.__REPAIR_TEST.clouds().some(c=>c.room<.5)),'important areas reduce whole-cloud coverage');
  for(const z of [6,6.8,7.8,8.6,9.2]){
   await view(null,38.93,-76.95,z);
   assert(await p.evaluate(()=>{const a=window.__REPAIR_TEST,bs=['elena','bruce','mail','dc','hb-nova'].map(a.boxes);return bs.every((x,i)=>bs.every((y,j)=>i===j||x.x+x.w<=y.x||y.x+y.w<=x.x||x.y+x.h<=y.y||y.y+y.h<=x.y));}),'reserved Maryland footprints at '+z);
  }
  await view('chesapeake-local',38.6935,-76.5333,11.2);await view('arnold-local',39.0332,-76.503,11.2);
  await view('cloud-field',42,-78,7.8);
- assert(await p.locator('#map').evaluate(()=>{const g=window.__REPAIR_TEST.fogPixels();for(let y=10;y<g.h-10;y+=30)for(let x=10;x<g.w-10;x+=30)if(g.data[(y*g.w+x)*4+3]<250)return false;return true;}),'unknown ground is fully cloud-covered');
+ assert(await p.locator('#map').evaluate(()=>{const g=window.__REPAIR_TEST.fogPixels();let clear=0,cloud=0,n=0;for(let y=10;y<g.h-10;y+=10)for(let x=10;x<g.w-10;x+=10){const a=g.data[(y*g.w+x)*4+3];n++;if(a===0)clear++;if(a>150)cloud++;}return clear/n>.4&&cloud/n>.05;}),'map remains visible between natural cloud banks even away from POIs');
  const start=await p.evaluate(()=>({center:{...window.__REPAIR_TEST.state.center},clouds:window.__REPAIR_TEST.clouds()}));assert(start.clouds.length>0);
  assert(start.clouds.length<40,'sparse silhouettes, not a crowded cloud wallpaper');
  const sizes=start.clouds.map(x=>x.h);assert(Math.max(...sizes)/Math.min(...sizes)>1.25,'cloud banks have varied sizes, not uniform stamps');
@@ -37,5 +38,7 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
  assert.equal(await p.evaluate(()=>window.__REPAIR_TEST.painted),'undefined');assert.deepEqual(painted,[],'no full-scene painted map requests');
  assert.equal(await p.evaluate(()=>JSON.stringify([window.__REPAIR_TEST.state.memories,window.__REPAIR_TEST.state.regions])),records);assert.deepEqual(errors,[]);
  assert(!fs.readFileSync('index.html','utf8').includes('drawPaintedRegion'));
+ const fog=fs.readFileSync('src/index.html','utf8').split('function drawFog() {')[1].split('/* ============================== globe')[0];
+ assert(!fog.includes('destination-out')&&!fog.includes('ellipse(')&&!fog.includes('blobPath('),'no POI-shaped cutouts');
  await b.close();console.log('ok: one map; no scene-image requests; landmark footprints; geographic cloud pan/return; cached stable clouds; coordinate roundtrip; unchanged data; mobile/tablet/desktop');
 })().catch(e=>{console.error(e);process.exit(1);});

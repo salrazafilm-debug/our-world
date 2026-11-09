@@ -163,21 +163,29 @@ function cloudBands(z){return[
  {cell:.32,alpha:cloudEase(6.5,7.7,z)*(1-cloudEase(9,10.2,z)),seed:503},
  {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
 ];}
+function cloudImportantAreas(){
+ var areas=REPAIR.boxes.slice();
+ LANDMARKS.forEach(function(l){
+  if(!specialForCity(l[0])&&!l[8]&&!isRevealed(l[2],l[3],1.06))return;
+  var p=l[0]==='dc'?repairPoint('dc'):proj(l[2],l[3]),h=LAKE_CITY_ART[l[0]]?90:homeArtH(S.zoom);
+  areas.push({x:p.x-h*.75,y:p.y-h,w:h*1.5,h:h});
+ });
+ S.memories.concat(S.plans||[]).forEach(function(m){var p=proj(m.lat,m.lng);areas.push({x:p.x-24,y:p.y-60,w:48,h:76});});
+ if(S.me){var p=proj(S.me.lat,S.me.lng);areas.push({x:p.x-25,y:p.y-35,w:50,h:60});}
+ return areas;
+}
+/* Reduce WHOLE cloud banks near important places. Never punch landmark-shaped
+   holes into cloud artwork or replace the visible map with a fog backdrop. */
+function cloudRoom(c,areas){
+ var room=1;
+ areas.forEach(function(a){
+  var dx=(c.x-a.x-a.w/2)/(c.w*.45+a.w*.7+20),dy=(c.y-a.y-a.h/2)/(c.h*.45+a.h*.7+20);
+  room=Math.min(room,cloudEase(.8,1.6,Math.sqrt(dx*dx+dy*dy)));
+ });
+ return room;
+}
 function drawSkyClouds(z,target){
- var sky=target||ctx,list=[];
- /* Opaque cloud-shadow backing prevents any unknown terrain leaking through
-    sprite gaps or zoom crossfades. All relief still belongs to world cells. */
- sky.save();sky.globalAlpha=1;sky.fillStyle='#ddc2db';sky.fillRect(0,0,W,H);sky.restore();
- /* A quiet opaque cloud deck provides cover without hundreds of silhouettes.
-    Broad world-space tonal regions, rendered once into the cached fog canvas. */
- var step=8,c=document.createElement('canvas');c.width=Math.ceil(W/step);c.height=Math.ceil(H/step);
- var cg=c.getContext('2d'),image=cg.createImageData(c.width,c.height),palette=[[218,188,215],[224,195,219],[231,203,222],[237,212,226],[243,222,231],[247,230,235]];
- for(var py=0;py<c.height;py++)for(var px=0;px<c.width;px++){
-  var geo=unproj(px*step,py*step),n=terNoise(geo.lng/1.8,geo.lat/1.8)*.8+terNoise(geo.lng/.6,geo.lat/.6)*.2;
-  var col=palette[Math.min(palette.length-1,Math.floor(n*palette.length))],k=(py*c.width+px)*4;
-  image.data[k]=col[0];image.data[k+1]=col[1];image.data[k+2]=col[2];image.data[k+3]=255;
- }
- cg.putImageData(image,0,0);sky.save();sky.imageSmoothingEnabled=false;sky.drawImage(c,0,0,c.width*step,c.height*step);sky.restore();
+ var sky=target||ctx,list=[],areas=cloudImportantAreas();
  cloudBands(z).forEach(function(band){
   if(band.alpha<.001)return;
   /* Broad, irregular banks, not a small cloud stamped into every grid square.
@@ -187,7 +195,7 @@ function drawSkyClouds(z,target){
   var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360;
   [0,1].forEach(function(depth){
    var sx=cell*(depth?5.2:3.7),sy=cell*(depth?4.2:2.5),seed=band.seed+depth*31;
-   var name='cloud-calm',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:2.6;
+   var name='story-cloud',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
    var margin=Math.max(700,cellPx*6*aspect),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
    var y0=Math.floor(Math.min(tl.lat,br.lat)/sy)-1,y1=Math.ceil(Math.max(tl.lat,br.lat)/sy)+1;
    var x0=Math.floor(Math.min(tl.lng,br.lng)/sx)-1,x1=Math.ceil(Math.max(tl.lng,br.lng)/sx)+1;
@@ -198,12 +206,19 @@ function drawSkyClouds(z,target){
     var p=proj(lat,lng),h=cellPx*(depth?1.2+terHash(gx,gy,seed+3)*1.1:.9+terHash(gx,gy,seed+3)*1.4);
     var w=h*aspect*((depth?.9:1.15)+terHash(gx,gy,seed+5)*.35);
     if(p.x-w/2>W||p.x+w/2<0||p.y-h/2>H||p.y+h/2<0)continue;
-    list.push({id:band.seed+':'+depth+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*(depth?1:.7),depth:depth,name:name,aspect:aspect,flip:terHash(gx,gy,seed+6)>.5});
+    var cloud={id:band.seed+':'+depth+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*.94,depth:depth,name:name,aspect:aspect,flip:terHash(gx,gy,seed+6)>.5};
+    cloud.room=cloudRoom(cloud,areas);
+    /* Seeded thinning keeps most remaining banks substantial, rather than
+       turning every nearby bank into transparent haze. Blend the boundary so
+       zooming changes density gently instead of popping clouds on/off. */
+    var threshold=.25+terHash(gx,gy,seed+10)*.5;
+    cloud.alpha*=cloudEase(threshold-.15,threshold+.15,cloud.room*(isRevealed(lat,lng,.95)?.8:1));
+    list.push(cloud);
    }
   });
  });
  list.sort(function(a,b){return a.depth-b.depth||a.y-b.y;});CLOUD_DEBUG=list;
- list.forEach(function(c){sky.save();sky.globalAlpha=c.alpha;sky.translate(c.x,c.y);sky.scale((c.flip?-1:1)*c.w/(c.h*c.aspect),1);drawArt(sky,c.name,0,c.h/2,c.h,1);sky.restore();});
+ list.forEach(function(c){if(c.alpha<.001)return;sky.save();sky.globalAlpha=c.alpha;sky.translate(c.x,c.y);sky.scale((c.flip?-1:1)*c.w/(c.h*c.aspect),1);drawArt(sky,c.name,0,c.h/2,c.h,1);sky.restore();});
 }
 
 

@@ -1,24 +1,20 @@
 # Foundation repair — approval preview 1
 
-Latest cloud preference: unknown areas are now fully opaque cloud cover, not
-sparse banks. The same cached, world-anchored fog canvas has a cloud-shadow
-backing and overlapping sprites; clear masks preserve discovered areas,
-known landmark footprints, saved memories/plans and an ephemeral current GPS fix.
-These clearings never change discovery records. Added alpha-coverage checks
-confirm unknown terrain cannot show through. The plane and markers remain above
-fog. Updated screenshots and the touch-motion video use this cloud preference.
+Latest cloud direction supersedes the blanket-fog experiments: the map remains
+visible between natural cloud banks, including areas without known POIs. Removed
+the solid backdrop, cloud-deck raster, discovery masks and landmark-shaped
+cutouts. Known footprints, memory/plan markers and a GPS fix reduce whole-bank
+density nearby, without cutting silhouettes out of clouds. Seeded thinning keeps
+remaining banks substantial; a short opacity blend prevents threshold popping. Discovered
+ground is less crowded; no discovery or memory records are modified.
 
-Calmer-cloud approval candidate: the previous randomized banks still looked
-crowded. Added a new original rounded cumulus sprite with gentler shading and
-less internal detail, preserved in `art-src/world/calm-cloud-rounded.png`.
-`tools/prepare-calm-clouds.js` removes disconnected matte debris, exports a
-nearest-neighbor palette PNG and records dimensions/anchor/crop in its manifest.
-Sparse, irregular banks sit above an opaque low-contrast world-space cloud deck,
-leaving breathing room without revealing unknown ground. Both passes stay in the
-existing cached fog output; no landscape overlay or screen-locked frame.
-Random-looking placement remains reproducible across sessions/camera changes.
-Tests assert bounded phone cloud density, varied sizes/silhouettes, complete
-unknown-ground opacity, pan/return identity and stationary-cache reuse.
+Restored the original detailed `story-cloud` sprite instead of the rejected pale
+cloud experiment (its source/optimized art remain archived, not loaded). Seeded
+irregular spacing, size variation and two depth passes remain world-anchored and
+cached. Plane and markers remain above clouds. Tests verify substantial visible
+map between clouds away from POIs, whole-bank POI clearance, no masking commands,
+bounded phone cloud density, varied sizes/silhouettes, pan/return identity and
+stationary-cache reuse. Updated screenshots/video reflect this candidate.
 
 Branch: `codex/map-foundation-repair`. Local changes only. No push, merge,
 deployment, database change, memory-coordinate edit or auth change.
@@ -41,8 +37,8 @@ landmark and memory footprints.
 All viewport-corner cloud rendering is removed. One seeded world-coordinate
 field in `terrain.js` uses permanent bands with smooth zoom weights, no drift,
 screen-edge opacity, camera-latitude-dependent size or all-or-nothing cell cap.
-Discovery behavior is retained. Clear windows protect known ground and important
-artwork. A cached fog canvas redraws on camera, resize, cloud load or relevant
+Discovery records still influence cloud density without hiding the base map.
+Whole-bank clearance protects important artwork. A cached fog canvas redraws on camera, resize, cloud load or relevant
 data changes; stationary animation frames do not rebuild clouds.
 
 The scenery bottleneck was repeated per-cell texture drawing. Terrain texture
