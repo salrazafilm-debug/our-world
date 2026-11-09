@@ -4,7 +4,8 @@ Same unpublished branch: `codex/authored-home-regions`. The owner confirmed the
 location pin means actual GPS, not the home area.
 
 - Local is the single visible view control, below the canonical avatar dock.
-- The right dock has three 56px cream/wood pixel buttons: heart, GPS pin, Menu.
+- The bottom-right dock extends upward with three 56px cream/wood pixel buttons:
+  heart, GPS pin, Menu. It respects right and bottom safe-area insets.
   Their stepped icons are actual interactive HTML/SVG controls, not baked art.
 - Heart starts the existing memory placement workflow directly. Other Add
   actions remain in Menu → Add something.

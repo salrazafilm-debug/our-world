@@ -12,6 +12,7 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
   assert.equal(await p.locator('#views button:visible').count(),1);assert(await p.locator('#views [data-view="local"]').isVisible());
   const boxes=[];for(const id of ['btnMemory','btnLocate','btnPlaces']){const x=await p.locator('#'+id).boundingBox();assert(x&&x.width>=44&&x.height>=44);boxes.push(x);}
   assert(boxes[0].y<boxes[1].y&&boxes[1].y<boxes[2].y);assert(boxes.every(x=>Math.abs(x.x-boxes[0].x)<1&&x.x+x.width<=p.viewportSize().width));
+  const bottom=boxes[2].y+boxes[2].height;assert(bottom<=p.viewportSize().height-10&&bottom>=p.viewportSize().height-50,'dock is anchored to bottom-right, extending upward');
   const av=await p.locator('#avatarDock').boundingBox(),local=await p.locator('#views').boundingBox();assert(local.y>=av.y+av.height&&Math.abs(local.x-av.x)<5);
  }
  await layout();await p.evaluate(()=>window.__CONTROL_TEST.fly(38.86335,-76.51815,7.8));await p.screenshot({path:path.join(out,'controls-mobile-390.png')});

@@ -678,7 +678,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 #views .pxbtn[data-view=local]{display:flex!important;align-items:center;justify-content:center;min-width:78px;height:44px;padding:8px 14px;background:var(--cream);border:3px solid var(--wood-dk);border-bottom-width:6px;clip-path:var(--px-step);font-size:14px;color:var(--berry-dk)}
 #views .pxbtn[data-view=local][aria-pressed=true]{background:#f6d3dc}
 #hop{display:none!important}
-#actions{left:auto;right:max(12px,env(safe-area-inset-right));top:50%;bottom:auto;transform:translateY(-50%);display:flex;flex-direction:column;width:56px;max-width:none;margin:0;gap:12px;pointer-events:none}
+#actions{left:auto;right:max(12px,env(safe-area-inset-right));top:auto;bottom:calc(12px + env(safe-area-inset-bottom));transform:none;display:flex;flex-direction:column;width:56px;max-width:none;margin:0;gap:12px;pointer-events:none}
 #actions .row{display:flex;flex-direction:column;flex-wrap:nowrap;gap:12px;margin:0;width:56px}
 #actions .icon{display:grid!important;place-items:center;width:56px;height:56px;min-width:56px;padding:7px;margin:0;background:var(--cream);border:3px solid var(--wood-dk);border-bottom-width:7px;clip-path:var(--px-step);pointer-events:auto;transition:transform .1s,border-bottom-width .1s}
 #actions .icon:hover{background:#fff7ec;transform:translateY(-2px)}
