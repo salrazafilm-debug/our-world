@@ -4654,19 +4654,34 @@ function drawSkyClouds(z,target){
  sky.save();sky.globalAlpha=1;sky.fillStyle='#c7a0d0';sky.fillRect(0,0,W,H);sky.restore();
  cloudBands(z).forEach(function(band){
   if(band.alpha<.001)return;
-  var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360,margin=Math.max(500,cellPx*1.8*aspect),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
-  var y0=Math.floor(Math.min(tl.lat,br.lat)/cell),y1=Math.ceil(Math.max(tl.lat,br.lat)/cell);
-  var x0=Math.floor(Math.min(tl.lng,br.lng)/cell),x1=Math.ceil(Math.max(tl.lng,br.lng)/cell);
-  for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
-   var lat=(gy+.2+terHash(gx,gy,band.seed+1)*.6)*cell,lng=(gx+.2+terHash(gx,gy,band.seed+2)*.6)*cell;
-   var p=proj(lat,lng),w=Math.max(110,Math.min(440,cellPx*3))*(.85+terHash(gx,gy,band.seed+3)*.3),h=Math.max(w*.45,cellPx*1.6)*(.9+terHash(gx,gy,band.seed+4)*.2);w=h*aspect;
-   var box={x:p.x-w/2,y:p.y-h/2,w:w,h:h};
-   if(box.x>W||box.x+w<0||box.y>H||box.y+h<0)continue;
-   list.push({id:band.seed+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*.96});
-  }
+  /* Broad, irregular banks, not a small cloud stamped into every grid square.
+     The hidden lattice only bounds work; full-cell jitter, independent sizes
+     and clustered companions break its rows. Two depth passes keep larger,
+     quieter banks behind the occasional smaller foreground silhouette. */
+  var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360;
+  [0,1].forEach(function(depth){
+   var sx=cell*(depth?4.1:2.5),sy=cell*(depth?3.1:1.45),seed=band.seed+depth*31;
+   var margin=Math.max(700,cellPx*6*aspect),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
+   var y0=Math.floor(Math.min(tl.lat,br.lat)/sy)-1,y1=Math.ceil(Math.max(tl.lat,br.lat)/sy)+1;
+   var x0=Math.floor(Math.min(tl.lng,br.lng)/sx)-1,x1=Math.ceil(Math.max(tl.lng,br.lng)/sx)+1;
+   for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
+    if(depth&&terHash(gx,gy,seed+8)<.32)continue;
+    var lat=(gy+.5+(terHash(gx,gy,seed+1)-.5)*1.6)*sy;
+    var lng=(gx+.5+(terHash(gx,gy,seed+2)-.5)*1.6)*sx;
+    var count=depth&&terHash(gx,gy,seed+9)>.5?2:1;
+    for(var j=0;j<count;j++){
+     var clat=lat+(j?(terHash(gx,gy,seed+10)-.5)*sy*.9:0);
+     var clng=lng+(j?(terHash(gx,gy,seed+11)-.5)*sx*.7:0),p=proj(clat,clng);
+     var h=cellPx*(depth?1.7+terHash(gx,gy,seed+3+j)*1.9:2.3+terHash(gx,gy,seed+3)*2);
+     var w=h*aspect*(.85+terHash(gx,gy,seed+5+j)*.35);
+     if(p.x-w/2>W||p.x+w/2<0||p.y-h/2>H||p.y+h/2<0)continue;
+     list.push({id:band.seed+':'+depth+':'+gx+':'+gy+':'+j,lat:clat,lng:clng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha,depth:depth,flip:terHash(gx,gy,seed+6+j)>.5});
+    }
+   }
+  });
  });
- list.sort(function(a,b){return a.y-b.y;});CLOUD_DEBUG=list;
- list.forEach(function(c){sky.save();sky.globalAlpha=c.alpha;drawArt(sky,'story-cloud',c.x,c.y+c.h/2,c.h,1);sky.restore();});
+ list.sort(function(a,b){return a.depth-b.depth||a.y-b.y;});CLOUD_DEBUG=list;
+ list.forEach(function(c){sky.save();sky.globalAlpha=c.alpha;sky.translate(c.x,c.y);sky.scale((c.flip?-1:1)*c.w/(c.h*aspect),1);drawArt(sky,'story-cloud',0,c.h/2,c.h,1);sky.restore();});
 }
 
 

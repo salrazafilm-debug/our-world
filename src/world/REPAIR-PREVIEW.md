@@ -2,11 +2,18 @@
 
 Latest cloud preference: unknown areas are now fully opaque cloud cover, not
 sparse banks. The same cached, world-anchored fog canvas has a cloud-shadow
-backing and densely overlapping sprites; clear masks preserve discovered areas,
+backing and overlapping sprites; clear masks preserve discovered areas,
 known landmark footprints, saved memories/plans and an ephemeral current GPS fix.
 These clearings never change discovery records. Added alpha-coverage checks
 confirm unknown terrain cannot show through. The plane and markers remain above
 fog. Updated screenshots and the touch-motion video use this cloud preference.
+
+Natural-cloud revision: replaced the uniform small-cloud lattice with two depth
+passes of broad, irregular banks and sparser clustered companions. Full-cell
+seeded jitter, varied scale/aspect and mirrored silhouettes break up repeated
+rows. Random-looking placement remains reproducible across sessions and camera
+changes; no frame-time randomness, new assets or extra fog canvas was introduced.
+Tests additionally assert both depth passes and meaningful size/silhouette variety.
 
 Branch: `codex/map-foundation-repair`. Local changes only. No push, merge,
 deployment, database change, memory-coordinate edit or auth change.
