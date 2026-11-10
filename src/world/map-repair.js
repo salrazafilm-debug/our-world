@@ -26,7 +26,7 @@ function repairBox(id){
  else {h*=1.05;w=homeArtH(S.zoom)*1.55;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }
-function repairClear(x,y){return REPAIR.boxes.some(function(b){return x>b.x-16&&x<b.x+b.w+16&&y>b.y-12&&y<b.y+b.h+18;});}
+function repairClear(x,y,radius){var r=radius||0;return REPAIR.boxes.some(function(b){return x>b.x-20-r&&x<b.x+b.w+20+r&&y>b.y-16&&y-r*2<b.y+b.h+22;});}
 function repairReserveLabels(){
  REPAIR.boxes.forEach(function(b){labelBoxes.push({x:b.x-8,y:b.y-8,w:b.w+16,h:b.h+16});});
  S.memories.forEach(function(m){var p=proj(m.lat,m.lng);labelBoxes.push({x:p.x-26,y:p.y-65,w:52,h:74});});

@@ -6,7 +6,7 @@ function scenicRand(a, b, seed) { return terHash(a, b, seed); }
 function scenicLand(x, y) { return terrainAt(x, y) === 'land'; }
 function scenicAvoid(x, y, radius) {
   if(nycAvoid(x,y,8))return true;
-  if(repairClear(x,y))return true;
+  if(repairClear(x,y,radius))return true;
   var places = SCENIC_AVOID;
   for (var i = 0; i < places.length; i++) {
     var p = places[i], dx = x - p.x, dy = (y - p.y) * 1.2;

@@ -266,6 +266,7 @@ function petRender() {
 var PG = null;                                     /* room geometry on screen */
 var PB = { x: 0.49, dir: 1, act: 'sit', until: 0, tx: 0.49, f: 0, raf: 0, last: 0, shown: '' };
 var PF = {};                                       /* frame images, by name */
+var puppyMotion = new Image(); puppyMotion.src = 'art/pets/puppy-motion.png';
 ['sleep'].forEach(function (n) { var im = new Image(); im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im; });
 var X_MIN = 0.37, X_MAX = 0.62;
 function petLayout(sleeping) {
@@ -303,6 +304,14 @@ function petPose(bounce) {
     dog.style.left = x + 'px'; dog.style.top = (PG.baseY - hh * 0.92) + 'px';
     return;
   }
+  if(puppyMotion.complete&&puppyMotion.naturalWidth&&!PET_SLOTS.some(function(s){return !!PET.equipped[s];})){
+    var time=performance.now(),walking=PB.act==='scoot',row=walking?1:PB.act==='eat'||PB.act==='sniff'?2:PB.act==='play'||PB.act==='happy'?3:0;
+    var frame=reduceMotion?0:row===0?(time%6000>5300?Math.floor(time/170)%4:0):Math.floor(time/(walking?135:240))%4;
+    var size=PG.h*1.12;
+    if(PB.shown!=='motion'){dog.innerHTML='<div class="puppy-motion" role="img" aria-label="'+esc(PET.name)+' the puppy"></div>';PB.shown='motion';}
+    var sprite=dog.firstChild;sprite.style.cssText='width:'+size+'px;height:'+size+'px;background-image:url(art/pets/puppy-motion.png);background-size:400% 400%;background-position:'+(frame*100/3)+'% '+(row*100/3)+'%;transform:scaleX('+(walking&&PB.tx<PB.x0?-1:1)+');';
+    dog.style.left=x+'px';dog.style.top=(PG.baseY-size*.94)+'px';return;
+  }
   key = 'front|' + JSON.stringify(PET.equipped) + '|' + PG.h;
   if (PB.shown !== key) { dog.innerHTML = petFigure(PG.h, PET.equipped, false); petLearnSizes(dog); PB.shown = key; }
   dog.style.left = x + 'px'; dog.style.top = (PG.baseY - PG.h - (bounce || 0)) + 'px';
@@ -311,10 +320,10 @@ function petNext(now) {
   if (petSleeping()) { PB.act = 'sleep'; PB.until = now + 60000; return; }
   if (PB.act !== 'sit') { PB.act = 'sit'; PB.until = now + 5000 + Math.random() * 7000; return; }
   /* a little hop to a new spot on the bed, still facing you */
-  PB.act = 'scoot'; PB.t0 = now; PB.x0 = PB.x;
+  PB.act = Math.random()<.35?'sniff':'scoot'; PB.t0 = now; PB.x0 = PB.x;
   var span = X_MAX - X_MIN, d = (0.15 + Math.random() * 0.25) * span;
   PB.tx = Math.max(X_MIN, Math.min(X_MAX, PB.x + (Math.random() < 0.5 ? -d : d)));
-  PB.until = now + 20000;
+  PB.until = now + (PB.act==='sniff'?2200:20000);
 }
 function petTick(now) {
   if (!PET.open || PET.mode !== 'room') { PB.raf = 0; return; }
@@ -326,14 +335,14 @@ function petTick(now) {
     var dur = Math.max(700, Math.abs(PB.tx - PB.x0) * PG.dw * 9), t = Math.min(1, (now - PB.t0) / dur);
     PB.x = PB.x0 + (PB.tx - PB.x0) * (t * t * (3 - 2 * t));
     var hops = Math.max(1, Math.round(dur / 380));
-    petPose(Math.abs(Math.sin(t * Math.PI * hops)) * PG.h * 0.07);
-    if (t >= 1) PB.until = 0;
+    petPose();
+    if (t >= 1) { PB.act=PB.after||'sniff';PB.after=null;PB.t0=now;PB.until=now+3500; }
     return;
   }
   if (PB.act === 'play') {
     var tp = now - PB.t0;
-    petPose(Math.abs(Math.sin(tp / 1100 * Math.PI * 3)) * PG.h * 0.14 * (tp < 1100 ? 1 : 0));
-    if (tp > 1100) { PB.act = 'sit'; PB.until = now + 5000; }
+    petPose();
+    if (tp > 3500) { PB.act = 'sit'; PB.until = now + 5000; }
     return;
   }
   petPose();
@@ -342,9 +351,7 @@ function petSitFront() { PB.act = 'sit'; PB.until = performance.now() + 5000; pe
 
 var petSayT = null;
 function petSay(text, ms) {
-  var el = document.getElementById('psSay'); if (!el) return;
-  el.textContent = text; el.classList.add('on');
-  clearTimeout(petSayT); petSayT = setTimeout(function () { el.classList.remove('on'); }, ms || 2600);
+  /* Reactions are expressed by poses; the puppy no longer speaks in popups. */
 }
 function petHearts_fx() {
   var room = petEl.querySelector('.ps-room'), dog = document.getElementById('psDog'); if (!room || !dog) return;
@@ -361,15 +368,14 @@ function petHearts_fx() {
   }
 }
 function petHop() {
-  petSitFront();
-  var d = document.getElementById('psDog'); if (!d) return;
-  d.classList.remove('happy'); void d.offsetWidth; d.classList.add('happy'); petHearts_fx();
+  PB.act='happy';PB.until=performance.now()+2400;petPose();petHearts_fx();
 }
 var PET_LINES = ['Woof! 💗', 'I love you both!', 'Best day ever!', 'Pet me again!', 'Where are we going next?', '*tail wags*', 'Did you bring treats?', 'I missed you!', 'You two are my favourite people.'];
 
 function petClick(e) {
   var b = e.target.closest('[data-pet],[data-shop]');
-  if (!b) { if (e.target.closest('#psDog') && PET.mode === 'room') petAct('cuddle'); return; }
+  if (!b) { if (e.target.closest('#psDog') && PET.mode === 'room') petAct('cuddle');
+    else if(PET.mode==='room'&&PG&&e.target.closest('.ps-room')&&!petSleeping()&&!reduceMotion&&e.clientY>PG.baseY-PG.h*.45){PB.act='scoot';PB.t0=performance.now();PB.x0=PB.x;PB.tx=Math.max(X_MIN,Math.min(X_MAX,(e.clientX-PG.ox)/PG.dw));PB.until=PB.t0+20000;PB.after='sniff';}return; }
   if (b.dataset.shop) return shopClick(b);
   petAct(b.dataset.pet);
 }
@@ -387,7 +393,10 @@ function petAct(a) {
     if (typeof playSound === 'function') playSound('heart');
     if (Date.now() - PET.lastPet > 15 * 60000) { PET.lastPet = Date.now(); setTimeout(function () { earnHearts(1, 'cuddle'); }, 500); }
   } else if (a === 'play') {
-    PB.act = 'play'; PB.t0 = performance.now(); PB.until = PB.t0 + 5000; petHearts_fx(); petSay('Again! Again! 🎾', 2400);
+    var old=document.getElementById('puppyToy');if(old)old.remove();
+    PB.act=reduceMotion?'play':'scoot';PB.t0=performance.now();PB.x0=PB.x;PB.tx=PB.x<(X_MIN+X_MAX)/2?X_MAX:X_MIN;PB.after='play';PB.until=PB.t0+20000;
+    var toy=document.createElement('img');toy.id='puppyToy';toy.src='art/ui/ball.png';toy.alt='Play ball';toy.style.cssText='position:absolute;pointer-events:none;width:26px;left:'+(PG.ox+PG.dw*PB.tx-13)+'px;top:'+(PG.baseY-23)+'px';petEl.querySelector('.ps-room').appendChild(toy);
+    setTimeout(function(){toy.remove();},6500);
   } else if (a === 'treat') {
     petGiveTreat(PET_TREATS[0]);
   }
@@ -402,7 +411,7 @@ function petGiveTreat(t) {
     f.style.left = (r.left - pr.left + r.width * 0.2) + 'px'; f.style.top = (pr.height - 130) + 'px';
     f.style.setProperty('--dx', (r.width * 0.3) + 'px'); f.style.setProperty('--dy', -(pr.height - 130 - (r.top - pr.top) - r.height * 0.4) + 'px');
     petEl.appendChild(f); setTimeout(function () { f.remove(); }, 1000);
-    setTimeout(function () { petHop(); petSay('Yum! Thank you! 💗', 2800); }, 800);
+    setTimeout(function () { if(!PET.open||PET.mode!=='room')return;PB.act='eat';PB.until=performance.now()+3000;petPose(); }, 800);
   }
   if (typeof playSound === 'function') playSound('save');
   return true;

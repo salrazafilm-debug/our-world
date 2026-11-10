@@ -5,7 +5,9 @@ function marylandWeight(lat,lng){
 }
 function marylandBay(g,s){
  if(S.zoom<5.5)return;
- var coast=[[39.48,-76.12],[39.28,-76.20],[39.08,-76.29],[38.89,-76.30],[38.69,-76.34],[38.48,-76.27],[38.28,-76.16],[38.05,-76.0],[37.75,-75.84]];
+ /* Retain the real northern bay shore around Sandy Point and Kent Island.
+    Decorative widening begins south of the Bay Bridge approaches. */
+ var coast=[[38.95,-76.30],[38.89,-76.30],[38.69,-76.34],[38.48,-76.27],[38.28,-76.16],[38.05,-76.0],[37.75,-75.84]];
  var width=.30*cloudEase(5.5,7.2,S.zoom),ring=coast.map(function(a,i){return[a[0],a[1]-.08*Math.sin(Math.PI*i/(coast.length-1))];}).concat(coast.slice().reverse().map(function(a,i){var t=(coast.length-1-i)/(coast.length-1);return[a[0],a[1]+width*Math.sin(Math.PI*t)];}));
  var a=proj(39.5,-76.6),b=proj(37.7,-75.5);if(b.x<0||a.x>W||b.y<0||a.y>H)return;
  g.save();g.beginPath();ring.forEach(function(a,i){var p=proj(a[0],a[1]);if(i)g.lineTo(p.x/s,p.y/s);else g.moveTo(p.x/s,p.y/s);});g.closePath();g.clip();

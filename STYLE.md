@@ -46,7 +46,7 @@ Not every control has to be a rectangle: books, envelopes, paws, signs and tabs 
 
 ## Canonical art (keep consistent; don't redesign unless asked)
 - **Avatars:** `avatars/bruce.png`, `avatars/elena.png`.
-- **Puppy:** brown/golden curly doodle, soft rounded pixel art (`art/pets/`). **Always faces the viewer** — no side or back views.
+- **Puppy:** brown/golden curly doodle, soft rounded cartoon art (`art/pets/`). Owner-approved directional walking, sniffing and play poses use the same puppy identity. Accessories retain their existing fitted front pose in the shop and dressed room view.
 - **Memories Book:** dark brown book, pink spine, colourful lettering, gold corners, little globe.
 - **Calendar:** simple framed wall calendar with big usable day boxes.
 - **Love Letters:** cream envelope with a heart seal.
