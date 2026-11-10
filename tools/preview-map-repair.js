@@ -13,6 +13,7 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
  await view('maryland-430',38.93,-76.95,7.8);
  await view('maryland-composition',38.94,-76.90,8.4);
  await view('maryland-detail',38.88,-76.68,9.6);
+ await view('virginia-soft-ridge',38.79,-77.40,9.4);
  await view(null,38.93,-76.95,7.8);
  assert(await p.evaluate(()=>window.__REPAIR_TEST.clouds().some(c=>c.room<.5)),'important areas reduce whole-cloud coverage');
  for(const z of [6,6.8,7.8,8.6,9.2]){

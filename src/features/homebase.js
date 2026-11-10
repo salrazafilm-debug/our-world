@@ -4,7 +4,7 @@
    out in the parts we have not explored yet. */
 
 var HOMEBASE = [
-  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'story-mountain', scale: 1.05 }
+  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'soft-ridge', scale: 1.05 }
 ];
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
@@ -39,7 +39,9 @@ HOOKS.terrain.push(function () {
   HOMEBASE.forEach(function (h) {
     var p = repairPoint(h.id)||proj(h.lat, h.lng);
     if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 80) return;
-    var b = drawArt(ctx, h.art, p.x, p.y, homeArtH(z) * h.scale, DPR);
+    var hh=homeArtH(z)*h.scale,asset=artLoad(h.art);
+    if(h.id==='hb-nova'&&asset.ok)hh=Math.min(hh,homeArtH(z)*1.55*asset.img.height/asset.img.width);
+    var b = drawArt(ctx, h.art, p.x, p.y, hh, DPR);
     if (b) { HBBOX[h.id] = b; addHit(b, { kind: 'beacon', lat: h.lat, lng: h.lng }); }
   });
 });

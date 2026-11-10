@@ -147,3 +147,20 @@ device resolution so foliage isn't magnified from half resolution. Small meadow
 flower scatter is reduced and individual clumps are larger. Layout, coordinates,
 avatars, memory interactions and camera behavior are unchanged. Preview capture
 uses the existing Day setting so visual comparisons have consistent lighting.
+
+## Matching ridges and environmental props
+
+`art-src/world/soft-scenery-sheet.png` supplies nine matching original sprites:
+Appalachian ridge, rolling hills, waterfall, stone footbridge, dock, bench,
+lantern, sailboat and supporting cottage. The extraction script finds the empty
+sheet gutters, preserves edge alpha, removes faint red matte residue and records
+dimensions, anchors and crop bounds in `soft-scenery-assets.json`.
+
+The Northern Virginia landmark keeps its existing anchor/action, with its width
+capped to a reserved 1.55-home-unit footprint. Nearby decorative ridges and the
+Camelback mountain artwork use the new ridge; distant western ranges retain
+their existing artwork. Existing waterfalls now draw an actual cascade rather
+than the previous generic bridge. The Chesapeake dock attaches to the shore,
+and nearby village cottages, garden furniture, boats and footbridges share the
+new soft rendering. Major homes, city compositions, avatars and close-ups stay
+unchanged. This remains an unpublished approval candidate.

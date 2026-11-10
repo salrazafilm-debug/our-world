@@ -2,10 +2,11 @@
    shrunk once to the exact pixel height it is drawn at, so it stays sharp at
    every zoom, and keeps its proportions. */
 
-/* The owner's softer cartoon planting keeps antialiased edges. Architecture,
-   clouds, UI and canonical avatars retain their existing rendering. */
+/* Shared soft map art keeps antialiased edges. Major architecture, clouds,
+   UI and canonical avatars retain their existing rendering. */
 var SOFT_FOLIAGE={};
 [['pine',['pack-pine','tree-pine','story-pine']],['pine-tall',['pack-pine-tall']],['oak',['pack-oak','tree-oak','story-oak']],['cherry',['pack-cherry','tree-cherry','story-cherry']],['crimson',['pack-crimson']],['bush',['pack-bush','bush','bush-pink']],['flowers',['pack-flowers','flowers','flowers2','flowers3','flowers4']],['rocks',['pack-rocks','rock']],['grass',['pack-grass']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft/'+group[0]+'.png';});});
+[['ridge',['soft-ridge']],['hills',['soft-hills']],['waterfall',['soft-waterfall']],['bridge',['pack-bridge','story-bridge']],['dock',['pack-dock','story-pier']],['bench',['bench']],['lamp',['lamp']],['boat',['pack-boat','boat']],['cottage',['story-cottage']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft-scenery/'+group[0]+'.png';});});
 var ART = {}, ARTSIZED = {}, SOFT_SOURCES = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
@@ -28,6 +29,7 @@ artLoad('pack-capitol');
 artLoad('pack-monument');
 artLoad('civic-post-office');
 ['pack-rocks','pack-dock','pack-boat','lamp','bench'].forEach(artLoad);
+['soft-ridge','soft-hills','soft-waterfall'].forEach(artLoad);
 ['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
 ['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 

@@ -23,7 +23,7 @@ function repairBox(id){
  else if(id==='bruce'){h*=.86;w=h*1.6;}
  else if(id==='mail'){h*=.82;w=h*1.35;}
  else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.35,y:p.y-homeArtH(S.zoom)*1.5,w:homeArtH(S.zoom)*2.5,h:homeArtH(S.zoom)*1.85,id:id};}
- else {h*=1.05;w=h;}
+ else {h*=1.05;w=homeArtH(S.zoom)*1.55;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }
 function repairClear(x,y){return REPAIR.boxes.some(function(b){return x>b.x-16&&x<b.x+b.w+16&&y>b.y-12&&y<b.y+b.h+18;});}

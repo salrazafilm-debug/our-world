@@ -59,7 +59,7 @@ function scenicWaterfall(g, place) {
   if (!isRevealed(place.lat,place.lng,1.1)) return;
   var p=proj(place.lat,place.lng);
   if (p.x<-60||p.x>W+60||p.y<-60||p.y>H+60) return;
-  drawArt(g,'pack-bridge',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
+  drawArt(g,'soft-waterfall',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
 }
 function scenicPier(g, place) {
   var p=proj(place.lat,place.lng);
@@ -67,7 +67,8 @@ function scenicPier(g, place) {
   var shore=null;
   for(var i=24;i<78;i+=6) if(terrainAt(p.x+i,p.y+i*.36)==='water'){shore={x:p.x+i,y:p.y+i*.36};break;}
   if(!shore)return;
-  drawArt(g,'story-pier',shore.x+20,shore.y+25,homeArtH(S.zoom)*.65,1);
+  var h=homeArtH(S.zoom)*.65;
+  drawArt(g,'story-pier',shore.x+h*.22,shore.y+h*.18,h,1);
 }
 function scenicMark(g, x, y, color, w, h) {
   g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), w, h);
@@ -166,7 +167,7 @@ function drawScenic() {
       [36.5,-106.1],[39.3,-106.3],[42.8,-109.2],[46.7,-112.1],[51.2,-116.4]].forEach(function(a){
       var p=proj(a[0],a[1]);
       if(p.x>-70&&p.x<W+70&&p.y>-60&&p.y<H+70&&scenicLand(p.x,p.y))
-        drawArt(g,'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
+        drawArt(g,a[1]>-85?'soft-ridge':'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
     });
   }
   /* Home grounds use the same authored composition at every ordinary zoom. */

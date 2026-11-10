@@ -64,6 +64,11 @@ canonical avatars. Preserve their antialiased edges and avoid noisy pixel
 texture. The cached scenery renders at device resolution. This planting update
 does not redesign the avatars, buildings, clouds or interface.
 
+The matching environmental set extends this treatment to nearby Appalachian
+ridges and rolling hills, waterfalls, footbridges, docks, sailboats, benches,
+lamps and supporting village cottages. Keep major homes and city landmarks
+recognizable; reuse their existing geographic anchors and reserved clearings.
+
 ## Layout
 Spacious and easy to read. Consistent spacing (multiples of 4px) and alignment. Let layouts adapt to the screen instead of shrinking everything.
 

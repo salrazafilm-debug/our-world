@@ -62,7 +62,7 @@ function marylandVegetation(g){
 function marylandLamp(g,x,y,h){drawArt(g,'lamp',x,y,h,1);}
 function marylandDetails(g){
  /* Overlapping distant ridges establish a back-to-front relief hierarchy. */
- [[39.40,-77.35,.78],[39.48,-77.53,.62]].forEach(function(a){var q=proj(a[0],a[1]),u=homeArtH(S.zoom);if(q.x>-u&&q.x<W+u&&q.y>-u&&q.y<H+u&&scenicLand(q.x,q.y)&&!repairClear(q.x,q.y))drawArt(g,'story-mountain',q.x,q.y,u*a[2],1);});
+ [[39.40,-77.35,.78],[39.48,-77.53,.62]].forEach(function(a,i){var q=proj(a[0],a[1]),u=homeArtH(S.zoom);if(q.x>-u&&q.x<W+u&&q.y>-u&&q.y<H+u&&scenicLand(q.x,q.y)&&!repairClear(q.x,q.y))drawArt(g,i?'soft-hills':'soft-ridge',q.x,q.y,u*a[2],1);});
  marylandVegetation(g);
  var u=homeArtH(S.zoom),p=marylandPoints();
  /* Garden framing is authored per landmark, never a random building scatter. */
@@ -87,9 +87,7 @@ function marylandRelief(g,p,u){
  var x=p.x-u*.88,y=p.y+u*.15;if(!scenicLand(x,y)||repairClear(x,y))return;
  g.save();marylandLandClip(g,{x:x-u*.38,y:y-u*.4,w:u*.76,h:u*.85});
  g.fillStyle='#8daa71';g.beginPath();g.ellipse(x,y,u*.35,u*.3,0,0,7);g.fill();
- scenicMark(g,x-7,y-u*.22,'#b3a5b5',u*.25,u*.32);scenicMark(g,x-3,y-u*.22,'#50bacf',u*.13,u*.33);
- scenicMark(g,x-2,y-u*.22,'#dfefdf',2,u*.33);scenicMark(g,x+3,y-u*.20,'#b7e2df',2,u*.30);
- g.fillStyle='#72c0c5';g.beginPath();g.ellipse(x+u*.04,y+u*.12,u*.22,u*.09,0,0,7);g.fill();
+ drawArt(g,'soft-waterfall',x+u*.04,y+u*.16,u*.48,1);
  drawArt(g,'pack-rocks',x-u*.13,y+u*.19,u*.18,1);drawArt(g,'pack-bridge',x+u*.03,y+u*.25,u*.21,1);
  drawArt(g,'pack-pine',x-u*.26,y-u*.08,u*.48,1);drawArt(g,'pack-cherry',x+u*.28,y+u*.06,u*.4,1);g.restore();
 }

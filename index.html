@@ -1343,7 +1343,7 @@ var PARKS = [
 /* Places worth a proper icon. Drawn only once the area around them is cleared. */
 var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u2615', mountain: '\u26f0\ufe0f', sun: '\u2728', liberty: '\ud83d\uddfd', skyline: '\ud83c\udfd9\ufe0f', lighthouse: '\u26f5' };
 /* a few landmarks use the new art; the rest keep their pixel sprites */
-var LM_ART = { liberty: 'story-nyc', mountain: 'story-mountain', skyline: 'city', lighthouse: 'story-lighthouse' };
+var LM_ART = { liberty: 'story-nyc', mountain: 'soft-ridge', skyline: 'city', lighthouse: 'story-lighthouse' };
 function lmDraw(type, x, y, sc) {
   var a = LM_ART[type];
   if (a) { var h = SP[type].length * sc * 1.5, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
@@ -3795,10 +3795,11 @@ var WORLD_ASSETS = {"pack-pine":{"path":"art/world/vegetation/pine.png","width":
    shrunk once to the exact pixel height it is drawn at, so it stays sharp at
    every zoom, and keeps its proportions. */
 
-/* The owner's softer cartoon planting keeps antialiased edges. Architecture,
-   clouds, UI and canonical avatars retain their existing rendering. */
+/* Shared soft map art keeps antialiased edges. Major architecture, clouds,
+   UI and canonical avatars retain their existing rendering. */
 var SOFT_FOLIAGE={};
 [['pine',['pack-pine','tree-pine','story-pine']],['pine-tall',['pack-pine-tall']],['oak',['pack-oak','tree-oak','story-oak']],['cherry',['pack-cherry','tree-cherry','story-cherry']],['crimson',['pack-crimson']],['bush',['pack-bush','bush','bush-pink']],['flowers',['pack-flowers','flowers','flowers2','flowers3','flowers4']],['rocks',['pack-rocks','rock']],['grass',['pack-grass']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft/'+group[0]+'.png';});});
+[['ridge',['soft-ridge']],['hills',['soft-hills']],['waterfall',['soft-waterfall']],['bridge',['pack-bridge','story-bridge']],['dock',['pack-dock','story-pier']],['bench',['bench']],['lamp',['lamp']],['boat',['pack-boat','boat']],['cottage',['story-cottage']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft-scenery/'+group[0]+'.png';});});
 var ART = {}, ARTSIZED = {}, SOFT_SOURCES = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
@@ -3821,6 +3822,7 @@ artLoad('pack-capitol');
 artLoad('pack-monument');
 artLoad('civic-post-office');
 ['pack-rocks','pack-dock','pack-boat','lamp','bench'].forEach(artLoad);
+['soft-ridge','soft-hills','soft-waterfall'].forEach(artLoad);
 ['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
 ['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 
@@ -4109,7 +4111,7 @@ function repairBox(id){
  else if(id==='bruce'){h*=.86;w=h*1.6;}
  else if(id==='mail'){h*=.82;w=h*1.35;}
  else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.35,y:p.y-homeArtH(S.zoom)*1.5,w:homeArtH(S.zoom)*2.5,h:homeArtH(S.zoom)*1.85,id:id};}
- else {h*=1.05;w=h;}
+ else {h*=1.05;w=homeArtH(S.zoom)*1.55;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }
 function repairClear(x,y){return REPAIR.boxes.some(function(b){return x>b.x-16&&x<b.x+b.w+16&&y>b.y-12&&y<b.y+b.h+18;});}
@@ -4398,7 +4400,7 @@ function marylandVegetation(g){
 function marylandLamp(g,x,y,h){drawArt(g,'lamp',x,y,h,1);}
 function marylandDetails(g){
  /* Overlapping distant ridges establish a back-to-front relief hierarchy. */
- [[39.40,-77.35,.78],[39.48,-77.53,.62]].forEach(function(a){var q=proj(a[0],a[1]),u=homeArtH(S.zoom);if(q.x>-u&&q.x<W+u&&q.y>-u&&q.y<H+u&&scenicLand(q.x,q.y)&&!repairClear(q.x,q.y))drawArt(g,'story-mountain',q.x,q.y,u*a[2],1);});
+ [[39.40,-77.35,.78],[39.48,-77.53,.62]].forEach(function(a,i){var q=proj(a[0],a[1]),u=homeArtH(S.zoom);if(q.x>-u&&q.x<W+u&&q.y>-u&&q.y<H+u&&scenicLand(q.x,q.y)&&!repairClear(q.x,q.y))drawArt(g,i?'soft-hills':'soft-ridge',q.x,q.y,u*a[2],1);});
  marylandVegetation(g);
  var u=homeArtH(S.zoom),p=marylandPoints();
  /* Garden framing is authored per landmark, never a random building scatter. */
@@ -4423,9 +4425,7 @@ function marylandRelief(g,p,u){
  var x=p.x-u*.88,y=p.y+u*.15;if(!scenicLand(x,y)||repairClear(x,y))return;
  g.save();marylandLandClip(g,{x:x-u*.38,y:y-u*.4,w:u*.76,h:u*.85});
  g.fillStyle='#8daa71';g.beginPath();g.ellipse(x,y,u*.35,u*.3,0,0,7);g.fill();
- scenicMark(g,x-7,y-u*.22,'#b3a5b5',u*.25,u*.32);scenicMark(g,x-3,y-u*.22,'#50bacf',u*.13,u*.33);
- scenicMark(g,x-2,y-u*.22,'#dfefdf',2,u*.33);scenicMark(g,x+3,y-u*.20,'#b7e2df',2,u*.30);
- g.fillStyle='#72c0c5';g.beginPath();g.ellipse(x+u*.04,y+u*.12,u*.22,u*.09,0,0,7);g.fill();
+ drawArt(g,'soft-waterfall',x+u*.04,y+u*.16,u*.48,1);
  drawArt(g,'pack-rocks',x-u*.13,y+u*.19,u*.18,1);drawArt(g,'pack-bridge',x+u*.03,y+u*.25,u*.21,1);
  drawArt(g,'pack-pine',x-u*.26,y-u*.08,u*.48,1);drawArt(g,'pack-cherry',x+u*.28,y+u*.06,u*.4,1);g.restore();
 }
@@ -4498,7 +4498,7 @@ function scenicWaterfall(g, place) {
   if (!isRevealed(place.lat,place.lng,1.1)) return;
   var p=proj(place.lat,place.lng);
   if (p.x<-60||p.x>W+60||p.y<-60||p.y>H+60) return;
-  drawArt(g,'pack-bridge',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
+  drawArt(g,'soft-waterfall',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
 }
 function scenicPier(g, place) {
   var p=proj(place.lat,place.lng);
@@ -4506,7 +4506,8 @@ function scenicPier(g, place) {
   var shore=null;
   for(var i=24;i<78;i+=6) if(terrainAt(p.x+i,p.y+i*.36)==='water'){shore={x:p.x+i,y:p.y+i*.36};break;}
   if(!shore)return;
-  drawArt(g,'story-pier',shore.x+20,shore.y+25,homeArtH(S.zoom)*.65,1);
+  var h=homeArtH(S.zoom)*.65;
+  drawArt(g,'story-pier',shore.x+h*.22,shore.y+h*.18,h,1);
 }
 function scenicMark(g, x, y, color, w, h) {
   g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), w, h);
@@ -4605,7 +4606,7 @@ function drawScenic() {
       [36.5,-106.1],[39.3,-106.3],[42.8,-109.2],[46.7,-112.1],[51.2,-116.4]].forEach(function(a){
       var p=proj(a[0],a[1]);
       if(p.x>-70&&p.x<W+70&&p.y>-60&&p.y<H+70&&scenicLand(p.x,p.y))
-        drawArt(g,'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
+        drawArt(g,a[1]>-85?'soft-ridge':'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
     });
   }
   /* Home grounds use the same authored composition at every ordinary zoom. */
@@ -4694,7 +4695,7 @@ HOOKS.afterOverlays.push(function () {
    out in the parts we have not explored yet. */
 
 var HOMEBASE = [
-  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'story-mountain', scale: 1.05 }
+  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'soft-ridge', scale: 1.05 }
 ];
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
@@ -4729,7 +4730,9 @@ HOOKS.terrain.push(function () {
   HOMEBASE.forEach(function (h) {
     var p = repairPoint(h.id)||proj(h.lat, h.lng);
     if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 80) return;
-    var b = drawArt(ctx, h.art, p.x, p.y, homeArtH(z) * h.scale, DPR);
+    var hh=homeArtH(z)*h.scale,asset=artLoad(h.art);
+    if(h.id==='hb-nova'&&asset.ok)hh=Math.min(hh,homeArtH(z)*1.55*asset.img.height/asset.img.width);
+    var b = drawArt(ctx, h.art, p.x, p.y, hh, DPR);
     if (b) { HBBOX[h.id] = b; addHit(b, { kind: 'beacon', lat: h.lat, lng: h.lng }); }
   });
 });
