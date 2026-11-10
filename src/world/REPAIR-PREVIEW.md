@@ -19,6 +19,13 @@ stationary-cache reuse. Updated screenshots/video reflect this candidate.
 Branch: `codex/map-foundation-repair`. Local changes only. No push, merge,
 deployment, database change, memory-coordinate edit or auth change.
 
+Startup camera: initial state and identity selection now share `START_ZOOM=10`
+instead of 11.2, keeping the selected home anchor but showing more surrounding
+geography. The explicit Local button still uses 11.2. `preview-startup.js` checks
+both identities, reloads, 390/430/1440 layouts, no startup GPS request and unchanged
+records; it also captures NYC's current ordinary-map icon for an honest status
+preview. The expanded NYC world-map composition remains unfinished.
+
 The rejected painted region renderer is removed, including its startup image
 loads, overlay transforms, duplicate landmark hiding and atmosphere clipping.
 Its source artwork remains archived, but no ordinary-map request loads those

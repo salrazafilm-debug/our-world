@@ -1594,12 +1594,15 @@ var ACTIONS = {};
 var ROWHOOKS = {};          /* features subscribe to extra collections here */
 
 /* ============================== state ============================== */
+/* Open with surrounding geography visible. Explicit Local navigation keeps
+   its existing closer camera; identity selection and reload share this zoom. */
+var START_ZOOM = 10.0;
 var S = {
   who: null,
   mode: 'map',                // 'map' | 'globe'
   view: 'local',
   center: { lat: HOMES.bruce.lat, lng: HOMES.bruce.lng },
-  zoom: 11.2,
+  zoom: START_ZOOM,
   globe: { lon: -77, lat: 38, scale: 1 },   // scale 1 = earth view, <0.5 = space
   regions: [],                // discovered, from db
   memories: [], surprises: [], deleted: {}, trips: [], plans: [],
@@ -3677,7 +3680,7 @@ function setWho(k) {
   hopIdx = Math.max(0, placesList().map(function (r) { return r.t; }).indexOf(k === 'elena' ? 'Arnold & Annapolis' : 'Chesapeake Beach'));
   document.getElementById('menam').textContent = whoName(k);
   var h = HOMES[k];
-  S.center.lat = h.lat; S.center.lng = h.lng; S.zoom = 11.2;
+  S.center.lat = h.lat; S.center.lng = h.lng; S.zoom = START_ZOOM;
   baseDirty = true;
   document.getElementById('intro').style.display = 'none';
   setViewButtons('local');
