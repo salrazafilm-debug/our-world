@@ -1458,6 +1458,7 @@ function drawBase() {
     wg.addColorStop(1, 'rgba(231,183,101,0)');
     g.fillStyle = wg; g.beginPath(); g.arc(rcx, rcy, rr2, 0, 7); g.fill();
   }
+  marylandBay(g, s);
   baseDirty = false;
 }
 
@@ -1473,7 +1474,7 @@ var CLOUD_SHAPES = [
 var FOG_RENDER={key:'',builds:0};
 function drawFog() {
   var rs=allRegions(),cloudReady=artLoad('story-cloud').ok;
-  var key=[S.center.lat,S.center.lng,S.zoom,W,H,cloudReady,NYC_WORLD.visible&&NYC_WORLD.ready?NYC_WORLD.key:'',rs.map(function(r){return r.id+':'+r.lat+':'+r.lng+':'+r.r;}).join('|'),S.memories.concat(S.plans||[]).map(function(m){return m.id+':'+m.lat+':'+m.lng;}).join('|'),S.me?S.me.lat+':'+S.me.lng:''].join('/');
+  var key=[S.center.lat,S.center.lng,S.zoom,W,H,cloudReady,MD_TOWNBOXES.length,NYC_WORLD.visible&&NYC_WORLD.ready?NYC_WORLD.key:'',rs.map(function(r){return r.id+':'+r.lat+':'+r.lng+':'+r.r;}).join('|'),S.memories.concat(S.plans||[]).map(function(m){return m.id+':'+m.lat+':'+m.lng;}).join('|'),S.me?S.me.lat+':'+S.me.lng:''].join('/');
   if(key===FOG_RENDER.key)return;
   FOG_RENDER.key=key;FOG_RENDER.builds++;
   var g=fogCtx,s=FOGPIXEL,bw=fogCv.width,bh=fogCv.height;
@@ -3318,6 +3319,7 @@ function hydrateLocal() {
 //#include world/lake-cities.js
 //#include world/nyc-waterfront.js
 //#include world/dc-gardens.js
+//#include world/maryland-landscape.js
 //#include features/scenic.js
 //#include features/homebase.js
 //#include features/terrain.js

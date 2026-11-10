@@ -18,7 +18,7 @@ const placement = load('src/index.html', 'homeDisplayPos', {
 });
 for (const who of ['bruce', 'elena']) for (const zoom of [7.8, 9.2, 11.2]) {
   assert(placement.homeDisplayPos(who, zoom).x <= 0, 'home must move inland, never east over the bay');
-  if(who==='bruce')assert(placement.homeDisplayPos(who,zoom).x+placement.homeArtH(zoom)*.78*1.6*.47<=0,'the eastern foundation edge must also stay on land');
+  if(who==='bruce')assert(placement.homeDisplayPos(who,zoom).x+placement.homeArtH(zoom)*.86*1.6*.47<=0,'the eastern foundation edge must also stay on land');
 }
 assert.equal(JSON.stringify(homes), original, 'display adjustments must preserve real coordinates');
 const ground = load('src/features/presence.js', 'avatarGroundPoint', { terrainAt: x => x < 85 ? 'land' : 'water' });

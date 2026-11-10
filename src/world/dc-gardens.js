@@ -7,6 +7,9 @@ function drawDCGardens(g){
  for(var y=p.y-u*1.5;y<p.y+u*.36;y+=5)for(var x=p.x-u*1.4;x<p.x+u*1.2;x+=5)if(terrainAt(x,y)==='land')g.rect(x,y,5,5);
  g.clip();
  g.fillStyle='#90ae67';g.beginPath();g.ellipse(p.x-u*.1,p.y-u*.35,u*1.28,u*.65,0,0,7);g.fill();
+ /* A quiet town edge behind the civic grounds, below the Capitol silhouette. */
+ drawArt(g,'story-cottage',p.x+u*.59,p.y-u*.55,u*.33,1);
+ drawArt(g,'story-cottage',p.x+u*.95,p.y-u*.52,u*.28,1);
  /* Rounded stone promenade surrounding an open central lawn. */
  g.strokeStyle='#9c916e';g.lineWidth=8;g.beginPath();g.ellipse(p.x-u*.1,p.y-u*.03,u*1.13,u*.28,0,0,7);g.stroke();
  g.strokeStyle='#e4d2a5';g.lineWidth=5;g.stroke();

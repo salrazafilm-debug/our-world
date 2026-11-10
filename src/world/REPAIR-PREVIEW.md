@@ -109,3 +109,25 @@ NYC's new ordinary-map waterfront composition is now available for visual
 approval; its existing approved close-up remains unchanged. This candidate does
 not claim to redesign the rest of the planet or exactly reproduce the concept's
 fictional geography.
+
+## Maryland landscape approval candidate
+
+The continuous map now adds authored Chesapeake groves and woodland floors,
+landmark garden courts, tan connecting paths cached below vegetation, lamps,
+benches, Annapolis docks and boats, supporting town groups, foothill relief,
+and a small decorative cascade. Major buildings retain their independent tap
+targets and reserved footprints. Generic vegetation blends out around the
+authored region; persistent geographic grids and crossfades handle detail.
+
+The bay's eastern illustrated rim is widened directly in the existing base
+canvas, tapering into the original geography at both ends. `proj`/`unproj`,
+saved location coordinates and discovery data remain unchanged. This is an
+intentional geographic stylization, not a survey-accurate shoreline. Coast
+decoration now uses pale grass rims, muted stone, shallows and broken foam;
+the repeated deep brown coast posts are removed. No full-scene image is used.
+
+Local approval shots include `repair-maryland-composition.png` (8.4),
+`repair-maryland-detail.png` (9.6), the full Maryland view (7.8), and the two
+home views (11.2). Existing NYC/DC close-ups, touch controls, startup behavior,
+presence, memory records and Chicago/Milwaukee flight pass the browser checks.
+Visual approval and physical Safari testing remain pending; nothing is deployed.

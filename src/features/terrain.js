@@ -171,7 +171,7 @@ function cloudImportantAreas(){
   var p=l[0]==='dc'?repairPoint('dc'):proj(l[2],l[3]),h=LAKE_CITY_ART[l[0]]?90:homeArtH(S.zoom);
   areas.push({x:p.x-h*.75,y:p.y-h,w:h*1.5,h:h});
  });
- areas=areas.concat(nycFootprints());
+ areas=areas.concat(nycFootprints(),MD_TOWNBOXES);
  S.memories.concat(S.plans||[]).forEach(function(m){var p=proj(m.lat,m.lng);areas.push({x:p.x-24,y:p.y-60,w:48,h:76});});
  if(S.me){var p=proj(S.me.lat,S.me.lng);areas.push({x:p.x-25,y:p.y-35,w:50,h:60});}
  return areas;

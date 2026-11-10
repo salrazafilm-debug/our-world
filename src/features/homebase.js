@@ -17,25 +17,7 @@ var HB_PILLS = { 'Northern Virginia': 1, 'Calvert County': 1 };
 var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], ['Philadelphia', 39.95, -75.17], ['Wilmington', 39.74, -75.55],
   ['Frederick', 39.41, -77.41], ['Fredericksburg', 38.30, -77.46], ['Harrisburg', 40.27, -76.88], ['Norfolk', 36.85, -76.29], ['Hagerstown', 39.64, -77.72]];
 
-/* the gold paths between our places (drawn first, under the trees) */
-HOOKS.terrain.unshift(function () {
-  if (S.mode !== 'map') return;
-  var P = {
-    n: repairPoint('hb-nova'),e:homeDisplayPos('elena',S.zoom),b:homeDisplayPos('bruce',S.zoom),m:repairPoint('mail'),d:repairPoint('dc')
-  };
-  var links = [['e','m'],['m','b'],['m','d'],['d','n']];
-  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  function path(a, b, bow) {
-    var dx = b.x - a.x, dy = b.y - a.y;
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo((a.x + b.x) / 2 - dy * bow, (a.y + b.y) / 2 + dx * bow, b.x, b.y);
-  }
-  links.forEach(function (l, i) {
-    var bow = i % 2 ? 0.14 : -0.12;
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(132,99,64,.38)'; ctx.lineWidth = 7; ctx.stroke();
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = '#d9bc87'; ctx.lineWidth = 4; ctx.stroke();
-  });
-  ctx.restore();
-});
+/* Physical paths are cached below vegetation in maryland-landscape.js. */
 
 /* ghost cities and the two home-base landmarks (after the trees, so they sit on top) */
 HOOKS.terrain.push(function () {
@@ -43,6 +25,7 @@ HOOKS.terrain.push(function () {
   var z = S.zoom;
   if (z > 5.6 && z < 9.6) {
     GHOST_CITIES.forEach(function (c) {
+      if(marylandWeight(c[1],c[2])>.2)return;
       if (isRevealed(c[1], c[2], 1.1)) return;
       if (haversine(c[1], c[2], HOMES.elena.lat, HOMES.elena.lng) < 55 || haversine(c[1], c[2], HOMES.bruce.lat, HOMES.bruce.lng) < 55) return;   /* home stays countryside */
       var p = proj(c[1], c[2]);

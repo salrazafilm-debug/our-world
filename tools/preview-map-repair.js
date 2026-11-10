@@ -10,6 +10,9 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
  const records=await p.evaluate(()=>JSON.stringify([window.__REPAIR_TEST.state.memories,window.__REPAIR_TEST.state.regions]));
  async function view(name,lat,lng,z){await p.evaluate(v=>window.__REPAIR_TEST.fly(...v),[lat,lng,z]);await p.waitForTimeout(250);if(name)await p.screenshot({path:path.join(out,'repair-'+name+'.png')});}
  await view('maryland-430',38.93,-76.95,7.8);
+ await view('maryland-composition',38.94,-76.90,8.4);
+ await view('maryland-detail',38.88,-76.68,9.6);
+ await view(null,38.93,-76.95,7.8);
  assert(await p.evaluate(()=>window.__REPAIR_TEST.clouds().some(c=>c.room<.5)),'important areas reduce whole-cloud coverage');
  for(const z of [6,6.8,7.8,8.6,9.2]){
   await view(null,38.93,-76.95,z);

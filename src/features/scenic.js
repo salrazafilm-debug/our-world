@@ -67,7 +67,7 @@ function scenicPier(g, place) {
   var shore=null;
   for(var i=24;i<78;i+=6) if(terrainAt(p.x+i,p.y+i*.36)==='water'){shore={x:p.x+i,y:p.y+i*.36};break;}
   if(!shore)return;
-  drawArt(g,'story-pier',shore.x+20,shore.y+25,S.zoom>9.3?76:48,1);
+  drawArt(g,'story-pier',shore.x+20,shore.y+25,homeArtH(S.zoom)*.65,1);
 }
 function scenicMark(g, x, y, color, w, h) {
   g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), w, h);
@@ -92,17 +92,17 @@ function scenicBloom(g, x, y, s, pink) {
   scenicMark(g, x, y, '#fff3d4', 2, 2);
 }
 function scenicCoast(g) {
-  /* A stepped, two-tone lip follows the actual geographic coast pixels. */
+  /* Broken limestone ledges and pale shallows, rather than wooden palisades. */
   for (var y = 4; y < H - 4; y += 5) for (var x = 4; x < W - 4; x += 5) {
     if (!scenicLand(x, y)) continue;
     if (terrainAt(x + 7, y) !== 'water' && terrainAt(x, y + 7) !== 'water') continue;
-    var depth=S.zoom>9?18:7;
-    scenicMark(g, x+2, y+2, '#736477', 5, depth);
-    scenicMark(g, x+2, y+2, '#a98272', 3, depth-2);
-    scenicMark(g, x+2, y+depth, '#d4b398', 4, 2);
-    scenicMark(g, x, y + 2, '#a36b4d', 5, 3);
-    scenicMark(g, x, y, '#e6ad71', 5, 2);
-    if (terrainAt(x + 10, y + 4) === 'water') scenicMark(g, x + 8, y + 4, '#d8f5e7', 4, 2);
+    var world=unproj(x,y),ledge=terNoise(world.lng*24,world.lat*24)>.62;
+    var depth=ledge?Math.min(10,4+(S.zoom-7)*2):3;
+    scenicMark(g,x+2,y+3,'#99b9b2',5,depth+2);
+    if(ledge){scenicMark(g,x+1,y+2,'#a69cad',5,depth);scenicMark(g,x+1,y+2,'#c7b8b2',3,depth-1);}
+    scenicMark(g,x,y+1,'#d5d6aa',5,3);
+    scenicMark(g,x,y,'#b8cf88',5,2);
+    if (terrainAt(x + 10, y + 4) === 'water') {scenicMark(g,x+6,y+4,'#7fc9c9',5,3);scenicMark(g,x+8,y+5,'#e0eee0',3,1);}
   }
 }
 /* Geographic relief is sampled in world coordinates, so its ridges and
@@ -152,6 +152,7 @@ function drawScenic() {
   if (!TER.on) return;
   scenicGround(g);
   scenicCoast(g);
+  marylandGrounds(g);
   var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
   var local = Math.max(0, Math.min(1, (z - 8.9) / 1.15));
   /* Two persistent grids fade across the regional/local transition. */
@@ -168,17 +169,15 @@ function drawScenic() {
         drawArt(g,'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
     });
   }
-  if (z > 9) {
-    scenicClearing(g,HOMES.bruce,Math.min(56,homeArtH(z)*.52),'cottage');
-    scenicClearing(g,HOMES.elena,Math.min(62,homeArtH(z)*.55),'castle');
-    scenicPier(g,HOMES.bruce);
-  }
+  /* Home grounds use the same authored composition at every ordinary zoom. */
+  scenicPier(g,HOMES.bruce);
   if (z > 8) {
     scenicWaterfall(g,{lat:41.1165,lng:-75.0121});
     scenicWaterfall(g,{lat:38.9976,lng:-77.2530});
   }
   drawNYCScenery(g);
   drawDCGardens(g);
+  marylandDetails(g);
 }
 function scenicCellWeight(gx,gy,cell,z,spacing) {
   /* Screen-density budget depends only on zoom, never the visible item count.
@@ -202,6 +201,8 @@ function scenicVegetation(g,tl,br,cell,alpha,spacing,fine) {
     var lat = (gy + .25 + scenicRand(gx,gy,71)*.5)*cell;
     var lng = (gx + .25 + scenicRand(gx,gy,72)*.5)*cell;
     var p = proj(lat,lng), r = scenicRand(gx,gy,73);
+    var regionalWeight=1-marylandWeight(lat,lng);if(regionalWeight<.005)continue;
+    weight*=regionalWeight;g.globalAlpha=alpha*weight;
     if (p.x < -45 || p.x > W+45 || p.y < -45 || p.y > H+45) continue;
     var land = scenicLand(p.x,p.y), meadow = grove(lat,lng);
     if (!land) {
