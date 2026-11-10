@@ -38,7 +38,7 @@ HOOKS.beforePins.push(function () {
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
   var z = S.zoom;
   var p = repairPoint('mail');
-  var h = homeArtH(z) * .95, w = h * 1.35;
+  var h = homeArtH(z) * .82, w = h * 1.35;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
   var fade = 1, unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;

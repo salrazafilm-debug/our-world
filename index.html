@@ -2138,7 +2138,7 @@ function homeDisplayPos(k, z) {
   /* Homes stay on Maryland's western shore. Never spread them east across
      the bay to make room for labels. The geographic coordinate is unchanged. */
   if(k==='bruce'){
-    var half=homeArtH(z)*.78*1.6*.47;
+    var half=homeArtH(z)*.86*1.6*.47;
     for(var dx=0;dx<=180;dx+=3){var x=p.x-dx;if(terrainAt(x-half,p.y+5)==='land'&&terrainAt(x+half,p.y+5)==='land'&&terrainAt(x,p.y-10)==='land'){p.x=x;break;}}
   } else if (terrainAt(p.x,p.y)!=='land') {
     for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){p.x-=dx;break;}
@@ -2365,7 +2365,7 @@ function drawMapOverlays() {
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
-    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * .78, DPR)) ||
+    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * .86, DPR)) ||
       (k === 'elena'
         ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
         : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));
@@ -4095,8 +4095,8 @@ function repairPoint(id){var p=REPAIR.points[id];return p?{x:p.x,y:p.y}:null;}
 function repairBox(id){
  var p=repairPoint(id),h=homeArtH(S.zoom),w;
  if(id==='elena'){h*=1.12;w=h*.8;}
- else if(id==='bruce'){h*=.78;w=h*1.6;}
- else if(id==='mail'){h*=.95;w=h*1.35;}
+ else if(id==='bruce'){h*=.86;w=h*1.6;}
+ else if(id==='mail'){h*=.82;w=h*1.35;}
  else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.35,y:p.y-homeArtH(S.zoom)*1.5,w:homeArtH(S.zoom)*2.5,h:homeArtH(S.zoom)*1.85,id:id};}
  else {h*=1.05;w=h;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
@@ -4337,7 +4337,7 @@ function scenicAvoid(x, y, radius) {
   return false;
 }
 function scenicClearing(g, place, radius, kind) {
-  if(kind==='cottage')radius=homeArtH(S.zoom)*.78*1.6*.58+8;
+  if(kind==='cottage')radius=homeArtH(S.zoom)*.86*1.6*.58+8;
   var p = place.who?homeDisplayPos(place.who,S.zoom):proj(place.lat, place.lng);
   if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
   if(kind==='cottage'){
@@ -6824,7 +6824,7 @@ HOOKS.beforePins.push(function () {
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
   var z = S.zoom;
   var p = repairPoint('mail');
-  var h = homeArtH(z) * .95, w = h * 1.35;
+  var h = homeArtH(z) * .82, w = h * 1.35;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
   var fade = 1, unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;

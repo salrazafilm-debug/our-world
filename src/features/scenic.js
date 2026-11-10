@@ -15,7 +15,7 @@ function scenicAvoid(x, y, radius) {
   return false;
 }
 function scenicClearing(g, place, radius, kind) {
-  if(kind==='cottage')radius=homeArtH(S.zoom)*.78*1.6*.58+8;
+  if(kind==='cottage')radius=homeArtH(S.zoom)*.86*1.6*.58+8;
   var p = place.who?homeDisplayPos(place.who,S.zoom):proj(place.lat, place.lng);
   if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
   if(kind==='cottage'){

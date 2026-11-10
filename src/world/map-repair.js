@@ -20,8 +20,8 @@ function repairPoint(id){var p=REPAIR.points[id];return p?{x:p.x,y:p.y}:null;}
 function repairBox(id){
  var p=repairPoint(id),h=homeArtH(S.zoom),w;
  if(id==='elena'){h*=1.12;w=h*.8;}
- else if(id==='bruce'){h*=.78;w=h*1.6;}
- else if(id==='mail'){h*=.95;w=h*1.35;}
+ else if(id==='bruce'){h*=.86;w=h*1.6;}
+ else if(id==='mail'){h*=.82;w=h*1.35;}
  else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.35,y:p.y-homeArtH(S.zoom)*1.5,w:homeArtH(S.zoom)*2.5,h:homeArtH(S.zoom)*1.85,id:id};}
  else {h*=1.05;w=h;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};

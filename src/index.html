@@ -1662,7 +1662,7 @@ function homeDisplayPos(k, z) {
   /* Homes stay on Maryland's western shore. Never spread them east across
      the bay to make room for labels. The geographic coordinate is unchanged. */
   if(k==='bruce'){
-    var half=homeArtH(z)*.78*1.6*.47;
+    var half=homeArtH(z)*.86*1.6*.47;
     for(var dx=0;dx<=180;dx+=3){var x=p.x-dx;if(terrainAt(x-half,p.y+5)==='land'&&terrainAt(x+half,p.y+5)==='land'&&terrainAt(x,p.y-10)==='land'){p.x=x;break;}}
   } else if (terrainAt(p.x,p.y)!=='land') {
     for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){p.x-=dx;break;}
@@ -1889,7 +1889,7 @@ function drawMapOverlays() {
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
-    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * .78, DPR)) ||
+    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * .86, DPR)) ||
       (k === 'elena'
         ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
         : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));
