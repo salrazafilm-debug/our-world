@@ -22,10 +22,10 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
   assert.equal(await page.evaluate(()=>JSON.stringify([window.__START_TEST.state.memories,window.__START_TEST.state.regions])),records);
   if(who==='bruce'){
    await page.setViewportSize({width:430,height:932});await page.evaluate(()=>window.__START_TEST.fly(40.758,-73.9855,7.8));await page.waitForTimeout(250);
-   assert(await page.evaluate(()=>window.__START_TEST.hits().some(h=>h.item.kind==='landmark'&&h.item.id==='nyc')),'existing NYC icon stays interactive');
+   assert(await page.evaluate(()=>window.__START_TEST.hits().some(h=>h.item.kind==='landmark'&&h.item.id==='nyc')),'NYC world composition stays interactive');
    await page.screenshot({path:path.join(out,'nyc-world-current.png')});
   }
   assert.deepEqual(errors,[]);await context.close();
  }
- await browser.close();console.log('ok: both startup identities and reloads at zoom 10; phone/desktop; unchanged Local zoom and records; no GPS on startup; current NYC icon interactive');
+ await browser.close();console.log('ok: both startup identities and reloads at zoom 10; phone/desktop; unchanged Local zoom and records; no GPS on startup; NYC composition interactive');
 })().catch(e=>{console.error(e);process.exit(1);});

@@ -5,6 +5,7 @@ var SCENIC_AVOID=[];
 function scenicRand(a, b, seed) { return terHash(a, b, seed); }
 function scenicLand(x, y) { return terrainAt(x, y) === 'land'; }
 function scenicAvoid(x, y, radius) {
+  if(nycAvoid(x,y,8))return true;
   if(repairClear(x,y))return true;
   var places = SCENIC_AVOID;
   for (var i = 0; i < places.length; i++) {
@@ -169,6 +170,7 @@ function drawScenic() {
     scenicWaterfall(g,{lat:41.1165,lng:-75.0121});
     scenicWaterfall(g,{lat:38.9976,lng:-77.2530});
   }
+  drawNYCScenery(g);
 }
 function scenicCellWeight(gx,gy,cell,z,spacing) {
   /* Screen-density budget depends only on zoom, never the visible item count.

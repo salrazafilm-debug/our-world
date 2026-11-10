@@ -1,0 +1,74 @@
+{
+  "source": "art-src/world/nyc-waterfront-parts.png",
+  "rendering": "nearest-neighbor",
+  "assets": {
+    "nyc-brownstones": {
+      "path": "art/nyc-brownstones.png",
+      "width": 288,
+      "height": 151,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "category": "nyc-architecture",
+      "use": "independent normal-map waterfront composition",
+      "crop": [
+        0,
+        0,
+        755,
+        515
+      ]
+    },
+    "nyc-empire": {
+      "path": "art/nyc-empire.png",
+      "width": 320,
+      "height": 196,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "category": "nyc-architecture",
+      "use": "independent normal-map waterfront composition",
+      "crop": [
+        785,
+        0,
+        751,
+        515
+      ]
+    },
+    "nyc-east-skyline": {
+      "path": "art/nyc-east-skyline.png",
+      "width": 288,
+      "height": 177,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "category": "nyc-architecture",
+      "use": "independent normal-map waterfront composition",
+      "crop": [
+        0,
+        530,
+        735,
+        494
+      ]
+    },
+    "nyc-brooklyn-bridge": {
+      "path": "art/nyc-brooklyn-bridge.png",
+      "width": 384,
+      "height": 163,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "category": "nyc-architecture",
+      "use": "independent normal-map waterfront composition",
+      "crop": [
+        738,
+        550,
+        798,
+        450
+      ]
+    }
+  }
+}

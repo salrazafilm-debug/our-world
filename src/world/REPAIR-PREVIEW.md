@@ -23,8 +23,20 @@ Startup camera: initial state and identity selection now share `START_ZOOM=10`
 instead of 11.2, keeping the selected home anchor but showing more surrounding
 geography. The explicit Local button still uses 11.2. `preview-startup.js` checks
 both identities, reloads, 390/430/1440 layouts, no startup GPS request and unchanged
-records; it also captures NYC's current ordinary-map icon for an honest status
-preview. The expanded NYC world-map composition remains unfinished.
+records; it also captures NYC's current ordinary-map composition.
+
+NYC waterfront approval candidate: `nyc-waterfront.js` replaces the compact icon
+with four independent original transparent architecture components (brownstones,
+Empire skyline, eastern skyline and Brooklyn Bridge) already spread across the
+normal DMV view. Liberty has a separate small island footprint; coast accents,
+shallow water, meadow tones, forest groves, flowers, paths and boats decorate the
+existing geographic base. Source art, repeatable extraction tool and asset
+manifest are included. No full-scene image, coordinate replacement or additional
+canvas/map layer. The scenic canvas caches composition; direct architecture PNG
+drawing avoids allocating resized canvases for every pinch frame. Assets load
+only when the NYC footprint approaches the view. Reserved footprints protect
+labels/vegetation and reduce whole-bank cloud density nearby. Every architecture
+piece leads to the existing NYC card/close-up; no new scene/zoom system.
 
 The rejected painted region renderer is removed, including its startup image
 loads, overlay transforms, duplicate landmark hiding and atmosphere clipping.
@@ -64,7 +76,8 @@ clouds. Duplicate underlay flight strokes are removed.
 
 Current tests: `npm run check`, `npm run build`, `node tools/check-storybook.js`,
 `node tools/check-special-regions.js`, `node tools/preview-map-repair.js`,
-`node tools/preview-map-controls.js`, `node tools/preview-special-regions.js`.
+`node tools/preview-map-controls.js`, `node tools/preview-special-regions.js`,
+`node tools/preview-nyc-world.js` and `node tools/preview-startup.js`.
 The repair suite asserts no painted-map requests; non-overlapping reserved
 Maryland footprints at five zooms; cloud IDs and positions translating with an
 actual geographic pan and returning identically; no stationary fog rebuilds;
@@ -73,6 +86,7 @@ Mercator round trips; unchanged sample memories/discoveries; phone/tablet/deskto
 All browser tests use a separate sample-data origin with no backend connection.
 
 Preview: `node tools/serve-preview.js` → `http://localhost:4174` in the workspace.
-NYC's replacement ordinary-map composition is intentionally deferred until this
-foundation is approved. The existing NYC landmark and its approved close-up
-remain available meanwhile. This is not a finished graphics-overhaul claim.
+NYC's new ordinary-map waterfront composition is now available for visual
+approval; its existing approved close-up remains unchanged. This candidate does
+not claim to redesign the rest of the planet or exactly reproduce the concept's
+fictional geography.

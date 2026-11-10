@@ -1473,7 +1473,7 @@ var CLOUD_SHAPES = [
 var FOG_RENDER={key:'',builds:0};
 function drawFog() {
   var rs=allRegions(),cloudReady=artLoad('story-cloud').ok;
-  var key=[S.center.lat,S.center.lng,S.zoom,W,H,cloudReady,rs.map(function(r){return r.id+':'+r.lat+':'+r.lng+':'+r.r;}).join('|'),S.memories.concat(S.plans||[]).map(function(m){return m.id+':'+m.lat+':'+m.lng;}).join('|'),S.me?S.me.lat+':'+S.me.lng:''].join('/');
+  var key=[S.center.lat,S.center.lng,S.zoom,W,H,cloudReady,NYC_WORLD.visible&&NYC_WORLD.ready?NYC_WORLD.key:'',rs.map(function(r){return r.id+':'+r.lat+':'+r.lng+':'+r.r;}).join('|'),S.memories.concat(S.plans||[]).map(function(m){return m.id+':'+m.lat+':'+m.lng;}).join('|'),S.me?S.me.lat+':'+S.me.lng:''].join('/');
   if(key===FOG_RENDER.key)return;
   FOG_RENDER.key=key;FOG_RENDER.builds++;
   var g=fogCtx,s=FOGPIXEL,bw=fogCv.width,bh=fogCv.height;
@@ -1672,6 +1672,7 @@ function drawMapOverlays() {
   labelBoxes = [];
   var z = S.zoom, i, p;
   repairReserveLabels();
+  nycReserveLabels();
 
   /* Quiet illustrated discovery boundaries; no animated border sparkles. */
   var rs = allRegions();
@@ -1800,6 +1801,7 @@ function drawMapOverlays() {
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
     var lm = LANDMARKS[i],special=specialForCity(lm[0]);
+    if(lm[0]==='nyc'&&nycWorldLandmark(lm))continue;
     if(z<6.1&&!LAKE_CITY_ART[lm[0]])continue;
     if(LAKE_CITY_ART[lm[0]]){var cityPoint=proj(lm[2],lm[3]);if(cityPoint.x>-200&&cityPoint.x<W+200&&cityPoint.y>-180&&cityPoint.y<H+180&&drawLakeCity(lm,cityPoint))continue;}
     /* A planned stop is drawn before we get there. The moment the ground around it
@@ -1978,7 +1980,7 @@ function draw() {
   if ('textRendering' in ctx) ctx.textRendering = 'optimizeSpeed';     /* no joined "fi" in map labels */
   ctx.clearRect(0, 0, W, H);
   if(drawSpecialRegion()){specialDrawFade();return;}
-  repairPrepare();FLIGHT_FRAME.plane=null;FLIGHT_FRAME.flight=null;
+  repairPrepare();nycPrepare();FLIGHT_FRAME.plane=null;FLIGHT_FRAME.flight=null;
 
   if (S.mode === 'globe') {
     drawGlobe();
@@ -3307,6 +3309,7 @@ function hydrateLocal() {
 //#include world/special-regions.js
 //#include world/map-repair.js
 //#include world/lake-cities.js
+//#include world/nyc-waterfront.js
 //#include features/scenic.js
 //#include features/homebase.js
 //#include features/terrain.js
