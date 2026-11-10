@@ -9,8 +9,10 @@ function repairPrepare(){
  var gap=Math.max(0,homeArtH(S.zoom)*1.45-(b.y-e.y)/2);
  e.y-=gap;b.y+=gap;b.x-=homeArtH(S.zoom)*.5;
  var dc=proj(38.8895,-77.0353),n=proj(38.79,-77.40);
- dc.x=Math.min(dc.x,m.x-homeArtH(S.zoom)*2.15);
+ dc.x=Math.min(dc.x,m.x-homeArtH(S.zoom)*2.65);
  n.x=Math.min(n.x,m.x-homeArtH(S.zoom)*2.15);n.y=Math.max(n.y,m.y+homeArtH(S.zoom)*1.65);
+ /* The wider civic facade needs a dry clearing on the western shore. */
+ m.x-=homeArtH(S.zoom)*.7;
  REPAIR.points={elena:e,bruce:b,mail:m,dc:dc,'hb-nova':n};
  REPAIR.boxes=['elena','bruce','mail','dc','hb-nova'].map(repairBox);
 }
@@ -19,8 +21,8 @@ function repairBox(id){
  var p=repairPoint(id),h=homeArtH(S.zoom),w;
  if(id==='elena'){h*=1.12;w=h*.8;}
  else if(id==='bruce'){h*=.78;w=h*1.6;}
- else if(id==='mail'){h*=.95;w=h*.83;}
- else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.1,y:p.y-homeArtH(S.zoom)*1.35,w:homeArtH(S.zoom)*2.05,h:homeArtH(S.zoom)*1.5,id:id};}
+ else if(id==='mail'){h*=.95;w=h*1.35;}
+ else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.35,y:p.y-homeArtH(S.zoom)*1.5,w:homeArtH(S.zoom)*2.5,h:homeArtH(S.zoom)*1.85,id:id};}
  else {h*=1.05;w=h;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }

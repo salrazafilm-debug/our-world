@@ -20,6 +20,7 @@ artLoad('map-airplane');
 artLoad('blue-cottage-map');
 artLoad('pack-capitol');
 artLoad('pack-monument');
+artLoad('civic-post-office');
 ['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
 ['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 

@@ -38,7 +38,7 @@ HOOKS.beforePins.push(function () {
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
   var z = S.zoom;
   var p = repairPoint('mail');
-  var h = homeArtH(z) * .95, w = h * .83;
+  var h = homeArtH(z) * .95, w = h * 1.35;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
   var fade = 1, unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;
@@ -47,12 +47,12 @@ HOOKS.beforePins.push(function () {
     g.addColorStop(0, 'rgba(255,214,140,.55)'); g.addColorStop(1, 'rgba(255,214,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.45, w * 0.55, 0, 6.283); ctx.fill();
   }
-  var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
+  var box = drawArt(ctx, 'civic-post-office', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
-    {                                                     /* permanent, legible postal sign */
+    if(unread) {                                          /* logo is baked into the building; only count is separate */
       var eh = Math.max(24, h * 0.45);
-      var eb = drawArt(ctx, 'mail/env-gold', p.x, box.y + eh * 0.35, eh, DPR);
+      var eb = {x:box.x+box.w*.25,y:box.y,w:box.w*.5,h:eh};
       if (eb && unread) {
         var r = Math.max(7, eh * 0.24), cx = eb.x + eb.w - r * 0.5, cy = eb.y + r * 0.4;
         ctx.fillStyle = '#D9363E'; ctx.strokeStyle = '#FFF2DF'; ctx.lineWidth = 2;

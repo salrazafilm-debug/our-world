@@ -19,6 +19,16 @@ stationary-cache reuse. Updated screenshots/video reflect this candidate.
 Branch: `codex/map-foundation-repair`. Local changes only. No push, merge,
 deployment, database change, memory-coordinate edit or auth change.
 
+Postal/civic refinement: the map post office now uses an original white civic
+building with a physical envelope emblem integrated into its roof architecture,
+blue doors/drop boxes and a wider footprint. The former separate envelope sprite
+is removed; only the unread-count badge remains independent. Original source,
+extraction script and asset metadata are retained. `dc-gardens.js` paints a cached
+land-clipped civic garden around the existing DC anchor: open lawn, curved stone
+promenade, reflecting pool, benches, flower beds and grouped trees. The Capitol
+and Washington Monument remain the main landmarks and retain the existing DC
+action/close-up. Park decor adds no destinations or saved coordinates.
+
 Latest refinement: Liberty's decorative island sits farther into open harbor
 water. A cached mask of the architecture's existing gold window pixels keeps
 windows warmly lit above the evening tint, without random flashing lights.

@@ -178,6 +178,7 @@ function drawScenic() {
     scenicWaterfall(g,{lat:38.9976,lng:-77.2530});
   }
   drawNYCScenery(g);
+  drawDCGardens(g);
 }
 function scenicCellWeight(gx,gy,cell,z,spacing) {
   /* Screen-density budget depends only on zoom, never the visible item count.

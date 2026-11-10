@@ -16,6 +16,7 @@ const origin='http://127.0.0.1:4174',out='/workspace/shared/downloads';
   assert(await p.evaluate(()=>{const a=window.__REPAIR_TEST,bs=['elena','bruce','mail','dc','hb-nova'].map(a.boxes);return bs.every((x,i)=>bs.every((y,j)=>i===j||x.x+x.w<=y.x||y.x+y.w<=x.x||x.y+x.h<=y.y||y.y+y.h<=x.y));}),'reserved Maryland footprints at '+z);
  }
  await view('chesapeake-local',38.6935,-76.5333,11.2);await view('arnold-local',39.0332,-76.503,11.2);
+ await view('dc-garden',38.8895,-77.0353,9.6);await view('post-office',38.86335,-76.51815,10);
  await view('cloud-field',42,-78,7.8);
  assert(await p.locator('#map').evaluate(()=>{const g=window.__REPAIR_TEST.fogPixels();let clear=0,cloud=0,n=0;for(let y=10;y<g.h-10;y+=10)for(let x=10;x<g.w-10;x+=10){const a=g.data[(y*g.w+x)*4+3];n++;if(a===0)clear++;if(a>150)cloud++;}return clear/n>.4&&cloud/n>.05;}),'map remains visible between natural cloud banks even away from POIs');
  const start=await p.evaluate(()=>({center:{...window.__REPAIR_TEST.state.center},clouds:window.__REPAIR_TEST.clouds()}));assert(start.clouds.length>0);
