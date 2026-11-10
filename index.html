@@ -2137,7 +2137,10 @@ function homeDisplayPos(k, z) {
   var h = HOMES[k], p = typeof repairPoint==='function'?repairPoint(k):proj(h.lat, h.lng);
   /* Homes stay on Maryland's western shore. Never spread them east across
      the bay to make room for labels. The geographic coordinate is unchanged. */
-  if (terrainAt(p.x,p.y)!=='land') {
+  if(k==='bruce'){
+    var half=homeArtH(z)*.78*1.6*.47;
+    for(var dx=0;dx<=180;dx+=3){var x=p.x-dx;if(terrainAt(x-half,p.y+5)==='land'&&terrainAt(x+half,p.y+5)==='land'&&terrainAt(x,p.y-10)==='land'){p.x=x;break;}}
+  } else if (terrainAt(p.x,p.y)!=='land') {
     for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){p.x-=dx;break;}
   }
   return p;
@@ -2343,6 +2346,10 @@ function drawMapOverlays() {
       ctx.fillStyle = 'rgba(165,225,229,' + (0.16 + shim * 0.16) + ')';
       ctx.beginPath(); ctx.arc(p.x, p.y - 8 * lsc, 11 * lsc, 0, 7); ctx.fill();
     }
+    if(lm[0]==='dc'){
+      var monument=drawArt(ctx,'pack-monument',p.x-homeArtH(z)*.73,p.y-4,homeArtH(z)*1.25,DPR);
+      if(monument)addHit(monument,{kind:'landmark',id:'dc'});
+    }
     var lb = (special&&drawArt(ctx,special.worldIcon,p.x,p.y,Math.min(120,58+(z-7)*13),DPR)) || (lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc));
     if(special&&z>9.2)tryLabel(p.x,lb.y-18,lm[1],{size:13});
     else if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 13, fg: C.deep, border: C.gold, force: 1 });
@@ -2358,7 +2365,7 @@ function drawMapOverlays() {
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
-    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * 1.04, DPR)) ||
+    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * .78, DPR)) ||
       (k === 'elena'
         ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
         : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));
@@ -3804,6 +3811,7 @@ artLoad('story-nyc');
 artLoad('map-airplane');
 artLoad('blue-cottage-map');
 artLoad('pack-capitol');
+artLoad('pack-monument');
 ['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
 ['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 
@@ -4073,7 +4081,7 @@ function repairPrepare(){
  var e=proj(HOMES.elena.lat,HOMES.elena.lng),b=proj(HOMES.bruce.lat,HOMES.bruce.lng);
  var m=proj((HOMES.elena.lat+HOMES.bruce.lat)/2,(HOMES.elena.lng+HOMES.bruce.lng)/2);
  var gap=Math.max(0,homeArtH(S.zoom)*1.45-(b.y-e.y)/2);
- e.y-=gap;b.y+=gap;
+ e.y-=gap;b.y+=gap;b.x-=homeArtH(S.zoom)*.5;
  var dc=proj(38.8895,-77.0353),n=proj(38.79,-77.40);
  dc.x=Math.min(dc.x,m.x-homeArtH(S.zoom)*2.15);
  n.x=Math.min(n.x,m.x-homeArtH(S.zoom)*2.15);n.y=Math.max(n.y,m.y+homeArtH(S.zoom)*1.65);
@@ -4084,9 +4092,9 @@ function repairPoint(id){var p=REPAIR.points[id];return p?{x:p.x,y:p.y}:null;}
 function repairBox(id){
  var p=repairPoint(id),h=homeArtH(S.zoom),w;
  if(id==='elena'){h*=1.12;w=h*.8;}
- else if(id==='bruce'){h*=1.04;w=h*1.6;}
- else if(id==='mail'){h*=.68;w=h*.83;}
- else if(id==='dc'){h*=.9;w=h*1.5;}
+ else if(id==='bruce'){h*=.78;w=h*1.6;}
+ else if(id==='mail'){h*=.95;w=h*.83;}
+ else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.1,y:p.y-homeArtH(S.zoom)*1.35,w:homeArtH(S.zoom)*2.05,h:homeArtH(S.zoom)*1.5,id:id};}
  else {h*=1.05;w=h;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }
@@ -4134,6 +4142,15 @@ function lakeCityClipAtmosphere(){
 var NYC_WORLD={key:'',visible:false,ready:false,parts:[],boxes:[]};
 var NYC_PARTS=['nyc-brownstones','nyc-empire','nyc-east-skyline','nyc-brooklyn-bridge','pack-liberty'];
 var NYC_TRAIL=[[-65,-290],[-145,-230],[-95,-155],[-155,-80],[-135,10],[-185,95],[-140,165],[-190,260]];
+var NYC_WINDOW_MASKS={};
+function nycWindowMask(name){
+ if(NYC_WINDOW_MASKS[name])return NYC_WINDOW_MASKS[name];
+ var a=artLoad(name);if(!a.ok)return null;
+ var c=document.createElement('canvas');c.width=a.img.width;c.height=a.img.height;
+ var g=c.getContext('2d');g.drawImage(a.img,0,0);var im=g.getImageData(0,0,c.width,c.height),d=im.data;
+ for(var i=0;i<d.length;i+=4){var lit=d[i+3]>200&&d[i]>185&&d[i+1]>125&&d[i]-d[i+2]>85&&d[i+1]-d[i+2]>42;d[i]=255;d[i+1]=221;d[i+2]=126;d[i+3]=lit?225:0;}
+ g.putImageData(im,0,0);return NYC_WINDOW_MASKS[name]=c;
+}
 function nycPrepare(){
  var p=proj(40.7580,-73.9855),s=Math.max(.12,Math.min(2.1,Math.pow(2,(S.zoom-7.8)*.55)));
  var b={x:p.x-260*s,y:p.y-330*s,w:530*s,h:650*s};
@@ -4147,7 +4164,7 @@ function nycPrepare(){
  function part(name,x,y,h,id){var a=artLoad(name),aspect=a.ok?a.img.width/a.img.height:1.6;return{name:name,x:p.x+x*s,y:p.y+y*s,h:h*s,w:h*s*aspect,id:id};}
  var parts=[part('nyc-brownstones',-94,12,62,'brownstones'),part('nyc-empire',0,-6,112,'empire'),part('nyc-east-skyline',94,-27,83,'east'),part('nyc-brooklyn-bridge',112,48,64,'bridge')];
  var liberty=proj(40.6892,-74.0445);
- NYC_WORLD={key:key,visible:true,ready:ready,anchor:p,scale:s,bounds:b,parts:parts,boxes:[],liberty:{x:liberty.x+40*s,y:liberty.y+78*s},boats:[]};
+ NYC_WORLD={key:key,visible:true,ready:ready,anchor:p,scale:s,bounds:b,parts:parts,boxes:[],liberty:{x:liberty.x+112*s,y:liberty.y+115*s},boats:[]};
  nycUpdateBoxes();
 }
 function nycUpdateBoxes(){
@@ -4260,6 +4277,10 @@ function drawNYCScenery(g){
 function nycReserveLabels(){nycFootprints().forEach(function(b){labelBoxes.push({x:b.x-5,y:b.y-7,w:b.w+10,h:b.h+14});});}
 function nycWorldLandmark(lm){
  var n=NYC_WORLD;if(!n.visible||!n.ready)return false;
+ /* Windows remain warmly lit above the evening atmosphere. The mask follows
+    existing architectural window pixels; no random lights or flashing. */
+ ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=.85;
+ n.parts.forEach(function(p){if(p.id==='bridge')return;var lights=nycWindowMask(p.name);if(lights)ctx.drawImage(lights,Math.round(p.x-p.w/2),Math.round(p.y-p.h),p.w,p.h);});ctx.restore();
  /* All pieces lead to the SAME existing city card; memories retain priority. */
  n.boxes.forEach(function(b){addHit({x:b.x-4,y:b.y-4,w:b.w+8,h:b.h+8},{kind:'landmark',id:lm[0]});});
  if(S.zoom>6.6){
@@ -4288,10 +4309,16 @@ function scenicAvoid(x, y, radius) {
   return false;
 }
 function scenicClearing(g, place, radius, kind) {
+  if(kind==='cottage')radius=homeArtH(S.zoom)*.78*1.6*.58+8;
   var p = place.who?homeDisplayPos(place.who,S.zoom):proj(place.lat, place.lng);
   if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
+  if(kind==='cottage'){
+    g.save();g.beginPath();
+    for(var yy=p.y-radius*.4;yy<p.y+radius*.4;yy+=4)for(var xx=p.x-radius;xx<p.x+radius;xx+=4)if(terrainAt(xx,yy)==='land')g.rect(xx,yy,4,4);
+    g.clip();
+  }
   if(kind==='castle'||kind==='cottage'){
-    var terraceDepth=kind==='castle'?27:12;
+    var terraceDepth=kind==='castle'?27:0;
     for(var ledge=terraceDepth;ledge>=3;ledge-=3){
       g.fillStyle=ledge>12?'#716077':ledge>6?'#a08487':'#c4a88b';
       g.beginPath();g.ellipse(p.x,p.y+ledge,radius,radius*.30,0,0,7);g.fill();
@@ -4319,6 +4346,7 @@ function scenicClearing(g, place, radius, kind) {
       scenicMark(g,xx,yy,'#e0bd84',2,8);
       scenicMark(g,xx,yy+5,'#af8055',8,2);
     }
+    g.restore();
   }
 }
 function scenicWaterfall(g, place) {
@@ -6767,7 +6795,7 @@ HOOKS.beforePins.push(function () {
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
   var z = S.zoom;
   var p = repairPoint('mail');
-  var h = homeArtH(z) * .68, w = h * .83;
+  var h = homeArtH(z) * .95, w = h * .83;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
   var fade = 1, unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;
@@ -6779,10 +6807,10 @@ HOOKS.beforePins.push(function () {
   var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
-    if (unread) {                                          /* the floating envelope with a red dot */
-      var bob = reduceMotion ? 0 : Math.sin(cloudPhase / 9) * 3, eh = Math.max(16, h * 0.32);
-      var eb = drawArt(ctx, 'mail/env-gold', p.x, box.y + eh * 0.2 + bob, eh, DPR);
-      if (eb) {
+    {                                                     /* permanent, legible postal sign */
+      var eh = Math.max(24, h * 0.45);
+      var eb = drawArt(ctx, 'mail/env-gold', p.x, box.y + eh * 0.35, eh, DPR);
+      if (eb && unread) {
         var r = Math.max(7, eh * 0.24), cx = eb.x + eb.w - r * 0.5, cy = eb.y + r * 0.4;
         ctx.fillStyle = '#D9363E'; ctx.strokeStyle = '#FFF2DF'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.fill(); ctx.stroke();

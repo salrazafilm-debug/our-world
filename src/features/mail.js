@@ -38,7 +38,7 @@ HOOKS.beforePins.push(function () {
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
   var z = S.zoom;
   var p = repairPoint('mail');
-  var h = homeArtH(z) * .68, w = h * .83;
+  var h = homeArtH(z) * .95, w = h * .83;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
   var fade = 1, unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;
@@ -50,10 +50,10 @@ HOOKS.beforePins.push(function () {
   var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
-    if (unread) {                                          /* the floating envelope with a red dot */
-      var bob = reduceMotion ? 0 : Math.sin(cloudPhase / 9) * 3, eh = Math.max(16, h * 0.32);
-      var eb = drawArt(ctx, 'mail/env-gold', p.x, box.y + eh * 0.2 + bob, eh, DPR);
-      if (eb) {
+    {                                                     /* permanent, legible postal sign */
+      var eh = Math.max(24, h * 0.45);
+      var eb = drawArt(ctx, 'mail/env-gold', p.x, box.y + eh * 0.35, eh, DPR);
+      if (eb && unread) {
         var r = Math.max(7, eh * 0.24), cx = eb.x + eb.w - r * 0.5, cy = eb.y + r * 0.4;
         ctx.fillStyle = '#D9363E'; ctx.strokeStyle = '#FFF2DF'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.fill(); ctx.stroke();

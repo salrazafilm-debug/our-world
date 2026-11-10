@@ -19,6 +19,15 @@ stationary-cache reuse. Updated screenshots/video reflect this candidate.
 Branch: `codex/map-foundation-repair`. Local changes only. No push, merge,
 deployment, database change, memory-coordinate edit or auth change.
 
+Latest refinement: Liberty's decorative island sits farther into open harbor
+water. A cached mask of the architecture's existing gold window pixels keeps
+windows warmly lit above the evening tint, without random flashing lights.
+Bruce's house is 25% smaller, offset inland and checked across its foundation;
+its meadow clearing is clipped to land and no longer stands on a raised cliff
+platform. The post office is larger and always carries a large envelope sign;
+unread mail still adds the existing count badge. DC gains the Washington Monument
+beside the Capitol, sharing its existing city action. No Pentagon was added.
+
 Startup camera: initial state and identity selection now share `START_ZOOM=10`
 instead of 11.2, keeping the selected home anchor but showing more surrounding
 geography. The explicit Local button still uses 11.2. `preview-startup.js` checks

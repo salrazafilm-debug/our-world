@@ -4,6 +4,15 @@
 var NYC_WORLD={key:'',visible:false,ready:false,parts:[],boxes:[]};
 var NYC_PARTS=['nyc-brownstones','nyc-empire','nyc-east-skyline','nyc-brooklyn-bridge','pack-liberty'];
 var NYC_TRAIL=[[-65,-290],[-145,-230],[-95,-155],[-155,-80],[-135,10],[-185,95],[-140,165],[-190,260]];
+var NYC_WINDOW_MASKS={};
+function nycWindowMask(name){
+ if(NYC_WINDOW_MASKS[name])return NYC_WINDOW_MASKS[name];
+ var a=artLoad(name);if(!a.ok)return null;
+ var c=document.createElement('canvas');c.width=a.img.width;c.height=a.img.height;
+ var g=c.getContext('2d');g.drawImage(a.img,0,0);var im=g.getImageData(0,0,c.width,c.height),d=im.data;
+ for(var i=0;i<d.length;i+=4){var lit=d[i+3]>200&&d[i]>185&&d[i+1]>125&&d[i]-d[i+2]>85&&d[i+1]-d[i+2]>42;d[i]=255;d[i+1]=221;d[i+2]=126;d[i+3]=lit?225:0;}
+ g.putImageData(im,0,0);return NYC_WINDOW_MASKS[name]=c;
+}
 function nycPrepare(){
  var p=proj(40.7580,-73.9855),s=Math.max(.12,Math.min(2.1,Math.pow(2,(S.zoom-7.8)*.55)));
  var b={x:p.x-260*s,y:p.y-330*s,w:530*s,h:650*s};
@@ -17,7 +26,7 @@ function nycPrepare(){
  function part(name,x,y,h,id){var a=artLoad(name),aspect=a.ok?a.img.width/a.img.height:1.6;return{name:name,x:p.x+x*s,y:p.y+y*s,h:h*s,w:h*s*aspect,id:id};}
  var parts=[part('nyc-brownstones',-94,12,62,'brownstones'),part('nyc-empire',0,-6,112,'empire'),part('nyc-east-skyline',94,-27,83,'east'),part('nyc-brooklyn-bridge',112,48,64,'bridge')];
  var liberty=proj(40.6892,-74.0445);
- NYC_WORLD={key:key,visible:true,ready:ready,anchor:p,scale:s,bounds:b,parts:parts,boxes:[],liberty:{x:liberty.x+40*s,y:liberty.y+78*s},boats:[]};
+ NYC_WORLD={key:key,visible:true,ready:ready,anchor:p,scale:s,bounds:b,parts:parts,boxes:[],liberty:{x:liberty.x+112*s,y:liberty.y+115*s},boats:[]};
  nycUpdateBoxes();
 }
 function nycUpdateBoxes(){
@@ -130,6 +139,10 @@ function drawNYCScenery(g){
 function nycReserveLabels(){nycFootprints().forEach(function(b){labelBoxes.push({x:b.x-5,y:b.y-7,w:b.w+10,h:b.h+14});});}
 function nycWorldLandmark(lm){
  var n=NYC_WORLD;if(!n.visible||!n.ready)return false;
+ /* Windows remain warmly lit above the evening atmosphere. The mask follows
+    existing architectural window pixels; no random lights or flashing. */
+ ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=.85;
+ n.parts.forEach(function(p){if(p.id==='bridge')return;var lights=nycWindowMask(p.name);if(lights)ctx.drawImage(lights,Math.round(p.x-p.w/2),Math.round(p.y-p.h),p.w,p.h);});ctx.restore();
  /* All pieces lead to the SAME existing city card; memories retain priority. */
  n.boxes.forEach(function(b){addHit({x:b.x-4,y:b.y-4,w:b.w+8,h:b.h+8},{kind:'landmark',id:lm[0]});});
  if(S.zoom>6.6){

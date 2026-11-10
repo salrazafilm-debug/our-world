@@ -7,7 +7,7 @@ function repairPrepare(){
  var e=proj(HOMES.elena.lat,HOMES.elena.lng),b=proj(HOMES.bruce.lat,HOMES.bruce.lng);
  var m=proj((HOMES.elena.lat+HOMES.bruce.lat)/2,(HOMES.elena.lng+HOMES.bruce.lng)/2);
  var gap=Math.max(0,homeArtH(S.zoom)*1.45-(b.y-e.y)/2);
- e.y-=gap;b.y+=gap;
+ e.y-=gap;b.y+=gap;b.x-=homeArtH(S.zoom)*.5;
  var dc=proj(38.8895,-77.0353),n=proj(38.79,-77.40);
  dc.x=Math.min(dc.x,m.x-homeArtH(S.zoom)*2.15);
  n.x=Math.min(n.x,m.x-homeArtH(S.zoom)*2.15);n.y=Math.max(n.y,m.y+homeArtH(S.zoom)*1.65);
@@ -18,9 +18,9 @@ function repairPoint(id){var p=REPAIR.points[id];return p?{x:p.x,y:p.y}:null;}
 function repairBox(id){
  var p=repairPoint(id),h=homeArtH(S.zoom),w;
  if(id==='elena'){h*=1.12;w=h*.8;}
- else if(id==='bruce'){h*=1.04;w=h*1.6;}
- else if(id==='mail'){h*=.68;w=h*.83;}
- else if(id==='dc'){h*=.9;w=h*1.5;}
+ else if(id==='bruce'){h*=.78;w=h*1.6;}
+ else if(id==='mail'){h*=.95;w=h*.83;}
+ else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.1,y:p.y-homeArtH(S.zoom)*1.35,w:homeArtH(S.zoom)*2.05,h:homeArtH(S.zoom)*1.5,id:id};}
  else {h*=1.05;w=h;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }

@@ -1661,7 +1661,10 @@ function homeDisplayPos(k, z) {
   var h = HOMES[k], p = typeof repairPoint==='function'?repairPoint(k):proj(h.lat, h.lng);
   /* Homes stay on Maryland's western shore. Never spread them east across
      the bay to make room for labels. The geographic coordinate is unchanged. */
-  if (terrainAt(p.x,p.y)!=='land') {
+  if(k==='bruce'){
+    var half=homeArtH(z)*.78*1.6*.47;
+    for(var dx=0;dx<=180;dx+=3){var x=p.x-dx;if(terrainAt(x-half,p.y+5)==='land'&&terrainAt(x+half,p.y+5)==='land'&&terrainAt(x,p.y-10)==='land'){p.x=x;break;}}
+  } else if (terrainAt(p.x,p.y)!=='land') {
     for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){p.x-=dx;break;}
   }
   return p;
@@ -1867,6 +1870,10 @@ function drawMapOverlays() {
       ctx.fillStyle = 'rgba(165,225,229,' + (0.16 + shim * 0.16) + ')';
       ctx.beginPath(); ctx.arc(p.x, p.y - 8 * lsc, 11 * lsc, 0, 7); ctx.fill();
     }
+    if(lm[0]==='dc'){
+      var monument=drawArt(ctx,'pack-monument',p.x-homeArtH(z)*.73,p.y-4,homeArtH(z)*1.25,DPR);
+      if(monument)addHit(monument,{kind:'landmark',id:'dc'});
+    }
     var lb = (special&&drawArt(ctx,special.worldIcon,p.x,p.y,Math.min(120,58+(z-7)*13),DPR)) || (lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc));
     if(special&&z>9.2)tryLabel(p.x,lb.y-18,lm[1],{size:13});
     else if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 13, fg: C.deep, border: C.gold, force: 1 });
@@ -1882,7 +1889,7 @@ function drawMapOverlays() {
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
-    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * 1.04, DPR)) ||
+    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * .78, DPR)) ||
       (k === 'elena'
         ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
         : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));

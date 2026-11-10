@@ -14,10 +14,11 @@ function load(file, name, globals) {
 const homes = { bruce: { lat: 38.6935, lng: -76.5333 }, elena: { lat: 39.0332, lng: -76.503 } };
 const original = JSON.stringify(homes);
 const placement = load('src/index.html', 'homeDisplayPos', {
-  HOMES: homes, proj: () => ({ x: 20, y: 40 }), terrainAt: x => x <= 0 ? 'land' : 'water'
+  HOMES: homes, homeArtH: z => Math.max(28,Math.min(117,51+(z-6.9)*15)), proj: () => ({ x: 20, y: 40 }), terrainAt: x => x <= 0 ? 'land' : 'water'
 });
 for (const who of ['bruce', 'elena']) for (const zoom of [7.8, 9.2, 11.2]) {
   assert(placement.homeDisplayPos(who, zoom).x <= 0, 'home must move inland, never east over the bay');
+  if(who==='bruce')assert(placement.homeDisplayPos(who,zoom).x+placement.homeArtH(zoom)*.78*1.6*.47<=0,'the eastern foundation edge must also stay on land');
 }
 assert.equal(JSON.stringify(homes), original, 'display adjustments must preserve real coordinates');
 const ground = load('src/features/presence.js', 'avatarGroundPoint', { terrainAt: x => x < 85 ? 'land' : 'water' });

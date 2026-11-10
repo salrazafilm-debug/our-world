@@ -15,10 +15,16 @@ function scenicAvoid(x, y, radius) {
   return false;
 }
 function scenicClearing(g, place, radius, kind) {
+  if(kind==='cottage')radius=homeArtH(S.zoom)*.78*1.6*.58+8;
   var p = place.who?homeDisplayPos(place.who,S.zoom):proj(place.lat, place.lng);
   if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
+  if(kind==='cottage'){
+    g.save();g.beginPath();
+    for(var yy=p.y-radius*.4;yy<p.y+radius*.4;yy+=4)for(var xx=p.x-radius;xx<p.x+radius;xx+=4)if(terrainAt(xx,yy)==='land')g.rect(xx,yy,4,4);
+    g.clip();
+  }
   if(kind==='castle'||kind==='cottage'){
-    var terraceDepth=kind==='castle'?27:12;
+    var terraceDepth=kind==='castle'?27:0;
     for(var ledge=terraceDepth;ledge>=3;ledge-=3){
       g.fillStyle=ledge>12?'#716077':ledge>6?'#a08487':'#c4a88b';
       g.beginPath();g.ellipse(p.x,p.y+ledge,radius,radius*.30,0,0,7);g.fill();
@@ -46,6 +52,7 @@ function scenicClearing(g, place, radius, kind) {
       scenicMark(g,xx,yy,'#e0bd84',2,8);
       scenicMark(g,xx,yy+5,'#af8055',8,2);
     }
+    g.restore();
   }
 }
 function scenicWaterfall(g, place) {
