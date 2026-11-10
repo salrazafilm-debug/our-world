@@ -7,6 +7,10 @@
 var SOFT_FOLIAGE={};
 [['pine',['pack-pine','tree-pine','story-pine']],['pine-tall',['pack-pine-tall']],['oak',['pack-oak','tree-oak','story-oak']],['cherry',['pack-cherry','tree-cherry','story-cherry']],['crimson',['pack-crimson']],['bush',['pack-bush','bush','bush-pink']],['flowers',['pack-flowers','flowers','flowers2','flowers3','flowers4']],['rocks',['pack-rocks','rock']],['grass',['pack-grass']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft/'+group[0]+'.png';});});
 [['ridge',['soft-ridge']],['hills',['soft-hills']],['waterfall',['soft-waterfall']],['bridge',['pack-bridge','story-bridge']],['dock',['pack-dock','story-pier']],['bench',['bench']],['lamp',['lamp']],['boat',['pack-boat','boat']],['cottage',['story-cottage']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft-scenery/'+group[0]+'.png';});});
+[['castle',['story-castle','castle-pink']],['blue-home',['blue-cottage-map','cottage']],['post-office',['civic-post-office','story-post-office']],['capitol',['pack-capitol']],['monument',['pack-monument']],['lighthouse',['story-lighthouse','lighthouse']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft-buildings/'+group[0]+'.png';});});
+var CARTOON_CLOUDS=[0,1,2,3,4,5].map(function(i){var name='soft-cloud-'+i;SOFT_FOLIAGE[name]='art/world/soft-clouds/cloud-'+i+'.png';return name;});
+function cartoonCloudReady(){return CARTOON_CLOUDS.every(function(name){return artLoad(name).ok;});}
+var SOFT_ASPECT_LIMIT={'story-castle':.8,'castle-pink':.8,'blue-cottage-map':1.6,'civic-post-office':1.35};
 var ART = {}, ARTSIZED = {}, SOFT_SOURCES = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
@@ -22,6 +26,7 @@ function artLoad(name) {
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 artLoad('story-cloud');
+CARTOON_CLOUDS.forEach(artLoad);
 artLoad('story-nyc');
 artLoad('map-airplane');
 artLoad('blue-cottage-map');
@@ -51,6 +56,10 @@ function artSized(name, h, res) {
 }
 /* stands on (x, y), h tall (css px); returns its box, or null while the art loads */
 function drawArt(g, name, x, y, h, res) {
+  var asset=artLoad(name),limit=SOFT_ASPECT_LIMIT[name];
+  if(limit&&asset.ok)h=Math.min(h,h*limit*asset.img.height/asset.img.width);
+  /* Large close-zoom clouds reuse their source, not giant per-height canvases. */
+  if(name.indexOf('soft-cloud-')===0&&asset.ok){var cw=h*asset.img.width/asset.img.height;g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(asset.img,x-cw/2,y-h,cw,h);g.restore();return{x:x-cw/2,y:y-h,w:cw,h:h};}
   if(SOFT_FOLIAGE[name])res=Math.max(2,res||1);
   var c = artSized(name, h, res);
   if (!c) return null;

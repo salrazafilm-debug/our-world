@@ -1,0 +1,116 @@
+[
+  {
+    "id": "cloud-0",
+    "path": "art/world/soft-clouds/cloud-0.png",
+    "width": 456,
+    "height": 210,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "clouds",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-clouds-sheet.png",
+    "crop": [
+      23,
+      161,
+      464,
+      219
+    ]
+  },
+  {
+    "id": "cloud-1",
+    "path": "art/world/soft-clouds/cloud-1.png",
+    "width": 462,
+    "height": 317,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "clouds",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-clouds-sheet.png",
+    "crop": [
+      532,
+      98,
+      472,
+      327
+    ]
+  },
+  {
+    "id": "cloud-2",
+    "path": "art/world/soft-clouds/cloud-2.png",
+    "width": 404,
+    "height": 189,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "clouds",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-clouds-sheet.png",
+    "crop": [
+      1059,
+      180,
+      411,
+      198
+    ]
+  },
+  {
+    "id": "cloud-3",
+    "path": "art/world/soft-clouds/cloud-3.png",
+    "width": 488,
+    "height": 213,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "clouds",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-clouds-sheet.png",
+    "crop": [
+      12,
+      657,
+      497,
+      223
+    ]
+  },
+  {
+    "id": "cloud-4",
+    "path": "art/world/soft-clouds/cloud-4.png",
+    "width": 401,
+    "height": 322,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "clouds",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-clouds-sheet.png",
+    "crop": [
+      566,
+      591,
+      410,
+      330
+    ]
+  },
+  {
+    "id": "cloud-5",
+    "path": "art/world/soft-clouds/cloud-5.png",
+    "width": 488,
+    "height": 257,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "clouds",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-clouds-sheet.png",
+    "crop": [
+      1025,
+      628,
+      498,
+      267
+    ]
+  }
+]

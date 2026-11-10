@@ -136,7 +136,7 @@ function scenicGround(g) {
   var r=dark?31:243,gr=dark?85:220,b=dark?58:133,texture=broad>.5?moss:grass;
   if(texture){
    var tx=((Math.floor(left+x)%texture.w)+texture.w)%texture.w,ty=((Math.floor(top+y)%texture.h)+texture.h)%texture.h,k=(ty*texture.w+tx)*4;
-   var ta=.14*texture.data[k+3]/255,a=ta+alpha*(1-ta);
+   var ta=.14*(1-marylandWeight(lat,lng))*texture.data[k+3]/255,a=ta+alpha*(1-ta);
    r=(texture.data[k]*ta+r*alpha*(1-ta))/a;gr=(texture.data[k+1]*ta+gr*alpha*(1-ta))/a;b=(texture.data[k+2]*ta+b*alpha*(1-ta))/a;alpha=a;
   }
   var i=((y/step)*cols+x/step)*4;pixels[i]=r;pixels[i+1]=gr;pixels[i+2]=b;pixels[i+3]=alpha*255;

@@ -187,7 +187,7 @@ function cloudRoom(c,areas){
  return room;
 }
 function drawSkyClouds(z,target){
- var sky=target||ctx,list=[],areas=cloudImportantAreas();
+ var sky=target||ctx,list=[],areas=cloudImportantAreas(),ready=cartoonCloudReady();
  cloudBands(z).forEach(function(band){
   if(band.alpha<.001)return;
   /* Broad, irregular banks, not a small cloud stamped into every grid square.
@@ -197,16 +197,16 @@ function drawSkyClouds(z,target){
   var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360;
   [0,1].forEach(function(depth){
    var sx=cell*(depth?5.2:3.7),sy=cell*(depth?4.2:2.5),seed=band.seed+depth*31;
-   var name='story-cloud',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
-   var margin=Math.max(700,cellPx*6*aspect),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
+   var margin=Math.max(700,cellPx*24),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
    var y0=Math.floor(Math.min(tl.lat,br.lat)/sy)-1,y1=Math.ceil(Math.max(tl.lat,br.lat)/sy)+1;
    var x0=Math.floor(Math.min(tl.lng,br.lng)/sx)-1,x1=Math.ceil(Math.max(tl.lng,br.lng)/sx)+1;
    for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
     if(depth&&terHash(gx,gy,seed+8)<.68)continue;
+    var name=ready?CARTOON_CLOUDS[Math.min(5,Math.floor(terHash(gx,gy,seed+15)*6))]:'story-cloud',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
     var lat=(gy+.5+(terHash(gx,gy,seed+1)-.5)*1.6)*sy;
     var lng=(gx+.5+(terHash(gx,gy,seed+2)-.5)*1.6)*sx;
     var p=proj(lat,lng),h=cellPx*(depth?1.2+terHash(gx,gy,seed+3)*1.1:.9+terHash(gx,gy,seed+3)*1.4);
-    var w=h*aspect*((depth?.9:1.15)+terHash(gx,gy,seed+5)*.35);
+    var w=h*aspect;
     if(p.x-w/2>W||p.x+w/2<0||p.y-h/2>H||p.y+h/2<0)continue;
     var cloud={id:band.seed+':'+depth+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*.94,depth:depth,name:name,aspect:aspect,flip:terHash(gx,gy,seed+6)>.5};
     cloud.room=cloudRoom(cloud,areas);

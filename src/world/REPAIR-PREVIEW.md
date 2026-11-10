@@ -164,3 +164,25 @@ than the previous generic bridge. The Chesapeake dock attaches to the shore,
 and nearby village cottages, garden furniture, boats and footbridges share the
 new soft rendering. Major homes, city compositions, avatars and close-ups stay
 unchanged. This remains an unpublished approval candidate.
+
+## Cloud, architecture and road cohesion candidate
+
+Six original cloud silhouettes replace the single stretched bank. Selection is
+seeded by geographic cell, aspect ratios are preserved, and the existing POI
+clearance remains in place. The cached atmosphere now renders at device
+resolution. Large close-zoom clouds draw their shared source directly instead
+of allocating enormous per-height canvases. Previous cloud artwork is only a
+startup fallback while the complete variant set preloads.
+
+The pink castle, blue-roof home, attached-logo white post office, Capitol,
+Washington Monument and lighthouse share new rounded cartoon source art.
+Artwork fits the existing reserved footprints; markers and taps are independent.
+Existing NYC/DC special scenes and avatars remain unchanged.
+
+Tan home paths are retained, with four existing route corridors (I-95, US-50,
+MD-2/4 and I-66) expressed as quieter gray-blue roads with cream dashed centers.
+The old dense regional route drawing is suppressed in this area. Road geometry
+reserves vegetation clearance and bridges retain the geographic water crossings.
+Sampling clips to the viewport even at maximum zoom. Ground grain is subdued
+around Maryland and water highlights are quieter. Original sheets, alpha-safe
+exports and metadata are retained; deployment is still pending visual approval.

@@ -1326,7 +1326,6 @@ var HOMES = {
 var REVEAL_KM = 20;          // a discovery clears a region this wide
 var UNLOCK_KM = 3;           // how close you must be for a sealed letter to open
 var PIXEL = 3;               // map pixel-art block size (css px)
-var FOGPIXEL = 2;            // preserve the illustrated clouds' clustered shading
 
 /* No pre-placed landmarks. Every mark on this map is one of ours. */
 
@@ -1726,7 +1725,8 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   baseCv.width  = Math.max(1, Math.ceil(W / PIXEL));    baseCv.height = Math.max(1, Math.ceil(H / PIXEL));
   scenicCv.width = Math.max(1, Math.ceil(W * DPR)); scenicCv.height = Math.max(1, Math.ceil(H * DPR));
-  fogCv.width   = Math.max(1, Math.ceil(W / FOGPIXEL)); fogCv.height  = Math.max(1, Math.ceil(H / FOGPIXEL));
+  fogCv.width   = Math.max(1, Math.ceil(W * DPR)); fogCv.height  = Math.max(1, Math.ceil(H * DPR));
+  if(typeof FOG_RENDER!=='undefined')FOG_RENDER.key='';
   baseDirty = true;
   draw();
 }
@@ -1769,10 +1769,11 @@ function drawBase() {
 
   var step = 13, dash = 4;
   var wx0 = Math.floor(ox / s / step) * step, wy0 = Math.floor(oy / s / step) * step;
-  g.fillStyle = 'rgba(255,255,255,.34)';
+  g.fillStyle = 'rgba(255,255,255,.22)';
   for (var wy = wy0; wy < wy0 + bh + step; wy += step) {
     var rowi = Math.round(wy / step);
     for (var wx = wx0; wx < wx0 + bw + step * 2; wx += step) {
+      if(terHash(Math.round(wx/step),rowi,512)<.32)continue;
       var jog = (rowi % 2) * (step / 2) + ((Math.round(wx / step) * 7 + rowi * 13) % 3);
       g.fillRect(Math.round(wx + jog - ox / s), Math.round(wy - oy / s), dash, 1);
     }
@@ -1877,6 +1878,7 @@ function drawBase() {
     var RT = window.OW_ROUTES, wgt = Math.max(0.9, (z - 6) * 0.34);
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (i = 0; i < RT.length; i++) {
+      if(RT[i][1].some(function(a){return marylandWeight(a[0],a[1])>.2;}))continue;
       var pts = RT[i][1];
       g.strokeStyle = 'rgba(139,105,68,.55)'; g.lineWidth = wgt + 1.5;
       g.beginPath();
@@ -1949,13 +1951,13 @@ var CLOUD_SHAPES = [
 ];
 var FOG_RENDER={key:'',builds:0};
 function drawFog() {
-  var rs=allRegions(),cloudReady=artLoad('story-cloud').ok;
+  var rs=allRegions(),cloudReady=cartoonCloudReady()+':'+artLoad('story-cloud').ok;
   var key=[S.center.lat,S.center.lng,S.zoom,W,H,cloudReady,MD_TOWNBOXES.length,NYC_WORLD.visible&&NYC_WORLD.ready?NYC_WORLD.key:'',rs.map(function(r){return r.id+':'+r.lat+':'+r.lng+':'+r.r;}).join('|'),S.memories.concat(S.plans||[]).map(function(m){return m.id+':'+m.lat+':'+m.lng;}).join('|'),S.me?S.me.lat+':'+S.me.lng:''].join('/');
   if(key===FOG_RENDER.key)return;
   FOG_RENDER.key=key;FOG_RENDER.builds++;
-  var g=fogCtx,s=FOGPIXEL,bw=fogCv.width,bh=fogCv.height;
+  var g=fogCtx,bw=fogCv.width,bh=fogCv.height;
   g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.clearRect(0,0,bw,bh);
-  g.save();g.scale(1/s,1/s);drawSkyClouds(S.zoom,g);g.restore();
+  g.save();g.scale(DPR,DPR);drawSkyClouds(S.zoom,g);g.restore();
   /* The map stays visible between intact cloud banks. POI-aware placement in
      drawSkyClouds makes important areas less crowded; no cutout masks. */
 }
@@ -3800,6 +3802,10 @@ var WORLD_ASSETS = {"pack-pine":{"path":"art/world/vegetation/pine.png","width":
 var SOFT_FOLIAGE={};
 [['pine',['pack-pine','tree-pine','story-pine']],['pine-tall',['pack-pine-tall']],['oak',['pack-oak','tree-oak','story-oak']],['cherry',['pack-cherry','tree-cherry','story-cherry']],['crimson',['pack-crimson']],['bush',['pack-bush','bush','bush-pink']],['flowers',['pack-flowers','flowers','flowers2','flowers3','flowers4']],['rocks',['pack-rocks','rock']],['grass',['pack-grass']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft/'+group[0]+'.png';});});
 [['ridge',['soft-ridge']],['hills',['soft-hills']],['waterfall',['soft-waterfall']],['bridge',['pack-bridge','story-bridge']],['dock',['pack-dock','story-pier']],['bench',['bench']],['lamp',['lamp']],['boat',['pack-boat','boat']],['cottage',['story-cottage']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft-scenery/'+group[0]+'.png';});});
+[['castle',['story-castle','castle-pink']],['blue-home',['blue-cottage-map','cottage']],['post-office',['civic-post-office','story-post-office']],['capitol',['pack-capitol']],['monument',['pack-monument']],['lighthouse',['story-lighthouse','lighthouse']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft-buildings/'+group[0]+'.png';});});
+var CARTOON_CLOUDS=[0,1,2,3,4,5].map(function(i){var name='soft-cloud-'+i;SOFT_FOLIAGE[name]='art/world/soft-clouds/cloud-'+i+'.png';return name;});
+function cartoonCloudReady(){return CARTOON_CLOUDS.every(function(name){return artLoad(name).ok;});}
+var SOFT_ASPECT_LIMIT={'story-castle':.8,'castle-pink':.8,'blue-cottage-map':1.6,'civic-post-office':1.35};
 var ART = {}, ARTSIZED = {}, SOFT_SOURCES = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
@@ -3815,6 +3821,7 @@ function artLoad(name) {
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 artLoad('story-cloud');
+CARTOON_CLOUDS.forEach(artLoad);
 artLoad('story-nyc');
 artLoad('map-airplane');
 artLoad('blue-cottage-map');
@@ -3844,6 +3851,10 @@ function artSized(name, h, res) {
 }
 /* stands on (x, y), h tall (css px); returns its box, or null while the art loads */
 function drawArt(g, name, x, y, h, res) {
+  var asset=artLoad(name),limit=SOFT_ASPECT_LIMIT[name];
+  if(limit&&asset.ok)h=Math.min(h,h*limit*asset.img.height/asset.img.width);
+  /* Large close-zoom clouds reuse their source, not giant per-height canvases. */
+  if(name.indexOf('soft-cloud-')===0&&asset.ok){var cw=h*asset.img.width/asset.img.height;g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(asset.img,x-cw/2,y-h,cw,h);g.restore();return{x:x-cw/2,y:y-h,w:cw,h:h};}
   if(SOFT_FOLIAGE[name])res=Math.max(2,res||1);
   var c = artSized(name, h, res);
   if (!c) return null;
@@ -4335,6 +4346,47 @@ function drawDCGardens(g){
  g.restore();
 }
 
+/* ---- world/story-roads.js ---- */
+/* A sparse illustrated road hierarchy over the existing geographic routes.
+   Decoration only: no new destinations, routing or stored coordinates. */
+var STORY_ROAD_GEOMETRY=[];
+var STORY_ROADS={'I-95':1,'US-50 / Bay Bridge':1,'MD-2/4':.8,'I-66':.75};
+function storyRoadNear(x,y,r){return STORY_ROAD_GEOMETRY.some(function(road){for(var i=1;i<road.points.length;i++){var a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r)return true;}return false;});}
+function storyRoadOffset(x,y,r){
+ var nearest=null;
+ STORY_ROAD_GEOMETRY.forEach(function(road){for(var i=1;i<road.points.length;i++){var a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1))),px=a.x+t*dx,py=a.y+t*dy,d=Math.hypot(x-px,y-py);if(!nearest||d<nearest.d)nearest={x:px,y:py,d:d,dx:dx,dy:dy};}});
+ if(!nearest||nearest.d>=r)return{x:x,y:y};
+ var nx=x-nearest.x,ny=y-nearest.y,d=nearest.d;
+ if(d<.001){nx=-nearest.dy;ny=nearest.dx;d=Math.hypot(nx,ny)||1;}
+ return{x:nearest.x+nx/d*r,y:nearest.y+ny/d*r};
+}
+function storyRoadSamples(a,b,id){
+ var lo=0,hi=1,dx=b.x-a.x,dy=b.y-a.y;
+ [[a.x,dx,-40,W+40],[a.y,dy,-40,H+40]].forEach(function(axis){if(Math.abs(axis[1])<.00001){if(axis[0]<axis[2]||axis[0]>axis[3])hi=-1;return;}var t0=(axis[2]-axis[0])/axis[1],t1=(axis[3]-axis[0])/axis[1];lo=Math.max(lo,Math.min(t0,t1));hi=Math.min(hi,Math.max(t0,t1));});
+ var samples=[],n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));for(var j=Math.ceil(lo*n);j<=Math.floor(hi*n);j++){var t=j/n;samples.push({x:a.x+dx*t,y:a.y+dy*t,index:id*10000000+j});}return samples;
+}
+function drawStoryRoads(g){
+ STORY_ROAD_GEOMETRY=[];var z=S.zoom,alpha=cloudEase(5.8,7.4,z);if(alpha<.001)return;
+ var u=homeArtH(z),width=Math.min(8,Math.max(3,u*.075));
+ (window.OW_ROUTES||[]).forEach(function(route){
+  if(!STORY_ROADS[route[0]])return;
+  var points=route[1].map(function(a){return proj(a[0],a[1]);}),samples=[];
+  for(var i=1;i<points.length;i++)samples=samples.concat(storyRoadSamples(points[i-1],points[i],i));
+  var onscreen=samples.some(function(p){return p.x>-30&&p.x<W+30&&p.y>-30&&p.y<H+30;});if(!onscreen)return;
+  STORY_ROAD_GEOMETRY.push({id:route[0],points:points});
+  function trace(list){g.beginPath();list.forEach(function(p,i){if(i)g.lineTo(p.x,p.y);else g.moveTo(p.x,p.y);});}
+  g.save();g.globalAlpha=alpha*STORY_ROADS[route[0]];g.lineCap='round';g.lineJoin='round';
+  /* Deck edges also read as small bridge railings over geographic water. */
+  trace(points);g.strokeStyle='#bdc5b8';g.lineWidth=width+3;g.stroke();
+  trace(points);g.strokeStyle='#8195a0';g.lineWidth=width;g.stroke();
+  g.globalAlpha*=cloudEase(7,8.5,z);g.setLineDash([Math.max(4,width*.85),Math.max(7,width*1.5)]);trace(points);g.strokeStyle='#fff0ce';g.lineWidth=Math.max(.8,width*.15);g.stroke();g.setLineDash([]);
+  g.globalAlpha=alpha*.75;
+  /* A few bridge piers, only on the US-50 crossing; never random water roads. */
+  if(route[0]==='US-50 / Bay Bridge')samples.forEach(function(p){if(p.index%8||p.x<0||p.x>W||p.y<0||p.y>H||terrainAt(p.x,p.y)!=='water')return;g.fillStyle='#b5b8ad';g.fillRect(p.x-1,p.y+width*.5,2,4);});
+  g.restore();
+ });
+}
+
 /* ---- world/maryland-landscape.js ---- */
 /* Authored Chesapeake scenery. Coordinates and memory projection stay geographic;
    the bay's eastern rim is stylized in the base itself, never a scene overlay. */
@@ -4366,6 +4418,7 @@ function marylandGrounds(g){
   [.95,.72,.45].forEach(function(scale,j){g.fillStyle=['rgba(113,151,75,.12)','rgba(86,129,65,.12)','rgba(63,111,61,.10)'][j];g.beginPath();for(var k=0;k<=16;k++){var angle=k/16*Math.PI*2,rr=r*scale*(.82+terHash(i,k%16,237)*.3),x=q.x+Math.cos(angle)*rr,y=q.y+Math.sin(angle)*rr*.85;if(k)g.lineTo(x,y);else g.moveTo(x,y);}g.closePath();g.fill();});g.restore();
  });
  /* Physical tan paths live below trees and all interactive artwork. */
+ drawStoryRoads(g);
  g.save();g.lineCap='round';g.lineJoin='round';
  MD_PATHS=marylandPathPoints();MD_PATHS.forEach(function(a){g.beginPath();g.moveTo(a[0].x,a[0].y);g.quadraticCurveTo(a[1].x,a[1].y,a[2].x,a[2].y);g.strokeStyle='#b6a175';g.lineWidth=Math.max(6,u*.12);g.stroke();g.strokeStyle='#e4ca95';g.lineWidth=Math.max(4,u*.075);g.stroke();});g.restore();
  ['e','b','m'].forEach(function(id){var a=p[id],rx=u*(id==='m'?.86:1.02),ry=u*.29;if(a.x<-rx||a.x>W+rx||a.y<-u||a.y>H+u)return;
@@ -4389,7 +4442,7 @@ function marylandVegetation(g){
   for(var iy=loY;iy<=hiY;iy++)for(var ix=loX;ix<=hiX;ix++){
    var lat=(iy+.12+terHash(ix,iy,141)*.76)*cell,lng=(ix+.12+terHash(ix,iy,142)*.76)*cell,weight=marylandWeight(lat,lng),rate=scenicCellWeight(ix,iy,cell,z,lv?19:12);if(weight<.2||rate<.01)continue;
    var p=proj(lat,lng),r=terHash(ix,iy,143),forest=marylandForest(lat,lng),grain=terNoise(lng*32,lat*32),h=u*(.28+terHash(ix,iy,144)*.24);
-   if(p.x<-45||p.x>W+45||p.y<-20||p.y>H+60||!scenicLand(p.x,p.y)||scenicAvoid(p.x,p.y,u*.34)||marylandPathNear(p.x,p.y,h*.32+5)||MD_TOWNS.some(function(a){var q=proj(a[0],a[1]);return Math.hypot(p.x-q.x,p.y-q.y)<u*.85;}))continue;
+   if(p.x<-45||p.x>W+45||p.y<-20||p.y>H+60||!scenicLand(p.x,p.y)||scenicAvoid(p.x,p.y,u*.34)||marylandPathNear(p.x,p.y,h*.32+5)||storyRoadNear(p.x,p.y,h*.32+5)||MD_TOWNS.some(function(a){var q=proj(a[0],a[1]);return Math.hypot(p.x-q.x,p.y-q.y)<u*.85;}))continue;
    var a=l.a*rate*weight;
    if(r<forest*.78+(grain>.55?.1:.02))items.push({x:p.x,y:p.y,h:h,a:a,art:terHash(ix,iy,145)<(.18+(1-forest)*.22)?'pack-cherry':r<.3?'pack-pine-tall':'pack-pine'});
    else if(r>.58&&r<.79)items.push({x:p.x,y:p.y,h:u*(.10+terHash(ix,iy,146)*.08),a:a,art:r>.75?'pack-rocks':r>.63?'pack-flowers':'pack-bush'});
@@ -4416,7 +4469,12 @@ function marylandDetails(g){
  MD_TOWNBOXES=[];MD_TOWNS.forEach(function(a,i){
   var q=proj(a[0],a[1]);if(q.x<-u||q.x>W+u||q.y<-u||q.y>H+u||repairClear(q.x,q.y)||!scenicLand(q.x,q.y))return;
   var scale=u*.52;
-  [[-.35,-.13],[.32,-.21],[0,.17]].forEach(function(v,j){var x=q.x+v[0]*u,y=q.y+v[1]*u;if(scenicLand(x,y)&&!repairClear(x,y)){var box=drawArt(g,j===1&&i<2?'city':'story-cottage',x,y,scale*(j===1?1.15:.9),1);if(box)MD_TOWNBOXES.push(box);}});
+  [[-.35,-.13],[.32,-.21],[0,.17]].forEach(function(v,j){
+   var x=q.x+v[0]*u,y=q.y+v[1]*u;
+   /* Supporting cottages sit beside the roadway rather than over its center. */
+   var center=storyRoadOffset(x,y-scale*.4,scale*.62),site={x:center.x,y:center.y+scale*.4};
+   if(scenicLand(site.x,site.y)&&!repairClear(site.x,site.y)&&!repairClear(site.x,site.y-scale*.5)){var box=drawArt(g,j===1&&i<2?'city':'story-cottage',site.x,site.y,scale*(j===1?1.15:.9),1);if(box)MD_TOWNBOXES.push(box);}
+  });
  });
 }
 function marylandRelief(g,p,u){
@@ -4575,7 +4633,7 @@ function scenicGround(g) {
   var r=dark?31:243,gr=dark?85:220,b=dark?58:133,texture=broad>.5?moss:grass;
   if(texture){
    var tx=((Math.floor(left+x)%texture.w)+texture.w)%texture.w,ty=((Math.floor(top+y)%texture.h)+texture.h)%texture.h,k=(ty*texture.w+tx)*4;
-   var ta=.14*texture.data[k+3]/255,a=ta+alpha*(1-ta);
+   var ta=.14*(1-marylandWeight(lat,lng))*texture.data[k+3]/255,a=ta+alpha*(1-ta);
    r=(texture.data[k]*ta+r*alpha*(1-ta))/a;gr=(texture.data[k+1]*ta+gr*alpha*(1-ta))/a;b=(texture.data[k+2]*ta+b*alpha*(1-ta))/a;alpha=a;
   }
   var i=((y/step)*cols+x/step)*4;pixels[i]=r;pixels[i+1]=gr;pixels[i+2]=b;pixels[i+3]=alpha*255;
@@ -4955,7 +5013,7 @@ function cloudRoom(c,areas){
  return room;
 }
 function drawSkyClouds(z,target){
- var sky=target||ctx,list=[],areas=cloudImportantAreas();
+ var sky=target||ctx,list=[],areas=cloudImportantAreas(),ready=cartoonCloudReady();
  cloudBands(z).forEach(function(band){
   if(band.alpha<.001)return;
   /* Broad, irregular banks, not a small cloud stamped into every grid square.
@@ -4965,16 +5023,16 @@ function drawSkyClouds(z,target){
   var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360;
   [0,1].forEach(function(depth){
    var sx=cell*(depth?5.2:3.7),sy=cell*(depth?4.2:2.5),seed=band.seed+depth*31;
-   var name='story-cloud',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
-   var margin=Math.max(700,cellPx*6*aspect),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
+   var margin=Math.max(700,cellPx*24),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
    var y0=Math.floor(Math.min(tl.lat,br.lat)/sy)-1,y1=Math.ceil(Math.max(tl.lat,br.lat)/sy)+1;
    var x0=Math.floor(Math.min(tl.lng,br.lng)/sx)-1,x1=Math.ceil(Math.max(tl.lng,br.lng)/sx)+1;
    for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
     if(depth&&terHash(gx,gy,seed+8)<.68)continue;
+    var name=ready?CARTOON_CLOUDS[Math.min(5,Math.floor(terHash(gx,gy,seed+15)*6))]:'story-cloud',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
     var lat=(gy+.5+(terHash(gx,gy,seed+1)-.5)*1.6)*sy;
     var lng=(gx+.5+(terHash(gx,gy,seed+2)-.5)*1.6)*sx;
     var p=proj(lat,lng),h=cellPx*(depth?1.2+terHash(gx,gy,seed+3)*1.1:.9+terHash(gx,gy,seed+3)*1.4);
-    var w=h*aspect*((depth?.9:1.15)+terHash(gx,gy,seed+5)*.35);
+    var w=h*aspect;
     if(p.x-w/2>W||p.x+w/2<0||p.y-h/2>H||p.y+h/2<0)continue;
     var cloud={id:band.seed+':'+depth+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*.94,depth:depth,name:name,aspect:aspect,flip:terHash(gx,gy,seed+6)>.5};
     cloud.room=cloudRoom(cloud,areas);

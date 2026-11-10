@@ -1,0 +1,116 @@
+[
+  {
+    "id": "castle",
+    "path": "art/world/soft-buildings/castle.png",
+    "width": 379,
+    "height": 467,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "buildings",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-buildings-sheet.png",
+    "crop": [
+      39,
+      9,
+      389,
+      476
+    ]
+  },
+  {
+    "id": "blue-home",
+    "path": "art/world/soft-buildings/blue-home.png",
+    "width": 512,
+    "height": 380,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "buildings",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-buildings-sheet.png",
+    "crop": [
+      454,
+      64,
+      554,
+      413
+    ]
+  },
+  {
+    "id": "post-office",
+    "path": "art/world/soft-buildings/post-office.png",
+    "width": 471,
+    "height": 380,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "buildings",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-buildings-sheet.png",
+    "crop": [
+      1032,
+      81,
+      480,
+      389
+    ]
+  },
+  {
+    "id": "capitol",
+    "path": "art/world/soft-buildings/capitol.png",
+    "width": 512,
+    "height": 421,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "buildings",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-buildings-sheet.png",
+    "crop": [
+      30,
+      526,
+      582,
+      478
+    ]
+  },
+  {
+    "id": "monument",
+    "path": "art/world/soft-buildings/monument.png",
+    "width": 203,
+    "height": 481,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "buildings",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-buildings-sheet.png",
+    "crop": [
+      691,
+      512,
+      213,
+      490
+    ]
+  },
+  {
+    "id": "lighthouse",
+    "path": "art/world/soft-buildings/lighthouse.png",
+    "width": 275,
+    "height": 480,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "buildings",
+    "rendering": "soft cartoon; antialiased alpha",
+    "source": "art-src/world/cartoon-buildings-sheet.png",
+    "crop": [
+      1121,
+      513,
+      284,
+      490
+    ]
+  }
+]

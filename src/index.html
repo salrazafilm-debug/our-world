@@ -850,7 +850,6 @@ var HOMES = {
 var REVEAL_KM = 20;          // a discovery clears a region this wide
 var UNLOCK_KM = 3;           // how close you must be for a sealed letter to open
 var PIXEL = 3;               // map pixel-art block size (css px)
-var FOGPIXEL = 2;            // preserve the illustrated clouds' clustered shading
 
 /* No pre-placed landmarks. Every mark on this map is one of ours. */
 
@@ -1250,7 +1249,8 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   baseCv.width  = Math.max(1, Math.ceil(W / PIXEL));    baseCv.height = Math.max(1, Math.ceil(H / PIXEL));
   scenicCv.width = Math.max(1, Math.ceil(W * DPR)); scenicCv.height = Math.max(1, Math.ceil(H * DPR));
-  fogCv.width   = Math.max(1, Math.ceil(W / FOGPIXEL)); fogCv.height  = Math.max(1, Math.ceil(H / FOGPIXEL));
+  fogCv.width   = Math.max(1, Math.ceil(W * DPR)); fogCv.height  = Math.max(1, Math.ceil(H * DPR));
+  if(typeof FOG_RENDER!=='undefined')FOG_RENDER.key='';
   baseDirty = true;
   draw();
 }
@@ -1293,10 +1293,11 @@ function drawBase() {
 
   var step = 13, dash = 4;
   var wx0 = Math.floor(ox / s / step) * step, wy0 = Math.floor(oy / s / step) * step;
-  g.fillStyle = 'rgba(255,255,255,.34)';
+  g.fillStyle = 'rgba(255,255,255,.22)';
   for (var wy = wy0; wy < wy0 + bh + step; wy += step) {
     var rowi = Math.round(wy / step);
     for (var wx = wx0; wx < wx0 + bw + step * 2; wx += step) {
+      if(terHash(Math.round(wx/step),rowi,512)<.32)continue;
       var jog = (rowi % 2) * (step / 2) + ((Math.round(wx / step) * 7 + rowi * 13) % 3);
       g.fillRect(Math.round(wx + jog - ox / s), Math.round(wy - oy / s), dash, 1);
     }
@@ -1401,6 +1402,7 @@ function drawBase() {
     var RT = window.OW_ROUTES, wgt = Math.max(0.9, (z - 6) * 0.34);
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (i = 0; i < RT.length; i++) {
+      if(RT[i][1].some(function(a){return marylandWeight(a[0],a[1])>.2;}))continue;
       var pts = RT[i][1];
       g.strokeStyle = 'rgba(139,105,68,.55)'; g.lineWidth = wgt + 1.5;
       g.beginPath();
@@ -1473,13 +1475,13 @@ var CLOUD_SHAPES = [
 ];
 var FOG_RENDER={key:'',builds:0};
 function drawFog() {
-  var rs=allRegions(),cloudReady=artLoad('story-cloud').ok;
+  var rs=allRegions(),cloudReady=cartoonCloudReady()+':'+artLoad('story-cloud').ok;
   var key=[S.center.lat,S.center.lng,S.zoom,W,H,cloudReady,MD_TOWNBOXES.length,NYC_WORLD.visible&&NYC_WORLD.ready?NYC_WORLD.key:'',rs.map(function(r){return r.id+':'+r.lat+':'+r.lng+':'+r.r;}).join('|'),S.memories.concat(S.plans||[]).map(function(m){return m.id+':'+m.lat+':'+m.lng;}).join('|'),S.me?S.me.lat+':'+S.me.lng:''].join('/');
   if(key===FOG_RENDER.key)return;
   FOG_RENDER.key=key;FOG_RENDER.builds++;
-  var g=fogCtx,s=FOGPIXEL,bw=fogCv.width,bh=fogCv.height;
+  var g=fogCtx,bw=fogCv.width,bh=fogCv.height;
   g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.clearRect(0,0,bw,bh);
-  g.save();g.scale(1/s,1/s);drawSkyClouds(S.zoom,g);g.restore();
+  g.save();g.scale(DPR,DPR);drawSkyClouds(S.zoom,g);g.restore();
   /* The map stays visible between intact cloud banks. POI-aware placement in
      drawSkyClouds makes important areas less crowded; no cutout masks. */
 }
@@ -3319,6 +3321,7 @@ function hydrateLocal() {
 //#include world/lake-cities.js
 //#include world/nyc-waterfront.js
 //#include world/dc-gardens.js
+//#include world/story-roads.js
 //#include world/maryland-landscape.js
 //#include features/scenic.js
 //#include features/homebase.js

@@ -62,12 +62,19 @@ Owner-requested map planting direction: trees, flowers, shrubs, grass and small
 garden rocks use soft cartoon silhouettes and gentle shading to sit beside the
 canonical avatars. Preserve their antialiased edges and avoid noisy pixel
 texture. The cached scenery renders at device resolution. This planting update
-does not redesign the avatars, buildings, clouds or interface.
+keeps the canonical avatars and interface unchanged.
 
 The matching environmental set extends this treatment to nearby Appalachian
 ridges and rolling hills, waterfalls, footbridges, docks, sailboats, benches,
 lamps and supporting village cottages. Keep major homes and city landmarks
 recognizable; reuse their existing geographic anchors and reserved clearings.
+
+The main castle, blue-roof house, white post office, DC landmarks and lighthouse
+now follow the same rounded cartoon shading. Keep the pink towers, blue roof,
+white fence, attached envelope logo and recognizable landmark silhouettes.
+Clouds use several distinct soft pink/peach/lilac silhouettes at their natural
+proportions. Tan paths serve homes and gardens; a few muted gray-blue roads with
+cream dashed centers connect regional areas using existing route coordinates.
 
 ## Layout
 Spacious and easy to read. Consistent spacing (multiples of 4px) and alignment. Let layouts adapt to the screen instead of shrinking everything.

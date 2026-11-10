@@ -28,6 +28,7 @@ function marylandGrounds(g){
   [.95,.72,.45].forEach(function(scale,j){g.fillStyle=['rgba(113,151,75,.12)','rgba(86,129,65,.12)','rgba(63,111,61,.10)'][j];g.beginPath();for(var k=0;k<=16;k++){var angle=k/16*Math.PI*2,rr=r*scale*(.82+terHash(i,k%16,237)*.3),x=q.x+Math.cos(angle)*rr,y=q.y+Math.sin(angle)*rr*.85;if(k)g.lineTo(x,y);else g.moveTo(x,y);}g.closePath();g.fill();});g.restore();
  });
  /* Physical tan paths live below trees and all interactive artwork. */
+ drawStoryRoads(g);
  g.save();g.lineCap='round';g.lineJoin='round';
  MD_PATHS=marylandPathPoints();MD_PATHS.forEach(function(a){g.beginPath();g.moveTo(a[0].x,a[0].y);g.quadraticCurveTo(a[1].x,a[1].y,a[2].x,a[2].y);g.strokeStyle='#b6a175';g.lineWidth=Math.max(6,u*.12);g.stroke();g.strokeStyle='#e4ca95';g.lineWidth=Math.max(4,u*.075);g.stroke();});g.restore();
  ['e','b','m'].forEach(function(id){var a=p[id],rx=u*(id==='m'?.86:1.02),ry=u*.29;if(a.x<-rx||a.x>W+rx||a.y<-u||a.y>H+u)return;
@@ -51,7 +52,7 @@ function marylandVegetation(g){
   for(var iy=loY;iy<=hiY;iy++)for(var ix=loX;ix<=hiX;ix++){
    var lat=(iy+.12+terHash(ix,iy,141)*.76)*cell,lng=(ix+.12+terHash(ix,iy,142)*.76)*cell,weight=marylandWeight(lat,lng),rate=scenicCellWeight(ix,iy,cell,z,lv?19:12);if(weight<.2||rate<.01)continue;
    var p=proj(lat,lng),r=terHash(ix,iy,143),forest=marylandForest(lat,lng),grain=terNoise(lng*32,lat*32),h=u*(.28+terHash(ix,iy,144)*.24);
-   if(p.x<-45||p.x>W+45||p.y<-20||p.y>H+60||!scenicLand(p.x,p.y)||scenicAvoid(p.x,p.y,u*.34)||marylandPathNear(p.x,p.y,h*.32+5)||MD_TOWNS.some(function(a){var q=proj(a[0],a[1]);return Math.hypot(p.x-q.x,p.y-q.y)<u*.85;}))continue;
+   if(p.x<-45||p.x>W+45||p.y<-20||p.y>H+60||!scenicLand(p.x,p.y)||scenicAvoid(p.x,p.y,u*.34)||marylandPathNear(p.x,p.y,h*.32+5)||storyRoadNear(p.x,p.y,h*.32+5)||MD_TOWNS.some(function(a){var q=proj(a[0],a[1]);return Math.hypot(p.x-q.x,p.y-q.y)<u*.85;}))continue;
    var a=l.a*rate*weight;
    if(r<forest*.78+(grain>.55?.1:.02))items.push({x:p.x,y:p.y,h:h,a:a,art:terHash(ix,iy,145)<(.18+(1-forest)*.22)?'pack-cherry':r<.3?'pack-pine-tall':'pack-pine'});
    else if(r>.58&&r<.79)items.push({x:p.x,y:p.y,h:u*(.10+terHash(ix,iy,146)*.08),a:a,art:r>.75?'pack-rocks':r>.63?'pack-flowers':'pack-bush'});
@@ -78,7 +79,12 @@ function marylandDetails(g){
  MD_TOWNBOXES=[];MD_TOWNS.forEach(function(a,i){
   var q=proj(a[0],a[1]);if(q.x<-u||q.x>W+u||q.y<-u||q.y>H+u||repairClear(q.x,q.y)||!scenicLand(q.x,q.y))return;
   var scale=u*.52;
-  [[-.35,-.13],[.32,-.21],[0,.17]].forEach(function(v,j){var x=q.x+v[0]*u,y=q.y+v[1]*u;if(scenicLand(x,y)&&!repairClear(x,y)){var box=drawArt(g,j===1&&i<2?'city':'story-cottage',x,y,scale*(j===1?1.15:.9),1);if(box)MD_TOWNBOXES.push(box);}});
+  [[-.35,-.13],[.32,-.21],[0,.17]].forEach(function(v,j){
+   var x=q.x+v[0]*u,y=q.y+v[1]*u;
+   /* Supporting cottages sit beside the roadway rather than over its center. */
+   var center=storyRoadOffset(x,y-scale*.4,scale*.62),site={x:center.x,y:center.y+scale*.4};
+   if(scenicLand(site.x,site.y)&&!repairClear(site.x,site.y)&&!repairClear(site.x,site.y-scale*.5)){var box=drawArt(g,j===1&&i<2?'city':'story-cottage',site.x,site.y,scale*(j===1?1.15:.9),1);if(box)MD_TOWNBOXES.push(box);}
+  });
  });
 }
 function marylandRelief(g,p,u){
