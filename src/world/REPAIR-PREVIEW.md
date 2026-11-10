@@ -131,3 +131,19 @@ Local approval shots include `repair-maryland-composition.png` (8.4),
 home views (11.2). Existing NYC/DC close-ups, touch controls, startup behavior,
 presence, memory records and Chicago/Milwaukee flight pass the browser checks.
 Visual approval and physical Safari testing remain pending; nothing is deployed.
+
+## Soft cartoon planting candidate
+
+Original nine-sprite source sheet: `art-src/world/soft-foliage-sheet.png`.
+`tools/prepare-soft-foliage.js` exports trees, bushes, flowers, rocks and grass
+with transparent edges and records crops, sizes and anchors in the soft-foliage
+manifest. Existing vegetation names resolve to the new assets; source sheets
+and the previous pack remain available. Shared source loading avoids fetching
+the same tree once for each legacy alias.
+
+Soft plants retain fractional alpha and high-quality resizing, while other
+sprites keep their existing pixel renderer. The cached scenic canvas now uses
+device resolution so foliage isn't magnified from half resolution. Small meadow
+flower scatter is reduced and individual clumps are larger. Layout, coordinates,
+avatars, memory interactions and camera behavior are unchanged. Preview capture
+uses the existing Day setting so visual comparisons have consistent lighting.

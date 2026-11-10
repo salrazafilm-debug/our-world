@@ -148,7 +148,7 @@ function scenicGround(g) {
 function drawScenic() {
   SCENIC_AVOID=[HOMES.bruce,HOMES.elena].concat(HOMEBASE,LANDMARKS.map(function(l){return{lat:l[2],lng:l[3]};}),S.memories,S.plans||[]).map(function(p){return proj(p.lat,p.lng);});
   var g = scenicCtx, z = S.zoom;
-  g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, W, H);
   if (!TER.on) return;
   scenicGround(g);
   scenicCoast(g);

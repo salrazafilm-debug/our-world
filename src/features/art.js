@@ -2,13 +2,19 @@
    shrunk once to the exact pixel height it is drawn at, so it stays sharp at
    every zoom, and keeps its proportions. */
 
-var ART = {}, ARTSIZED = {};
+/* The owner's softer cartoon planting keeps antialiased edges. Architecture,
+   clouds, UI and canonical avatars retain their existing rendering. */
+var SOFT_FOLIAGE={};
+[['pine',['pack-pine','tree-pine','story-pine']],['pine-tall',['pack-pine-tall']],['oak',['pack-oak','tree-oak','story-oak']],['cherry',['pack-cherry','tree-cherry','story-cherry']],['crimson',['pack-crimson']],['bush',['pack-bush','bush','bush-pink']],['flowers',['pack-flowers','flowers','flowers2','flowers3','flowers4']],['rocks',['pack-rocks','rock']],['grass',['pack-grass']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft/'+group[0]+'.png';});});
+var ART = {}, ARTSIZED = {}, SOFT_SOURCES = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
-  var e = ART[name] = { ok: false }, im = new Image();
+  if(SOFT_FOLIAGE[name]&&SOFT_SOURCES[SOFT_FOLIAGE[name]])return ART[name]=SOFT_SOURCES[SOFT_FOLIAGE[name]];
+  var e = ART[name] = { ok: false, soft:!!SOFT_FOLIAGE[name] }, im = new Image();
+  if(e.soft)SOFT_SOURCES[SOFT_FOLIAGE[name]]=e;
   im.onload = function () { e.img = im; e.ok = true; if (typeof baseDirty !== 'undefined') baseDirty = true; if(typeof requestMapDraw==='function'&&W)requestMapDraw(); };
   im.onerror = function () { e.bad = true; };
-  im.src = (typeof WORLD_ASSETS!=='undefined'&&WORLD_ASSETS[name])?WORLD_ASSETS[name].path:'art/' + name + '.png';
+  im.src = SOFT_FOLIAGE[name] || ((typeof WORLD_ASSETS!=='undefined'&&WORLD_ASSETS[name])?WORLD_ASSETS[name].path:'art/' + name + '.png');
   return e;
 }
 ['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
@@ -32,20 +38,23 @@ function artSized(name, h, res) {
   if (ARTSIZED[key]) return ARTSIZED[key];
   var pw = Math.max(4, Math.round(e.img.width * px / e.img.height));
   var c = document.createElement('canvas'); c.width = pw; c.height = px;
-  /* Pixel assets retain hard edges at every scale, including downsampling. */
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = e.soft;
+  if(e.soft)g.imageSmoothingQuality='high';
   g.drawImage(e.img, 0, 0, pw, px);
-  var id = g.getImageData(0, 0, pw, px);
-  for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 100 ? 255 : 0;
-  g.putImageData(id, 0, 0);
+  if(!e.soft){var id = g.getImageData(0, 0, pw, px);
+    for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 100 ? 255 : 0;
+    g.putImageData(id, 0, 0);
+  }
   return (ARTSIZED[key] = c);
 }
 /* stands on (x, y), h tall (css px); returns its box, or null while the art loads */
 function drawArt(g, name, x, y, h, res) {
+  if(SOFT_FOLIAGE[name])res=Math.max(2,res||1);
   var c = artSized(name, h, res);
   if (!c) return null;
   var w = c.width / (res || 1), hh = c.height / (res || 1), pad = (c.pad || 0) / (res || 1);
-  g.save(); g.imageSmoothingEnabled = false;
+  g.save(); g.imageSmoothingEnabled = !!SOFT_FOLIAGE[name];
+  if(SOFT_FOLIAGE[name])g.imageSmoothingQuality='high';
   g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh + pad), w, hh);
   g.restore();
   return { x: x - w / 2, y: y - hh, w: w, h: hh };

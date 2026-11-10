@@ -58,6 +58,12 @@ Not every control has to be a rectangle: books, envelopes, paws, signs and tabs 
 ## Pixel consistency
 Everything looks like it came from the same game. Don't mix pixel art with thin vector icons, realistic UI, smooth 3D or other illustration styles. Small objects get simpler, not just scaled down. Emoji only sparingly, never as the main icon of a major control.
 
+Owner-requested map planting direction: trees, flowers, shrubs, grass and small
+garden rocks use soft cartoon silhouettes and gentle shading to sit beside the
+canonical avatars. Preserve their antialiased edges and avoid noisy pixel
+texture. The cached scenery renders at device resolution. This planting update
+does not redesign the avatars, buildings, clouds or interface.
+
 ## Layout
 Spacious and easy to read. Consistent spacing (multiples of 4px) and alignment. Let layouts adapt to the screen instead of shrinking everything.
 

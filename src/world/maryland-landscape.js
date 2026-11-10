@@ -54,7 +54,7 @@ function marylandVegetation(g){
    if(p.x<-45||p.x>W+45||p.y<-20||p.y>H+60||!scenicLand(p.x,p.y)||scenicAvoid(p.x,p.y,u*.34)||marylandPathNear(p.x,p.y,h*.32+5)||MD_TOWNS.some(function(a){var q=proj(a[0],a[1]);return Math.hypot(p.x-q.x,p.y-q.y)<u*.85;}))continue;
    var a=l.a*rate*weight;
    if(r<forest*.78+(grain>.55?.1:.02))items.push({x:p.x,y:p.y,h:h,a:a,art:terHash(ix,iy,145)<(.18+(1-forest)*.22)?'pack-cherry':r<.3?'pack-pine-tall':'pack-pine'});
-   else if(r>.50&&r<.87)items.push({x:p.x,y:p.y,h:u*(.07+terHash(ix,iy,146)*.08),a:a,art:r>.75?'pack-rocks':r>.59?'pack-flowers':'pack-bush'});
+   else if(r>.58&&r<.79)items.push({x:p.x,y:p.y,h:u*(.10+terHash(ix,iy,146)*.08),a:a,art:r>.75?'pack-rocks':r>.63?'pack-flowers':'pack-bush'});
   }
  });
  items.sort(function(a,b){return a.y-b.y;}).forEach(function(it){g.save();g.globalAlpha=it.a;drawArt(g,it.art,it.x,it.y,it.h,1);g.restore();});

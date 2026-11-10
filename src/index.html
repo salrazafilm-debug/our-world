@@ -1249,7 +1249,7 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   baseCv.width  = Math.max(1, Math.ceil(W / PIXEL));    baseCv.height = Math.max(1, Math.ceil(H / PIXEL));
-  scenicCv.width = Math.max(1, Math.ceil(W / 2)); scenicCv.height = Math.max(1, Math.ceil(H / 2));
+  scenicCv.width = Math.max(1, Math.ceil(W * DPR)); scenicCv.height = Math.max(1, Math.ceil(H * DPR));
   fogCv.width   = Math.max(1, Math.ceil(W / FOGPIXEL)); fogCv.height  = Math.max(1, Math.ceil(H / FOGPIXEL));
   baseDirty = true;
   draw();
