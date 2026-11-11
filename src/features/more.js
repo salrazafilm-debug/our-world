@@ -98,8 +98,7 @@ function openMenu() {
       var bd = dashBadge(t[0]);
       return '<button type="button" class="d-tile" data-d="' + t[0] + '"><span class="art"><img src="' + t[1] + '" alt=""></span><span class="lbl">' + esc(t[2]) + '</span>' + (bd ? '<span class="badge">' + esc(bd) + '</span>' : '') + '</button>';
     }).join('') + '</div>' +
-    '<div class="d-more"><button class="pxbtn" type="button" data-d="add">Add something</button><button class="pxbtn" type="button" data-d="dreams">Dreams</button><button class="pxbtn" type="button" data-d="set">Settings</button></div>' +
-    '<nav class="d-more" aria-label="Map views"><button class="pxbtn" type="button" data-d="mapview" data-view="dmv">DMV</button><button class="pxbtn" type="button" data-d="mapview" data-view="earth">Earth</button><button class="pxbtn" type="button" data-d="mapview" data-view="space">Space</button><button class="pxbtn" type="button" data-d="places">Places</button><button class="pxbtn" type="button" data-d="discover">Discover</button></nav>' +
+    '<div class="d-more"><button class="pxbtn" type="button" data-d="set">Settings</button></div>' +
     '</div>';
   dashEl.classList.add('on'); dashEl.scrollTop = 0;
 }
