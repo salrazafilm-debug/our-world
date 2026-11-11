@@ -13,7 +13,7 @@ ROWHOOKS.mail = function (rows) {
   if (MAIL.open) mailRender();
   draw();
 };
-var MAIL = { open: false, mode: 'ext', tab: 'inbox', read: null, list: null, idx: 0, busy: false };
+var MAIL = { open: false, mode: 'ext', tab: 'compose', read: null, list: null, idx: 0, busy: false };
 
 /* the post office sits halfway between our two homes */
 var MAIL_POS = { lat: (HOMES.bruce.lat + HOMES.elena.lat) / 2, lng: (HOMES.bruce.lng + HOMES.elena.lng) / 2 };
@@ -160,7 +160,7 @@ function mailOpen(opts) {
   if (typeof dashClose === 'function') dashClose();
   MAIL.open = true; MAIL.read = null;
   MAIL.mode = opts.room ? 'room' : 'ext';
-  MAIL.tab = opts.tab || 'inbox';
+  MAIL.tab = opts.tab || 'compose';
   if (!opts.room) flyTo(MAIL_POS.lat, MAIL_POS.lng, Math.max(S.zoom, 11.6));
   mailRender(true);
   mailEl.classList.add('on');
@@ -188,7 +188,7 @@ function mailRender(anim) {
       '<div class="m-top"><button class="m-btn" type="button" data-m="back">‹ Map</button></div></div>';
     return;
   }
-  var tabs = [['inbox', 'art/mail/env-row.png', 'Inbox', n], ['compose', 'art/ui/letters.png', 'Compose', 0], ['letters', 'art/ui/book.png', 'Our Letters', 0], ['note', 'art/heart.png', 'Today’s Note', 0]];
+  var tabs = [['compose', 'art/ui/letters.png', 'Write a letter', 0], ['inbox', 'art/mail/env-row.png', 'Inbox', n], ['letters', 'art/ui/book.png', 'Our Letters', 0], ['note', 'art/heart.png', 'Today’s Note', 0]];
   mailEl.innerHTML = '<div class="m-room' + (anim ? ' enter' : '') + '"><div class="bg"></div>' +
     '<div class="m-top"><button class="m-btn" type="button" data-m="back" aria-label="Back">‹</button><div class="m-sign"><span><img alt="" src="art/mail/env-row.png">Mail Room</span></div><span style="width:46px"></span></div>' +
     '<div class="m-body"><nav class="m-tabs">' + tabs.map(function (t) {
@@ -256,7 +256,7 @@ function mailClick(e) {
   var b = e.target.closest('[data-m]'); if (!b || MAIL.busy) return;
   var a = b.dataset.m;
   if (a === 'back') return mailBack();
-  if (a === 'enter') { MAIL.mode = 'room'; MAIL.tab = mailUnread().length ? 'inbox' : 'inbox'; return mailRender(true); }
+  if (a === 'enter') { MAIL.mode = 'room'; MAIL.tab = 'compose'; return mailRender(true); }
   if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; return mailRender(); }
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;

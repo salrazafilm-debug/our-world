@@ -31,7 +31,7 @@ function polaroidPin(m, p, z) {
   if (!urls.length) return null;
   var e = polEntry(urls[0]);
   if (!e.ok) return null;
-  var s = z > 11 ? 1.3 : 1, ph = Math.round(42 * s), w = ph + Math.round(10 * s), h = ph + Math.round(20 * s), lift = Math.round(10 * s);
+  var s = Math.max(1, Math.min(1.5, 1 + (z - 10) * 0.15)), ph = Math.round(42 * s), w = ph + Math.round(10 * s), h = ph + Math.round(20 * s), lift = Math.round(10 * s);
   var rot = ((polHash(m.id) % 13) - 6) * Math.PI / 180;
   ctx.save();
   ctx.translate(p.x, p.y - lift - h / 2);

@@ -40,8 +40,8 @@
   {
     "id": "post-office",
     "path": "art/world/soft-buildings/post-office.png",
-    "width": 471,
-    "height": 380,
+    "width": 512,
+    "height": 376,
     "anchor": [
       0.5,
       1

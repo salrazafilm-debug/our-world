@@ -1553,6 +1553,8 @@ function wyToLat(y, z){
   return 180/Math.PI * Math.atan(0.5*(Math.exp(n)-Math.exp(-n)));
 }
 /* km per screen pixel at a given latitude + zoom */
+/* pin and envelope size: grows smoothly with zoom and is never tiny when zoomed out */
+function pinScale(z){ return Math.max(3, Math.min(6, Math.round(3 + (z - 7.5) * 0.45))); }
 function kmPerPx(lat, z){ return 156.543 * Math.cos(rad(lat)) / Math.pow(2, z); }
 
 /* ============================== decode geo pack ============================== */
@@ -2294,7 +2296,7 @@ function drawMapOverlays() {
     if(lm[0]==='dc')p=repairPoint('dc');
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
-    var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * 1.4 * (lm[6] || 1)));   /* places are about 1.4x bigger than before */
+    var lsc = Math.max(3, Math.round(1.26 * (z - 6.5) * (lm[6] || 1)));   /* grows smoothly with zoom, never smaller when you zoom in */
     var gh2 = SP[lm[4]].length * lsc;
     if (planned) {
       /* still ahead of us: a dashed ring on the ground and the icon held back a little */
@@ -2427,7 +2429,7 @@ function drawMapOverlays() {
     if (!isRevealed(su.lat, su.lng, 1.2)) continue;
     p = proj(su.lat, su.lng);
     if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
-    var eb = drawSprite(ctx, SP.envelope, PAL.env, p.x, p.y, z > 9 ? 3 : 2, '#FFFFFF');
+    var eb = drawSprite(ctx, SP.envelope, PAL.env, p.x, p.y, pinScale(z), '#FFFFFF');
     if (!su.opened) {
       var pl = reduceMotion ? 0.5 : (Math.sin(cloudPhase / 11 + i * 2) * 0.5 + 0.5);
       ctx.strokeStyle = 'rgba(216,90,146,' + (0.35 + pl * 0.45) + ')'; ctx.lineWidth = 2;
@@ -2455,7 +2457,7 @@ function drawMemoryMarkers(inScene){
     var p=proj(m.lat,m.lng),pk=m.lat.toFixed(4)+','+m.lng.toFixed(4),pn=pinCount[pk],pi=pinSeen[pk]||0;pinSeen[pk]=pi+1;
     if(pn>1){var a=pi/pn*6.2832-1.5708,r=z>9.2?46:24;p={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r};}
     if(p.x<-40||p.y<-50||p.x>W+40||p.y>H+30)return;
-    var b=polaroidPin(m,p,z)||drawSprite(ctx,SP.mapPin,PAL.mapPin,p.x,p.y,z>9?3:2,'#FFFFFF');
+    var b=polaroidPin(m,p,z)||drawSprite(ctx,SP.mapPin,PAL.mapPin,p.x,p.y,pinScale(z),'#FFFFFF');
     addHit({x:b.x-7,y:b.y-7,w:b.w+14,h:b.h+14},{kind:'memory',id:m.id});
   });
 }
@@ -4785,7 +4787,8 @@ var HOMEBASE = [
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(28, Math.min(117, 51 + (z - 6.9) * 15)); }
+/* one smooth curve: places only ever grow as you zoom in, and stay visible when zoomed out */
+function homeArtH(z) { return Math.max(30, Math.min(176, 51 + (z - 6.9) * 15)); }
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };
@@ -5010,11 +5013,13 @@ HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fi
    zoom. Neither positions nor opacity depend on screen edges or animation time. */
 var CLOUD_DEBUG=[];
 function cloudEase(a,b,z){var t=Math.max(0,Math.min(1,(z-a)/(b-a)));return t*t*(3-2*t);}
+/* overlapping cloud sizes: each size fades in before the one above it fades out,
+   so there is never a gap in the sky while you zoom */
 function cloudBands(z){return[
- {cell:5.12,alpha:1-cloudEase(4.8,6,z),seed:501},
- {cell:1.28,alpha:cloudEase(4.8,6,z)*(1-cloudEase(6.5,7.7,z)),seed:502},
- {cell:.32,alpha:cloudEase(6.5,7.7,z)*(1-cloudEase(9,10.2,z)),seed:503},
- {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
+ {cell:5.12,alpha:1-cloudEase(3.6,6.2,z),seed:501},
+ {cell:1.28,alpha:cloudEase(3.9,5.8,z)*(1-cloudEase(6.6,8.6,z)),seed:502},
+ {cell:.32,alpha:cloudEase(6.2,8.2,z)*(1-cloudEase(9.2,11.2,z)),seed:503},
+ {cell:.08,alpha:cloudEase(8.6,10.8,z),seed:504}
 ];}
 function cloudImportantAreas(){
  var areas=REPAIR.boxes.slice();
@@ -6456,7 +6461,7 @@ function polaroidPin(m, p, z) {
   if (!urls.length) return null;
   var e = polEntry(urls[0]);
   if (!e.ok) return null;
-  var s = z > 11 ? 1.3 : 1, ph = Math.round(42 * s), w = ph + Math.round(10 * s), h = ph + Math.round(20 * s), lift = Math.round(10 * s);
+  var s = Math.max(1, Math.min(1.5, 1 + (z - 10) * 0.15)), ph = Math.round(42 * s), w = ph + Math.round(10 * s), h = ph + Math.round(20 * s), lift = Math.round(10 * s);
   var rot = ((polHash(m.id) % 13) - 6) * Math.PI / 180;
   ctx.save();
   ctx.translate(p.x, p.y - lift - h / 2);
@@ -6988,7 +6993,7 @@ ROWHOOKS.mail = function (rows) {
   if (MAIL.open) mailRender();
   draw();
 };
-var MAIL = { open: false, mode: 'ext', tab: 'inbox', read: null, list: null, idx: 0, busy: false };
+var MAIL = { open: false, mode: 'ext', tab: 'compose', read: null, list: null, idx: 0, busy: false };
 
 /* the post office sits halfway between our two homes */
 var MAIL_POS = { lat: (HOMES.bruce.lat + HOMES.elena.lat) / 2, lng: (HOMES.bruce.lng + HOMES.elena.lng) / 2 };
@@ -7135,7 +7140,7 @@ function mailOpen(opts) {
   if (typeof dashClose === 'function') dashClose();
   MAIL.open = true; MAIL.read = null;
   MAIL.mode = opts.room ? 'room' : 'ext';
-  MAIL.tab = opts.tab || 'inbox';
+  MAIL.tab = opts.tab || 'compose';
   if (!opts.room) flyTo(MAIL_POS.lat, MAIL_POS.lng, Math.max(S.zoom, 11.6));
   mailRender(true);
   mailEl.classList.add('on');
@@ -7163,7 +7168,7 @@ function mailRender(anim) {
       '<div class="m-top"><button class="m-btn" type="button" data-m="back">‹ Map</button></div></div>';
     return;
   }
-  var tabs = [['inbox', 'art/mail/env-row.png', 'Inbox', n], ['compose', 'art/ui/letters.png', 'Compose', 0], ['letters', 'art/ui/book.png', 'Our Letters', 0], ['note', 'art/heart.png', 'Today’s Note', 0]];
+  var tabs = [['compose', 'art/ui/letters.png', 'Write a letter', 0], ['inbox', 'art/mail/env-row.png', 'Inbox', n], ['letters', 'art/ui/book.png', 'Our Letters', 0], ['note', 'art/heart.png', 'Today’s Note', 0]];
   mailEl.innerHTML = '<div class="m-room' + (anim ? ' enter' : '') + '"><div class="bg"></div>' +
     '<div class="m-top"><button class="m-btn" type="button" data-m="back" aria-label="Back">‹</button><div class="m-sign"><span><img alt="" src="art/mail/env-row.png">Mail Room</span></div><span style="width:46px"></span></div>' +
     '<div class="m-body"><nav class="m-tabs">' + tabs.map(function (t) {
@@ -7231,7 +7236,7 @@ function mailClick(e) {
   var b = e.target.closest('[data-m]'); if (!b || MAIL.busy) return;
   var a = b.dataset.m;
   if (a === 'back') return mailBack();
-  if (a === 'enter') { MAIL.mode = 'room'; MAIL.tab = mailUnread().length ? 'inbox' : 'inbox'; return mailRender(true); }
+  if (a === 'enter') { MAIL.mode = 'room'; MAIL.tab = 'compose'; return mailRender(true); }
   if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; return mailRender(); }
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;

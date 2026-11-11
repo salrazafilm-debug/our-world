@@ -157,11 +157,13 @@ HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fi
    zoom. Neither positions nor opacity depend on screen edges or animation time. */
 var CLOUD_DEBUG=[];
 function cloudEase(a,b,z){var t=Math.max(0,Math.min(1,(z-a)/(b-a)));return t*t*(3-2*t);}
+/* overlapping cloud sizes: each size fades in before the one above it fades out,
+   so there is never a gap in the sky while you zoom */
 function cloudBands(z){return[
- {cell:5.12,alpha:1-cloudEase(4.8,6,z),seed:501},
- {cell:1.28,alpha:cloudEase(4.8,6,z)*(1-cloudEase(6.5,7.7,z)),seed:502},
- {cell:.32,alpha:cloudEase(6.5,7.7,z)*(1-cloudEase(9,10.2,z)),seed:503},
- {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
+ {cell:5.12,alpha:1-cloudEase(3.6,6.2,z),seed:501},
+ {cell:1.28,alpha:cloudEase(3.9,5.8,z)*(1-cloudEase(6.6,8.6,z)),seed:502},
+ {cell:.32,alpha:cloudEase(6.2,8.2,z)*(1-cloudEase(9.2,11.2,z)),seed:503},
+ {cell:.08,alpha:cloudEase(8.6,10.8,z),seed:504}
 ];}
 function cloudImportantAreas(){
  var areas=REPAIR.boxes.slice();

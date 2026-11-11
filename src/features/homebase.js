@@ -9,7 +9,8 @@ var HOMEBASE = [
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(28, Math.min(117, 51 + (z - 6.9) * 15)); }
+/* one smooth curve: places only ever grow as you zoom in, and stay visible when zoomed out */
+function homeArtH(z) { return Math.max(30, Math.min(176, 51 + (z - 6.9) * 15)); }
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };
