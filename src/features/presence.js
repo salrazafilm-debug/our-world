@@ -202,10 +202,12 @@ function besideHomes(x, y, w) {
   return x;
 }
 function drawFigure(who, x, y, h) {
-  var pt=avatarGroundPoint(besideHomes(x,y,avWidth(who,h)),y,avWidth(who,h));
+  /* feet exactly on the spot: no sliding aside, even if that is right in front of a house */
+  var pt=avatarGroundPoint(x,y,avWidth(who,h));
   return pt?drawAvatar(ctx,who,pt.x,pt.y,h,null,{res:DPR}):null;
 }
 function avatarGroundPoint(x,y,w) {
+  if(terrainAt(x,y)==='land')return{x:x,y:y};              /* on land: stand right on the spot */
   var candidates=[[0,0],[-w,0],[-w*1.6,0],[0,18],[-w,18],[w,0],[0,-18]];
   for(var i=0;i<candidates.length;i++){
     var xx=x+candidates[i][0],yy=y+candidates[i][1];
@@ -223,7 +225,7 @@ HOOKS.afterOverlays.push(function () {
     var mid = midpoint(), g = worldGlide('pair', mid.lat, mid.lng);
     pt = proj(g.lat, g.lng);
     var pw = avWidth('bruce', h) + avWidth('elena', h);
-    var pairGround=avatarGroundPoint(besideHomes(pt.x,pt.y,pw),pt.y,pw);
+    var pairGround=avatarGroundPoint(pt.x,pt.y,pw);
     box = pairGround?drawTogetherPair(ctx,pairGround.x,pairGround.y,h,DPR):null;
     if (box) { addHit(box, { kind: 'avatar', who: 'both' }); tag(box.x + box.w / 2, box.y - 2, 'Together'); }
     return;
@@ -236,7 +238,7 @@ HOOKS.afterOverlays.push(function () {
       pt = proj(gw.lat, gw.lng);
       box = drawFigure(who, pt.x, pt.y, h);
       if (box) { addHit(box, { kind: 'avatar', who: who }); tag(box.x + box.w / 2, box.y - 2, who === S.who ? 'You' : jrShortName(who) + ' \u00b7 live'); }
-    } else if (online && HOMEBOXES[who] && S.zoom > 8.6) {
+    } else if (online && HOMEBOXES[who] && S.zoom > 8.6 && !(who === S.who && S.me)) {     /* once you have set where you are, you stand there, not at home */
       /* waiting at home: standing beside the house, on its ground line, never moving */
       var hb = HOMEBOXES[who], w = avWidth(who, h);
       var x = hb.x - w / 2 - 6;
