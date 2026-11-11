@@ -925,6 +925,8 @@ SP.castle = [
   'wwwwwwwwwwwww','wgwwwSSSwwwgw','wwwwwdddwwwww','wwwwwdddwwwww',
   'wwwwwdddwwwww','SSSSSSSSSSSSS'
 ];
+/* the tiny heart that marks a memory on the map: small enough to have many in one area */
+SP.miniHeart = ['.hh.hh.','hghhhhh','hhhhhhh','.hhhhh.','..hhh..','...h...'];
 SP.heart = [
   '.hh...hh.','hhhhhhhhh','hhhhhhhhh','hhhhhhhhh',
   '.hhhhhhh.','..hhhhh..','...hhh...','....h....'
@@ -1010,6 +1012,7 @@ SP.plane = [
 ];
 
 var PAL = {
+  miniHeart: {h:'#D4457A', g:'#FF9EC0'}, miniHeartGold: {h:'#E7B765', g:'#FFE2A1'},
   gold:   {r:C.gold, w:'#FBF0DC', o:'#7A5518', d:'#8E5F1C', g:C.waterlite, c:C.softgold},
   pink:   {r:C.pink, w:'#FFF0F6', o:'#6E2549', d:'#9F3D6D', g:C.waterlite, c:C.softgold},
   heartP: {h:C.pink, o:'#6E2549'},
@@ -1938,7 +1941,7 @@ function drawMapOverlays() {
       p = proj(st[2], st[3]);
       if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) continue;
       ctx.globalAlpha = 0.62;
-      var sb = drawSprite(ctx, SP.mapPin, PAL.mapPin, p.x, p.y, 2, '#FFFFFF');
+      var sb = drawMiniHeart(p.x, p.y, 2, PAL.miniHeartGold);
       ctx.globalAlpha = 1;
       ctx.save();
       ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(159,61,109,.5)'; ctx.lineWidth = 2;
@@ -1974,16 +1977,27 @@ function drawMapOverlays() {
 }
 
 /* ============================== main draw ============================== */
+function memHeartScale(z){return z<8?1:(z<12.2?2:3);}
+/* a tiny heart with a thin one-pixel outline, so a crowd of them stays readable instead of merging */
+function drawMiniHeart(cx, cy, s, pal) {
+  var g = SP.miniHeart, h = g.length, w = g[0].length, x0 = Math.round(cx - w * s / 2), y0 = Math.round(cy - h * s), i, j;
+  ctx.fillStyle = 'rgba(255,255,255,.92)';
+  for (i = 0; i < h; i++) for (j = 0; j < w; j++) if (g[i][j] !== '.') ctx.fillRect(x0 + j * s - 1, y0 + i * s - 1, s + 2, s + 2);
+  for (i = 0; i < h; i++) for (j = 0; j < w; j++) { var c = g[i][j]; if (c !== '.') { ctx.fillStyle = pal[c]; ctx.fillRect(x0 + j * s, y0 + i * s, s, s); } }
+  return { x: x0 - 1, y: y0 - 1, w: w * s + 2, h: h * s + 2 };
+}
 function drawMemoryMarkers(inScene){
   var pinCount={},pinSeen={},z=S.zoom;
   S.memories.forEach(function(m){var k=m.lat.toFixed(4)+','+m.lng.toFixed(4);pinCount[k]=(pinCount[k]||0)+1;});
   S.memories.forEach(function(m){
     if(inScene?!specialContains(m.lat,m.lng):!isRevealed(m.lat,m.lng,1.06))return;
     var p=proj(m.lat,m.lng),pk=m.lat.toFixed(4)+','+m.lng.toFixed(4),pn=pinCount[pk],pi=pinSeen[pk]||0;pinSeen[pk]=pi+1;
-    if(pn>1){var a=pi/pn*6.2832-1.5708,r=z>9.2?46:24;p={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r};}
+    if(pn>1){var a=pi/pn*6.2832-1.5708,r=memHeartScale(z)*(pn>6?7:5);p={x:p.x+Math.cos(a)*r,y:p.y+Math.sin(a)*r};}   /* hearts on the same spot fan out a little */
     if(p.x<-40||p.y<-50||p.x>W+40||p.y>H+30)return;
-    var b=polaroidPin(m,p,z)||drawSprite(ctx,SP.mapPin,PAL.mapPin,p.x,p.y,pinScale(z),'#FFFFFF');
-    addHit({x:b.x-7,y:b.y-7,w:b.w+14,h:b.h+14},{kind:'memory',id:m.id});
+    /* a tiny heart for every memory; a small polaroid only when you are zoomed right in */
+    var b=(z>=12.2?polaroidPin(m,p,z):null)||drawMiniHeart(p.x,p.y,memHeartScale(z),PAL.miniHeart);
+    var hw=Math.max(b.w+8,30),hh=Math.max(b.h+8,30);                     /* a finger-sized tap area around a tiny heart */
+    addHit({x:b.x+b.w/2-hw/2,y:b.y+b.h/2-hh/2,w:hw,h:hh},{kind:'memory',id:m.id});
   });
 }
 function draw() {
