@@ -1,37 +1,18 @@
 #!/usr/bin/env python3
 """Cut the 4 x 6 side-walking sheet (art-src/pets/puppy-walk-sheet.png) into art/pets/puppy-walk.webp
 and register it in tools/puppy-anims.json / src/features/pet-anims.js. The frames face right; the room flips them to walk left."""
-import os, json, collections
-from PIL import Image, ImageFilter
+import os, sys, json
+from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from puppy_cut import cut as cut_bg
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 ROWS = [(105, 330), (395, 615), (660, 890), (940, 1170)]
 X0, DX, W = 15, 205, 211
 SCALE, CH = 0.98, 256
 GROUND = CH - round(0.055 * CH)
 
-def cut(c):
-    c = c.convert('RGB'); w, h = c.size; px = c.load()
-    near = lambda p: max(p) > 198 and (max(p) - min(p)) < 14
-    seen = bytearray(w * h); q = collections.deque()
-    for x in range(w):
-        for y in (0, h - 1):
-            if near(px[x, y]) and not seen[y * w + x]: seen[y * w + x] = 1; q.append((x, y))
-    for y in range(h):
-        for x in (0, w - 1):
-            if near(px[x, y]) and not seen[y * w + x]: seen[y * w + x] = 1; q.append((x, y))
-    while q:
-        x, y = q.popleft()
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx] and near(px[nx, ny]): seen[ny * w + nx] = 1; q.append((nx, ny))
-    al = Image.new('L', (w, h), 255); ap = al.load()
-    for y in range(h):
-        for x in range(w):
-            if seen[y * w + x]: ap[x, y] = 0
-    o = c.convert('RGBA'); o.putalpha(al.filter(ImageFilter.GaussianBlur(0.6))); return o
-
 im = Image.open(os.path.join(ROOT, 'art-src', 'pets', 'puppy-walk-sheet.png')).convert('RGB')
-frames = [cut(im.crop((X0 + DX * i, ROWS[r][0], X0 + DX * i + W, ROWS[r][1]))) for r in range(4) for i in range(6)]
+frames = [cut_bg(im.crop((X0 + DX * i, ROWS[r][0], X0 + DX * i + W, ROWS[r][1])), min_gap=60) for r in range(4) for i in range(6)]
 cw = round(W * SCALE) + 8; cw += cw % 2
 cols = 8; rows = 3
 sheet = Image.new('RGBA', (cw * cols, CH * rows), (0, 0, 0, 0))

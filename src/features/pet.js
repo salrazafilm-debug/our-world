@@ -279,11 +279,16 @@ var puppyMotion = new Image(); puppyMotion.src = 'art/pets/puppy-motion.png';
    lie down, settle, wake) play once and hand back. Asleep: the sleep loop. */
 var PUPIMG = {};
 function pupImg(name) {
-  if (!PUPIMG[name] && PUP_ANIMS[name]) { var im = new Image(); im.src = 'art/pets/puppy-' + name + '.webp'; PUPIMG[name] = im; }
+  if (!PUPIMG[name] && PUP_ANIMS[name]) { var im = new Image(); im.src = 'art/pets/puppy-' + name + '.webp'; PUPIMG[name] = im; if (im.decode) im.decode().catch(function () {}); }   /* decoded ahead, so the first frame never waits */
   return PUPIMG[name];
 }
 function pupReady(name) { var im = pupImg(name); return !!(im && im.complete && im.naturalWidth); }
-function pupPreload() { ['idle', 'sleep'].forEach(pupImg); setTimeout(function () { Object.keys(PUP_ANIMS).forEach(pupImg); }, 1200); }
+function pupPreload() { if (PC.warm) return; PC.warm = 1; ['idle', 'look', 'yawn', 'sleep'].forEach(pupImg); setTimeout(function () { Object.keys(PUP_ANIMS).forEach(pupImg); }, 1500); }
+/* shortly after the app starts, while the map is quiet, fetch the puppy so the room opens with it already there (skipped on data saver) */
+setTimeout(function () {
+  if (navigator.connection && navigator.connection.saveData) return;
+  (window.requestIdleCallback || function (fn) { setTimeout(fn, 800); })(pupPreload, { timeout: 8000 });
+}, 4000);
 var PC = { clip: null, t0: 0, onEnd: null, idleName: 'idle', it0: 0, rest: 2500, drawn: '', pre: 0 };
 function pupPlay(name, onEnd) {
   if (reduceMotion || !PUP_ANIMS[name] || !pupReady(name)) { if (onEnd) onEnd(); return; }

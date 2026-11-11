@@ -13,36 +13,13 @@ y 88..901, so it is scaled by 0.287 and centred on x 458 with its feet on the gr
 """
 import sys, os, glob, shutil, subprocess, collections, json, math, tempfile
 from PIL import Image, ImageFilter
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from puppy_cut import cut as cut_bg
 
 REF_SCALE = 0.287            # 0.91 * 256 / (901 - 88)
 REF_CX, REF_FEET = 458, 901  # body centre x and feet y in the 960 px frame
 CH = 256
 GROUND = CH - round(0.055 * CH)
-
-
-def cut(im):
-    im = im.convert('RGB'); w, h = im.size; px = im.load()
-    seen = bytearray(w * h); q = collections.deque()
-    near = lambda p: p[0] > 228 and p[1] > 228 and p[2] > 228
-    for x in range(w):
-        for y in (0, h - 1):
-            if near(px[x, y]) and not seen[y * w + x]: seen[y * w + x] = 1; q.append((x, y))
-    for y in range(h):
-        for x in (0, w - 1):
-            if near(px[x, y]) and not seen[y * w + x]: seen[y * w + x] = 1; q.append((x, y))
-    while q:
-        x, y = q.popleft()
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < w and 0 <= ny < h and not seen[ny * w + nx] and near(px[nx, ny]):
-                seen[ny * w + nx] = 1; q.append((nx, ny))
-    a = Image.new('L', (w, h), 255); ap = a.load()
-    for y in range(h):
-        for x in range(w):
-            if seen[y * w + x]: ap[x, y] = 0
-    a = a.filter(ImageFilter.GaussianBlur(0.7))
-    out = im.convert('RGBA'); out.putalpha(a)
-    return out
 
 
 def main():
@@ -53,15 +30,18 @@ def main():
     subprocess.check_call(['ffmpeg', '-v', 'error', '-i', clip, '-vf', 'fps=%d' % fps, os.path.join(tmp, 'f%03d.png')])
     files = sorted(glob.glob(os.path.join(tmp, 'f*.png')))
     if reverse: files.reverse()
-    cuts = [cut(Image.open(f)) for f in files]
+    SS = 2                                         # cut at twice the final size, then shrink: soft, clean edges
+    W0 = round(960 * REF_SCALE * SS)
+    cuts = [cut_bg(Image.open(f).convert('RGB').resize((W0, W0), Image.LANCZOS), min_gap=140) for f in files]
     boxes = [c.getchannel('A').point(lambda v: 255 if v > 90 else 0).getbbox() for c in cuts]
-    ux0 = min(b[0] for b in boxes); ux1 = max(b[2] for b in boxes)
-    left = (REF_CX - ux0) * REF_SCALE; right = (ux1 - REF_CX) * REF_SCALE
+    k = REF_SCALE * SS
+    ux0 = min(b[0] for b in boxes) / SS; ux1 = max(b[2] for b in boxes) / SS            # in final-size pixels
+    left = REF_CX * REF_SCALE - ux0; right = ux1 - REF_CX * REF_SCALE
     cw = int(2 * max(left, right)) + 12; cw += cw % 2
     n = len(cuts); cols = 6 if n <= 36 else 8; rows = math.ceil(n / cols)
     sheet = Image.new('RGBA', (cw * cols, CH * rows), (0, 0, 0, 0))
     for i, c in enumerate(cuts):
-        sc = c.resize((round(c.width * REF_SCALE), round(c.height * REF_SCALE)), Image.LANCZOS)
+        sc = c.resize((round(c.width / SS), round(c.height / SS)), Image.LANCZOS)
         cell = Image.new('RGBA', (cw, CH), (0, 0, 0, 0))
         cell.alpha_composite(sc, (round(cw / 2 - REF_CX * REF_SCALE), round(GROUND - REF_FEET * REF_SCALE)))
         sheet.alpha_composite(cell, ((i % cols) * cw, (i // cols) * CH))

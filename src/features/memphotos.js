@@ -49,11 +49,12 @@ function memPhotosInit(ll) {
   MEMPH.items = []; MEMPH.ll = ll;
   var inp = document.getElementById('m-photo'), th = document.getElementById('mpThumbs'); if (!inp || !th) return;
   inp.addEventListener('change', function () {
-    var over = false;
+    var over = false, added = [];
     Array.prototype.forEach.call(inp.files || [], function (f) {
       if (MEMPH.items.length >= MP_MAX) { over = true; return; }
-      MEMPH.items.push({ orig: f, cur: f, url: URL.createObjectURL(f), cropped: false });
+      MEMPH.items.push({ orig: f, cur: f, url: URL.createObjectURL(f), cropped: false }); added.push(f);
     });
+    if (added.length && typeof memPlaceFromPhotos === 'function') memPlaceFromPhotos(added);      /* a photo may know where and when it was taken */
     inp.value = '';
     if (over) toast('A memory can hold up to ' + MP_MAX + ' photos.', '📷', 3500);
     memPhotosPaint(); memPreviewSoon();

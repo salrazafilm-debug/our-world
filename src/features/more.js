@@ -115,6 +115,8 @@ function todayCardHtml() {
     (label ? '<span class="nx">' + esc(label) + '</span>' : '') + '</button>';
 }
 function dashClose() { if (dashEl) dashEl.classList.remove('on'); }
+/* warm the menu's pictures while the map is idle, so the first open does not wait on them */
+setTimeout(function () { (window.requestIdleCallback || setTimeout)(function () { DASH.forEach(function (t) { var i = new Image(); i.src = t[1]; }); ['art/pets/room-blur.jpg', 'art/pets/room-mobile-blur.jpg'].forEach(function (u) { var i = new Image(); i.src = u; }); }); }, 2500);
 function subPage(title, sub, rows) {
   openSheet('<div class="mn-hd"><button class="mn-back" type="button" data-act="more" aria-label="Back">‹</button><div style="flex:1"><h2>' + esc(title) + '</h2>' + (sub ? '<div class="mn-sub">' + esc(sub) + '</div>' : '') + '</div>' +
     '<button class="closex" type="button" data-act="close" aria-label="Close">✕</button></div><div class="list mn-list">' + rows + '</div>');
