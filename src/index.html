@@ -1971,8 +1971,16 @@ function drawMapOverlays() {
     p = proj(S.me.lat, S.me.lng);
     var ring = reduceMotion ? 10 : 10 + (Math.sin(cloudPhase / 7) * 0.5 + 0.5) * 9;
     ctx.strokeStyle = 'rgba(216,90,146,.55)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(p.x, p.y, ring, 0, 7); ctx.stroke();
-    drawSprite(ctx, SP.you, PAL.you, p.x, p.y + 6, 3, '#FFFFFF');
+    var avH = (typeof avatarHeight === 'function' && typeof AV_ON !== 'undefined' && AV_ON && S.who) ? avatarHeight() : 0;
+    var liveSelf = typeof PR !== 'undefined' && PR.mine && PR.mine.sharing && PR.mine.lat != null;     /* a live avatar already stands there */
+    if (avH && !liveSelf) {                                        /* your avatar stands on the spot, with a soft ring on the ground */
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, ring, ring * 0.42, 0, 0, 7); ctx.stroke();
+      var meBox = drawAvatar(ctx, S.who, p.x, p.y, avH, null, { res: DPR });
+      if (meBox) addHit(meBox, { kind: 'avatar', who: S.who });
+    } else if (!avH) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, ring, 0, 7); ctx.stroke();
+      drawSprite(ctx, SP.you, PAL.you, p.x, p.y + 6, 3, '#FFFFFF');
+    }
   }
 }
 
