@@ -272,6 +272,28 @@ var PG = null;                                     /* room geometry on screen */
 var PB = { x: 0.49, dir: 1, act: 'sit', until: 0, tx: 0.49, f: 0, raf: 0, last: 0, shown: '' };
 var PF = {};                                       /* frame images, by name */
 var puppyMotion = new Image(); puppyMotion.src = 'art/pets/puppy-motion.png';
+/* The sitting puppy: a real 3-second loop (breathing, head tilts, blinks, tail wag) as a 6 x 6 sheet of 36 frames.
+   It plays, then rests on the first frame for a moment, then plays again. Only the sheet position changes, so nothing is rebuilt per frame. */
+var puppyIdle = new Image(); puppyIdle.src = 'art/pets/puppy-idle.webp';
+var IDLE = { cw: 236, ch: 256, cols: 6, rows: 6, n: 36, fps: 12, t0: 0, rest: 2500 };
+function petIdlePose(x) {
+  var dog = document.getElementById('psDog'), size = PG.h * 1.12, w = size * IDLE.cw / IDLE.ch, now = performance.now();
+  var key = 'idle|' + Math.round(size);
+  if (PB.shown !== key) {
+    dog.innerHTML = '<div class="pf puppy-idle" role="img" aria-label="Puppy" style="position:relative;width:' + w.toFixed(1) + 'px;height:' + size.toFixed(1) + 'px;background:url(art/pets/puppy-idle.webp) no-repeat;background-size:' + (w * IDLE.cols).toFixed(1) + 'px ' + (size * IDLE.rows).toFixed(1) + 'px"></div>';
+    PB.shown = key;
+  }
+  var f = 0;
+  if (!reduceMotion) {
+    if (!IDLE.t0) IDLE.t0 = now;
+    var run = IDLE.n / IDLE.fps * 1000, t = now - IDLE.t0;
+    if (t >= run + IDLE.rest) { IDLE.t0 = now; IDLE.rest = 1500 + Math.random() * 3500; t = 0; }
+    f = t < run ? Math.floor(t / 1000 * IDLE.fps) % IDLE.n : 0;
+  }
+  var el = dog.firstChild;
+  if (el) el.style.backgroundPosition = '-' + ((f % IDLE.cols) * w).toFixed(1) + 'px -' + (Math.floor(f / IDLE.cols) * size).toFixed(1) + 'px';
+  dog.style.left = Math.max(w / 2 + 12, Math.min(PG.vw - w / 2 - 12, x)) + 'px'; dog.style.top = (PG.baseY - size * 0.945) + 'px';
+}
 ['sleep'].forEach(function (n) { var im = new Image(); im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im; });
 var X_MIN = 0.37, X_MAX = 0.62;
 function petLayout(sleeping) {
@@ -312,9 +334,13 @@ function petPose(bounce) {
   if(puppyMotion.complete&&puppyMotion.naturalWidth){
     var time=performance.now(),walking=PB.act==='scoot',row=walking?1:PB.act==='eat'||PB.act==='sniff'?2:PB.act==='play'||PB.act==='happy'?3:0;
     var frame=reduceMotion?0:row===0?(time%6000>5300?Math.floor(time/170)%4:0):Math.floor(time/(walking?135:240))%4;
+    if(row===0&&puppyIdle.complete&&puppyIdle.naturalWidth){petIdlePose(x);return;}
     var size=PG.h*1.12;
-    var motionKey=[row,frame,size,walking&&PB.tx<PB.x0,JSON.stringify(PET.equipped),JSON.stringify(PET_FIT_OVERRIDES)].join('|');
+    /* without outfits the figure is built once and only its sheet position changes, so frames never flicker */
+    var stable=!PET_SHOP_ENABLED;
+    var motionKey=[row,stable?'':frame,size,walking&&PB.tx<PB.x0,JSON.stringify(PET.equipped),JSON.stringify(PET_FIT_OVERRIDES)].join('|');
     if(PB.shown!==motionKey){dog.innerHTML=petMotionFigure(size,row*4+frame,PET.equipped,walking&&PB.tx<PB.x0);PB.shown=motionKey;}
+    if(stable){var bgEl=dog.firstChild&&dog.firstChild.lastElementChild;if(bgEl)bgEl.style.backgroundPosition=(frame%4*100/3)+'% '+(row*100/3)+'%';}
     dog.style.left=Math.max(size/2+12,Math.min(PG.vw-size/2-12,x))+'px';dog.style.top=(PG.baseY-size*.94)+'px';return;
   }
   key = 'front|' + JSON.stringify(PET.equipped) + '|' + PG.h;
