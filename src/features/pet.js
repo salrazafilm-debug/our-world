@@ -65,7 +65,7 @@ function petLayer(item, s) {
 /* the puppy plus what it is wearing; `h` is its height in css px, `eq` the outfit to show */
 function petFigure(h, eq, sleeping) {
   var s = h / PET_DOG_H, w = PET_DOG_W * s;
-  if (sleeping) {var sleepLayers='';PET_SLOTS.forEach(function(slot){var it=petItem(eq[slot]);if(it)sleepLayers+=petFittedLayer(it,s,'sleep');});return '<div class="pf" style="width:' + (163 * s).toFixed(0) + 'px;height:' + (71 * s).toFixed(0) + 'px">'+sleepLayers+'<img class="pf-dog" alt="" draggable="false" src="art/pets/dog-sleep.png" style="width:100%;z-index:1"></div>';}
+  if (sleeping) {var sleepLayers='';if(PET_SHOP_ENABLED)PET_SLOTS.forEach(function(slot){var it=petItem(eq[slot]);if(it)sleepLayers+=petFittedLayer(it,s,'sleep');});return '<div class="pf" style="width:' + (163 * s).toFixed(0) + 'px;height:' + (71 * s).toFixed(0) + 'px">'+sleepLayers+'<img class="pf-dog" alt="" draggable="false" src="art/pets/dog-sleep.png" style="width:100%;z-index:1"></div>';}
   var html = '<div class="pf" style="width:' + w.toFixed(0) + 'px;height:' + h.toFixed(0) + 'px">';
   var layers = [];
   PET_SLOTS.forEach(function (sl) { var it = petItem(eq[sl]); if (it) layers.push(petLayer(it, s)); });

@@ -67,6 +67,6 @@ function petFittedLayer(item,s,pose){
  }).join('');
 }
 function petMotionFigure(size,frame,eq,flip){
- var row=Math.floor(frame/4),col=frame%4,layers='';PET_SLOTS.forEach(function(slot){var it=petItem(eq[slot]);if(it)layers+=petFittedLayer(it,size/256,'motion-'+frame);});
+ var row=Math.floor(frame/4),col=frame%4,layers='';if(PET_SHOP_ENABLED)PET_SLOTS.forEach(function(slot){var it=petItem(eq[slot]);if(it)layers+=petFittedLayer(it,size/256,'motion-'+frame);});
  return '<div class="puppy-motion" role="img" aria-label="Puppy" style="position:relative;width:'+size+'px;height:'+size+'px;transform:scaleX('+(flip?-1:1)+')">'+layers+'<div style="position:absolute;inset:0;z-index:1;background-image:url(art/pets/puppy-motion.png);background-size:400% 400%;background-position:'+(col*100/3)+'% '+(row*100/3)+'%"></div></div>';
 }

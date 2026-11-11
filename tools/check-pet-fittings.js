@@ -18,7 +18,7 @@ for(const pose of ['front','sleep',...Array.from({length:16},(_,i)=>'motion-'+i)
  await page.evaluate(async()=>{await Promise.all(Array.from(document.querySelectorAll('#grid img')).map(im=>im.decode()));});if(['front','motion-5','motion-10'].includes(pose))await page.screenshot({path:'/workspace/shared/downloads/accessories-'+pose+'.png',fullPage:true});
 }
 await app.evaluate(()=>{const a=window.__PET_FITTER;a.state.woke=Date.now();a.state.equipped={hat:'hat-crown',collar:'collar-blue-bone',boots:'boots-tan'};a.open();a.body.act='scoot';a.body.t0=performance.now();a.body.x0=a.body.x;a.body.tx=a.body.x+.07;a.body.until=performance.now()+10000;});
-await app.waitForTimeout(300);assert(await app.locator('.puppy-motion .pf-l').count()>=5,'outfit stays attached during walk, including separate boots');
-await app.evaluate(()=>{let a=window.__PET_FITTER;a.body.act='sniff';a.body.until=performance.now()+10000;a.pose();});assert(await app.locator('.puppy-motion .pf-l').count()>=4);
+await app.waitForTimeout(300);assert.equal(await app.locator('.puppy-motion .pf-l').count(),0,'disabled shop hides saved accessories in walk');
+await app.evaluate(()=>{let a=window.__PET_FITTER;a.body.act='sniff';a.body.until=performance.now()+10000;a.pose();});assert.equal(await app.locator('.puppy-motion .pf-l').count(),0);
 assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);await browser.close();console.log('ok: 49 items × 18 poses, fitted boots, dressed animations, editor persistence, no pet data mutation or failed assets');
 })().catch(e=>{console.error(e);process.exit(1);});
