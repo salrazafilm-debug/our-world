@@ -11,6 +11,7 @@
      petvisit/<who> { at }                 when each of you last visited */
 
 var PET_STARTER = 20;                        /* a welcome gift of hearts */
+var PET_SHOP_ENABLED = false;                /* accessory art is being refit; keep the room available */
 var PET = { open: false, name: 'Baby', owned: [], equipped: {}, spent: 0, treats: 0, mode: 'room', tab: 'mine', sel: null, woke: 0, lastPet: 0, bubble: '', visits: {} };
 S.love = { bruce: 0, elena: 0 };
 S.spend = { bruce: 0, elena: 0 };          /* what each of you has spent (own document each, so shopping together is safe) */
@@ -223,7 +224,7 @@ function petPill() { var p = document.getElementById('psHearts'); if (p) p.inner
 function petBump() { var p = document.getElementById('psHearts'); if (p) { p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); } }
 
 function petOpen() {
-  petEnsure(); closeSheet();
+  petEnsure(); closeSheet(); PET.mode = 'room';
   PET.open = true; PET.mode = 'room'; PET.sel = null;
   if (S.who) {
     PET.visits[S.who] = Date.now();
@@ -260,7 +261,7 @@ function petRender() {
       '<button class="ps-act" type="button" data-pet="cuddle"><img class="ic" alt="" src="art/heart.png">Cuddle</button>' +
       '<button class="ps-act" type="button" data-pet="treat"><img class="ic" alt="" src="art/ui/bone.png">Treat<small>\u2665 3</small></button>' +
       '<button class="ps-act" type="button" data-pet="play"><img class="ic" alt="" src="art/ui/ball.png">Play</button>' +
-      '<button class="ps-act" type="button" data-pet="shop"><img class="ic" alt="" src="art/ui/shop.png">Pup Shop</button>' +
+      (PET_SHOP_ENABLED ? '<button class="ps-act" type="button" data-pet="shop"><img class="ic" alt="" src="art/ui/shop.png">Pup Shop</button>' : '') +
     '</div>';
   petLayout(sleeping);
 }
@@ -385,7 +386,7 @@ function petClick(e) {
 }
 function petAct(a) {
   if (a === 'back') return petClose();
-  if (a === 'shop') { PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; return petRender(); }
+  if (a === 'shop') { if (!PET_SHOP_ENABLED) return; PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; return petRender(); }
   if (a === 'rename') {
     var nm = window.prompt('What is our baby called?', PET.name);
     if (nm && nm.trim()) { PET.name = nm.trim().slice(0, 18); petSavePet(); petRender(); }
