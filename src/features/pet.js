@@ -168,7 +168,7 @@ function petEnsure() {
     '.ps-hearts img{width:22px;height:22px;image-rendering:pixelated}.ps-hearts.bump{animation:psBump .5s}@keyframes psBump{40%{transform:scale(1.12)}}',
     '.ps-say{position:absolute;left:50%;transform:translateX(-50%);max-width:78%;background:var(--cream);border:3px solid var(--berry);padding:8px 14px;font-family:var(--fdisp);font-size:15px;color:var(--berry-dk);text-align:center;z-index:4;opacity:0;transition:opacity .25s;pointer-events:none}',
     '.ps-say.on{opacity:1}',
-    '.ps-bar{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px 12px calc(14px + env(safe-area-inset-bottom));z-index:5;max-width:620px;margin:0 auto}',
+    '.ps-bar{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:10px;padding:12px 12px calc(14px + env(safe-area-inset-bottom));z-index:5;max-width:620px;margin:0 auto}',
     '.ps-act{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px 7px;border:3px solid var(--berry);border-bottom-width:7px;background:var(--cream);color:var(--berry-dk);font-family:var(--fdisp);font-weight:600;font-size:14px;transition:transform .08s,border-bottom-width .08s}',
     '.ps-act .ic{width:34px;height:28px;object-fit:contain;image-rendering:pixelated}.ps-act small{font-size:12px;color:var(--rose);font-weight:600}',
     '.ps-act:hover{transform:translateY(-1px)}.ps-act:active{transform:translateY(4px);border-bottom-width:3px}',
@@ -260,7 +260,6 @@ function petRender() {
     '<div class="ps-bar">' +
       '<button class="ps-act" type="button" data-pet="cuddle"><img class="ic" alt="" src="art/heart.png">Cuddle</button>' +
       '<button class="ps-act" type="button" data-pet="treat"><img class="ic" alt="" src="art/ui/bone.png">Treat<small>\u2665 3</small></button>' +
-      '<button class="ps-act" type="button" data-pet="play"><img class="ic" alt="" src="art/ui/ball.png">Play</button>' +
       (PET_SHOP_ENABLED ? '<button class="ps-act" type="button" data-pet="shop"><img class="ic" alt="" src="art/ui/shop.png">Pup Shop</button>' : '') +
     '</div>';
   petLayout(sleeping);
@@ -275,7 +274,7 @@ var puppyMotion = new Image(); puppyMotion.src = 'art/pets/puppy-motion.png';
 /* ---------------- the puppy's animation clips ----------------
    Every clip is a sheet of frames (tools/puppy-sheets.py, listed in PUP_ANIMS). A frame is shown by moving the
    sheet inside one element, so nothing is rebuilt per frame and nothing flickers.
-   Sitting: idle, look around and yawn take turns with a rest between. One-shot clips (eat, hop, petted, play,
+   Sitting: idle, look around and yawn take turns with a rest between. One-shot clips (eat, hop, petted,
    lie down, settle, wake) play once and hand back. Asleep: the sleep loop. */
 var PUPIMG = {};
 function pupImg(name) {
@@ -416,13 +415,7 @@ function petTick(now) {
     PB.x = PB.x0 + (PB.tx - PB.x0) * (t * t * (3 - 2 * t));
     var hops = Math.max(1, Math.round(dur / 380));
     petPose();
-    if (t >= 1) { PB.act=PB.after||'sniff';PB.after=null;PB.t0=now;PB.until=now+3500; if (PB.act==='play') pupPlay('play', petSitFront); }
-    return;
-  }
-  if (PB.act === 'play') {
-    var tp = now - PB.t0;
-    petPose();
-    if (tp > 3500) { PB.act = 'sit'; PB.until = now + 5000; }
+    if (t >= 1) { PB.act='sniff';PB.after=null;PB.t0=now;PB.until=now+3500; }
     return;
   }
   petPose();
@@ -472,11 +465,6 @@ function petAct(a) {
     petHop('pet'); petSay(PET_LINES[Math.floor(Math.random() * PET_LINES.length)], 2600);
     if (typeof playSound === 'function') playSound('heart');
     if (Date.now() - PET.lastPet > 15 * 60000) { PET.lastPet = Date.now(); setTimeout(function () { earnHearts(1, 'cuddle'); }, 500); }
-  } else if (a === 'play') {
-    var old=document.getElementById('puppyToy');if(old)old.remove();
-    PB.act=reduceMotion?'play':'scoot';PB.t0=performance.now();PB.x0=PB.x;PB.tx=PB.x<(X_MIN+X_MAX)/2?X_MAX:X_MIN;PB.after='play';PB.until=PB.t0+20000;
-    var toy=document.createElement('img');toy.id='puppyToy';toy.src='art/ui/ball.png';toy.alt='Play ball';toy.style.cssText='position:absolute;pointer-events:none;width:26px;left:'+(PG.ox+PG.dw*PB.tx-13)+'px;top:'+(PG.baseY-23)+'px';petEl.querySelector('.ps-room').appendChild(toy);
-    setTimeout(function(){toy.remove();},6500);
   } else if (a === 'treat') {
     petGiveTreat(PET_TREATS[0]);
   }

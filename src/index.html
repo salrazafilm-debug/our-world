@@ -185,6 +185,7 @@ input,textarea,select{font-size:16px}
 .whobtn:active{transform:translateY(4px); box-shadow:0 1px 0 var(--deep)}
 .whobtn canvas{image-rendering:pixelated}
 .whobtn .n{font-family:var(--fdisp); font-size:17px; color:var(--deep)}
+.whobtn.last{border-color:var(--berry-dk); outline:3px solid var(--rose); outline-offset:3px}
 .whobtn .r{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-45)}
 
 /* ---------- polish ---------- */
@@ -3366,8 +3367,12 @@ function boot() {
   var saved = null;
   try { saved = localStorage.getItem('ow.who'); } catch (e) {}
   if (!saved && window.OWCloud) saved = OWCloud.who();
-  if (saved === 'bruce' || saved === 'elena') setWho(saved);
-  else resize();
+  /* Who is exploring is always the first thing you see on entry; the last person is marked so it is one tap. */
+  if (saved === 'bruce' || saved === 'elena') {
+    var last = document.querySelector('.whobtn[data-who="' + saved + '"]');
+    if (last) { last.classList.add('last'); var lr = last.querySelector('.r'); if (lr) lr.textContent = 'Last time \u00b7 ' + lr.textContent; }
+  }
+  resize();
 }
 
 /* Nothing personal loads until someone has signed in. */
