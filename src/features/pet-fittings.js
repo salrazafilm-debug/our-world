@@ -23,7 +23,7 @@ var PET_MOTION_RIG=[
  [[153,96],[153,134],[136,157],[130,187],[100,130],[123,234],[178,234]]
 ];
 PET_MOTION_RIG.forEach(function(row,i){var rig={};['head','eyes','neck','chest','back','pawL','pawR'].forEach(function(k,j){rig[k]=row[j];});PET_RIG['motion-'+i]=rig;});
-[[[166,217],[185,217],[39,217],[85,217]],[[140,216],[178,191],[39,217],[85,217]],[[178,217],[151,217],[57,217],[98,211]],[[160,217],[181,196],[40,217],[83,211]]].forEach(function(p,i){['pawL','pawR','rearL','rearR'].forEach(function(k,j){PET_RIG['motion-'+(i+4)][k]=p[j];});});
+[[[166,217],[211,217],[39,217],[85,217]],[[140,216],[199,191],[39,217],[85,217]],[[178,217],[207,217],[57,217],[98,211]],[[160,217],[205,196],[40,217],[83,211]]].forEach(function(p,i){['pawL','pawR','rearL','rearR'].forEach(function(k,j){PET_RIG['motion-'+(i+4)][k]=p[j];});});
 var PET_ITEM_FITS={};
 function petInitFits(){
 PET_CATALOG.forEach(function(it){var f={anchor:'neck',width:78,dx:0,dy:0,rotation:0,z:4,align:'top'};
@@ -53,8 +53,10 @@ function petFit(item,pose,part){var f=Object.assign({},PET_ITEM_FITS[item.id]),n
  Object.assign(f,PET_FIT_OVERRIDES[item.id+'|'+pose]||{});if(part){f.anchor=part;Object.assign(f,PET_FIT_OVERRIDES[item.id+'|'+pose+'|'+part]||{});}return f;}
 function petFittedLayer(item,s,pose){
  pose=pose||'front';var rig=PET_RIG[pose]||PET_RIG.front,f=petFit(item,pose),motion=pose.indexOf('motion-')===0,ratio=motion&&Math.floor(Number(pose.split('-')[1])/4)===1?256/195:1;
- var parts=item.slot==='boots'?[{anchor:'pawL',suffix:'-left'},{anchor:'pawR',suffix:'-right'}]:[{anchor:f.anchor,suffix:''}];
- if(item.slot==='boots'&&rig.rearL)parts=[{anchor:'rearL',suffix:'-left',z:0},{anchor:'rearR',suffix:'-right',z:0}].concat(parts);
+ var walking=pose.indexOf('motion-')===0&&Math.floor(Number(pose.split('-')[1])/4)===1;
+ var parts=item.slot==='boots'?(walking?[{anchor:'rearL',suffix:'-left'},{anchor:'pawR',suffix:'-right'}]:[{anchor:'pawL',suffix:'-left'},{anchor:'pawR',suffix:'-right'}]):[{anchor:f.anchor,suffix:''}];
+ /* The side pose shows one near rear paw and one near front paw. Placing both
+    boots on the overlapping front paws produced a single floating shoe mass. */
  return parts.map(function(part){var f=item.slot==='boots'?petFit(item,pose,part.anchor):petFit(item,pose),point=rig[f.anchor]||rig.neck,w=f.width*ratio*s,x=(point[0]+f.dx*ratio)*s,y=(point[1]+f.dy*ratio)*s;
   var transform='translate(-50%,'+(f.align==='bottom'?'-100%':f.align==='center'?'-50%':'0')+') rotate('+f.rotation+'deg)';
   var base='left:'+x+'px;top:'+y+'px;width:'+w+'px;transform-origin:50% '+(f.align==='bottom'?'100%':'0')+';transform:'+transform+';image-rendering:pixelated;',url='art/pets/fitted/'+item.file+part.suffix+'.png';

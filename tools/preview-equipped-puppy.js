@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('assert');
 const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']}),context=await b.newContext({viewport:{width:430,height:932},recordVideo:{dir:'/workspace/shared/downloads/equipped-video',size:{width:430,height:932}}}),p=await context.newPage(),errors=[];
 p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:4174/?petfit=1');await p.waitForFunction(()=>window.__PET_FITTER);
 await p.evaluate(async()=>{let a=window.__PET_FITTER;await a.ready;a.state.woke=Date.now();a.state.equipped={hat:'hat-cap-red',collar:'collar-blue-bone',boots:'boots-tan'};a.state.owned=Object.values(a.state.equipped);a.open();a.body.act='sit';a.body.until=performance.now()+5000;});await p.waitForTimeout(1800);await p.screenshot({path:'/workspace/shared/downloads/puppy-outfit-phone.png'});
-await p.locator('[data-pet="play"]').click();await p.waitForTimeout(5500);
+await p.locator('[data-pet="play"]').click();await p.waitForTimeout(700);await p.screenshot({path:'/workspace/shared/downloads/puppy-outfit-walking.png'});await p.waitForTimeout(4800);
 await p.locator('[data-pet="shop"]').click();assert(await p.locator('.shop').isVisible());await p.waitForTimeout(400);await p.screenshot({path:'/workspace/shared/downloads/puppy-shop-fitted.png'});
 await p.locator('[data-shop="tab"][data-id="hat"]').click().catch(async()=>{await p.locator('[data-shop="tab"]').first().click();});
 await p.locator('[data-shop="back"]').click();await p.waitForTimeout(500);assert(await p.locator('.puppy-motion .pf-l').count()>0);
