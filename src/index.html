@@ -1818,7 +1818,7 @@ function drawMapOverlays() {
     if(lm[0]==='dc')p=repairPoint('dc');
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
-    var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * 1.4 * (lm[6] || 1)));   /* places are about 1.4x bigger than before */
+    var lsc = Math.max(3, Math.round(1.26 * (z - 6.5) * (lm[6] || 1)));   /* grows smoothly with zoom, never smaller when you zoom in */
     var gh2 = SP[lm[4]].length * lsc;
     if (planned) {
       /* still ahead of us: a dashed ring on the ground and the icon held back a little */

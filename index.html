@@ -2294,7 +2294,7 @@ function drawMapOverlays() {
     if(lm[0]==='dc')p=repairPoint('dc');
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
-    var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * 1.4 * (lm[6] || 1)));   /* places are about 1.4x bigger than before */
+    var lsc = Math.max(3, Math.round(1.26 * (z - 6.5) * (lm[6] || 1)));   /* grows smoothly with zoom, never smaller when you zoom in */
     var gh2 = SP[lm[4]].length * lsc;
     if (planned) {
       /* still ahead of us: a dashed ring on the ground and the icon held back a little */
@@ -4785,7 +4785,8 @@ var HOMEBASE = [
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(28, Math.min(117, 51 + (z - 6.9) * 15)); }
+/* one smooth curve: places only ever grow as you zoom in, and stay visible when zoomed out */
+function homeArtH(z) { return Math.max(30, Math.min(176, 51 + (z - 6.9) * 15)); }
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };
@@ -5010,11 +5011,13 @@ HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fi
    zoom. Neither positions nor opacity depend on screen edges or animation time. */
 var CLOUD_DEBUG=[];
 function cloudEase(a,b,z){var t=Math.max(0,Math.min(1,(z-a)/(b-a)));return t*t*(3-2*t);}
+/* overlapping cloud sizes: each size fades in before the one above it fades out,
+   so there is never a gap in the sky while you zoom */
 function cloudBands(z){return[
- {cell:5.12,alpha:1-cloudEase(4.8,6,z),seed:501},
- {cell:1.28,alpha:cloudEase(4.8,6,z)*(1-cloudEase(6.5,7.7,z)),seed:502},
- {cell:.32,alpha:cloudEase(6.5,7.7,z)*(1-cloudEase(9,10.2,z)),seed:503},
- {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
+ {cell:5.12,alpha:1-cloudEase(3.6,6.2,z),seed:501},
+ {cell:1.28,alpha:cloudEase(3.9,5.8,z)*(1-cloudEase(6.6,8.6,z)),seed:502},
+ {cell:.32,alpha:cloudEase(6.2,8.2,z)*(1-cloudEase(9.2,11.2,z)),seed:503},
+ {cell:.08,alpha:cloudEase(8.6,10.8,z),seed:504}
 ];}
 function cloudImportantAreas(){
  var areas=REPAIR.boxes.slice();
