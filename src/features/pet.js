@@ -293,7 +293,7 @@ function pupPickIdle() {
   var r = Math.random(), pick = r < 0.5 ? 'idle' : (r < 0.78 ? 'look' : 'yawn');
   return pupReady(pick) ? pick : 'idle';
 }
-function pupDraw(name, f, x) {
+function pupDraw(name, f, x, flip) {
   var A = PUP_ANIMS[name], dog = document.getElementById('psDog'), size = PG.h * 1.12, w = size * A.cw / A.ch, key = 'pup|' + Math.round(size);
   if (PB.shown !== key) {
     dog.innerHTML = '<div class="pf puppy-clip" role="img" aria-label="Puppy" style="position:relative;background-repeat:no-repeat"></div>';
@@ -306,12 +306,16 @@ function pupDraw(name, f, x) {
     el.style.backgroundSize = (w * A.cols).toFixed(1) + 'px ' + (size * A.rows).toFixed(1) + 'px';
     PC.drawn = name;
   }
+  el.style.transform = flip ? 'scaleX(-1)' : '';
   el.style.backgroundPosition = '-' + ((f % A.cols) * w).toFixed(1) + 'px -' + (Math.floor(f / A.cols) * size).toFixed(1) + 'px';
   dog.style.left = Math.max(w / 2 + 12, Math.min(PG.vw - w / 2 - 12, x)) + 'px'; dog.style.top = (PG.baseY - size * 0.945) + 'px';
 }
 /* returns true when it drew the puppy */
 function pupPose(x) {
   var now = performance.now(), A, f;
+  if (PB.act === 'scoot' && !PC.clip && pupReady('walk')) {
+    A = PUP_ANIMS.walk; pupDraw('walk', Math.floor(now / 1000 * A.fps) % A.n, x, PB.tx < PB.x0); return true;
+  }
   if (PC.clip) {
     A = PUP_ANIMS[PC.clip]; f = Math.floor((now - PC.t0) / 1000 * A.fps);
     if (f < A.n) { pupDraw(PC.clip, f, x); return true; }
@@ -369,9 +373,9 @@ function petPose(bounce) {
     return;
   }
   if(puppyMotion.complete&&puppyMotion.naturalWidth){
-    var time=performance.now(),walking=PB.act==='scoot',row=walking?1:PB.act==='eat'||PB.act==='sniff'?2:PB.act==='play'||PB.act==='happy'?3:0;
+    var time=performance.now(),walking=PB.act==='scoot',row=walking?1:PB.act==='eat'||PB.act==='sniff'?2:PB.act==='play'||PB.act==='happy'?3:0,newOk=pupReady('idle');
     var frame=reduceMotion?0:row===0?(time%6000>5300?Math.floor(time/170)%4:0):Math.floor(time/(walking?135:240))%4;
-    if(pupReady('idle')&&(PC.clip?pupReady(PC.clip):row===0)&&pupPose(x))return;
+    if(newOk&&(PC.clip?pupReady(PC.clip):(!walking||pupReady('walk')))&&pupPose(x))return;
     var size=PG.h*1.12;
     /* without outfits the figure is built once and only its sheet position changes, so frames never flicker */
     var stable=!PET_SHOP_ENABLED;

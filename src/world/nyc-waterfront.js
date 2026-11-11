@@ -24,7 +24,8 @@ function nycPrepare(){
  var key=[p.x,p.y,S.zoom,W,H,ready].join('/');
  if(NYC_WORLD.key===key){NYC_WORLD.visible=true;return;}
  function part(name,x,y,h,id){var a=artLoad(name),aspect=a.ok?a.img.width/a.img.height:1.6;return{name:name,x:p.x+x*s,y:p.y+y*s,h:h*s,w:h*s*aspect,id:id};}
- var parts=[part('nyc-brownstones',-94,12,62,'brownstones'),part('nyc-empire',0,-6,112,'empire'),part('nyc-east-skyline',94,-27,83,'east'),part('nyc-brooklyn-bridge',112,48,64,'bridge')];
+ /* the skyline hugs the waterfront: the brownstones and the tower group sit close to the east skyline and the shore, with no empty gap between them */
+ var parts=[part('nyc-brownstones',-62,22,62,'brownstones'),part('nyc-empire',22,6,112,'empire'),part('nyc-east-skyline',96,-22,83,'east'),part('nyc-brooklyn-bridge',112,48,64,'bridge')];
  var liberty=proj(40.6892,-74.0445);
  NYC_WORLD={key:key,visible:true,ready:ready,anchor:p,scale:s,bounds:b,parts:parts,boxes:[],liberty:{x:liberty.x+112*s,y:liberty.y+115*s},boats:[]};
  nycUpdateBoxes();
