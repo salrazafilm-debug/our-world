@@ -2641,13 +2641,13 @@ function memoryForm(ll, starterId, prefillTitle) {
     memPhotosHtml() +
     '<div class="field"><label for="m-note">Note</label><textarea id="m-note" maxlength="900" placeholder="What you want to remember about it."></textarea></div>' +
     memPreviewField() +
-    '<p class="hint">Pinned near ' + esc(nt.name) + ' — roughly where it happened, not an exact address.</p>' +
+    memPlaceHtml(ll) +
     '<div class="sheet-actions">' +
       '<button class="pxbtn primary" type="button" data-act="save-memory" data-lat="' + ll.lat + '" data-lng="' + ll.lng + '" data-starter="' + esc(starterId || '') + '">Save memory</button>' +
       '<button class="pxbtn" type="button" data-act="close">Cancel</button>' +
     '</div>'
   );
-  memPhotosInit(ll);
+  memPhotosInit(ll); memPlaceInit();
   setTimeout(function () { var e = document.getElementById('m-title'); if (e) e.focus(); }, 120);
 }
 
@@ -3350,6 +3350,7 @@ function hydrateLocal() {
 //#include features/polaroid.js
 //#include features/book.js
 //#include features/memphotos.js
+//#include features/memplace.js
 //#include features/mail.js
 //#include features/pet-anims.js
 //#include features/pet-fittings.js
