@@ -46,7 +46,7 @@ Not every control has to be a rectangle: books, envelopes, paws, signs and tabs 
 
 ## Canonical art (keep consistent; don't redesign unless asked)
 - **Avatars:** `avatars/bruce.png`, `avatars/elena.png`.
-- **Puppy:** brown/golden curly doodle, soft rounded pixel art (`art/pets/`). **Always faces the viewer** — no side or back views.
+- **Puppy:** brown/golden curly doodle, soft rounded cartoon art (`art/pets/`). Owner-approved directional walking, sniffing and play poses use the same puppy identity. Accessories attach to the original sitting/sleeping art and each animation frame through the shared fitting rig. Keep original catalogue IDs and saved outfits; crisp accessory cutouts retain intentional white details.
 - **Memories Book:** dark brown book, pink spine, colourful lettering, gold corners, little globe.
 - **Calendar:** simple framed wall calendar with big usable day boxes.
 - **Love Letters:** cream envelope with a heart seal.
@@ -57,6 +57,24 @@ Not every control has to be a rectangle: books, envelopes, paws, signs and tabs 
 
 ## Pixel consistency
 Everything looks like it came from the same game. Don't mix pixel art with thin vector icons, realistic UI, smooth 3D or other illustration styles. Small objects get simpler, not just scaled down. Emoji only sparingly, never as the main icon of a major control.
+
+Owner-requested map planting direction: trees, flowers, shrubs, grass and small
+garden rocks use soft cartoon silhouettes and gentle shading to sit beside the
+canonical avatars. Preserve their antialiased edges and avoid noisy pixel
+texture. The cached scenery renders at device resolution. This planting update
+keeps the canonical avatars and interface unchanged.
+
+The matching environmental set extends this treatment to nearby Appalachian
+ridges and rolling hills, waterfalls, footbridges, docks, sailboats, benches,
+lamps and supporting village cottages. Keep major homes and city landmarks
+recognizable; reuse their existing geographic anchors and reserved clearings.
+
+The main castle, blue-roof house, white post office, DC landmarks and lighthouse
+now follow the same rounded cartoon shading. Keep the pink towers, blue roof,
+white fence, attached envelope logo and recognizable landmark silhouettes.
+Clouds use several distinct soft pink/peach/lilac silhouettes at their natural
+proportions. Tan paths serve homes and gardens; a few muted gray-blue roads with
+cream dashed centers connect regional areas using existing route coordinates.
 
 ## Layout
 Spacious and easy to read. Consistent spacing (multiples of 4px) and alignment. Let layouts adapt to the screen instead of shrinking everything.

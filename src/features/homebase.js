@@ -4,12 +4,12 @@
    out in the parts we have not explored yet. */
 
 var HOMEBASE = [
-  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'story-mountain', scale: 1.05 }
+  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'soft-ridge', scale: 1.05 }
 ];
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(51, Math.min(117, 51 + (z - 6.9) * 15)); }   /* homes and the castle: big and easy to see, always well above the trees */
+function homeArtH(z) { return Math.max(28, Math.min(117, 51 + (z - 6.9) * 15)); }
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };
@@ -17,26 +17,7 @@ var HB_PILLS = { 'Northern Virginia': 1, 'Calvert County': 1 };
 var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], ['Philadelphia', 39.95, -75.17], ['Wilmington', 39.74, -75.55],
   ['Frederick', 39.41, -77.41], ['Fredericksburg', 38.30, -77.46], ['Harrisburg', 40.27, -76.88], ['Norfolk', 36.85, -76.29], ['Hagerstown', 39.64, -77.72]];
 
-/* the gold paths between our places (drawn first, under the trees) */
-HOOKS.terrain.unshift(function () {
-  if (S.mode !== 'map' || S.zoom > 10.6) return;
-  var P = {
-    n: proj(HOMEBASE[0].lat, HOMEBASE[0].lng),
-    e: proj(HOMES.elena.lat, HOMES.elena.lng), b: proj(HOMES.bruce.lat, HOMES.bruce.lng)
-  };
-  var links = [['e', 'b'], ['b', 'n'], ['n', 'e']];
-  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  function path(a, b, bow) {
-    var dx = b.x - a.x, dy = b.y - a.y;
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo((a.x + b.x) / 2 - dy * bow, (a.y + b.y) / 2 + dx * bow, b.x, b.y);
-  }
-  links.forEach(function (l, i) {
-    var bow = i % 2 ? 0.14 : -0.12;
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(132,99,64,.38)'; ctx.lineWidth = 7; ctx.stroke();
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = '#d9bc87'; ctx.lineWidth = 4; ctx.stroke();
-  });
-  ctx.restore();
-});
+/* Physical paths are cached below vegetation in maryland-landscape.js. */
 
 /* ghost cities and the two home-base landmarks (after the trees, so they sit on top) */
 HOOKS.terrain.push(function () {
@@ -44,6 +25,7 @@ HOOKS.terrain.push(function () {
   var z = S.zoom;
   if (z > 5.6 && z < 9.6) {
     GHOST_CITIES.forEach(function (c) {
+      if(marylandWeight(c[1],c[2])>.2)return;
       if (isRevealed(c[1], c[2], 1.1)) return;
       if (haversine(c[1], c[2], HOMES.elena.lat, HOMES.elena.lng) < 55 || haversine(c[1], c[2], HOMES.bruce.lat, HOMES.bruce.lng) < 55) return;   /* home stays countryside */
       var p = proj(c[1], c[2]);
@@ -55,10 +37,11 @@ HOOKS.terrain.push(function () {
   }
   HBBOX = {};
   HOMEBASE.forEach(function (h) {
-    if(z<6.1)return;
-    var p = proj(h.lat, h.lng);
+    var p = repairPoint(h.id)||proj(h.lat, h.lng);
     if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 80) return;
-    var b = drawArt(ctx, h.art, p.x, p.y, homeArtH(z) * h.scale, DPR);
+    var hh=homeArtH(z)*h.scale,asset=artLoad(h.art);
+    if(h.id==='hb-nova'&&asset.ok)hh=Math.min(hh,homeArtH(z)*1.55*asset.img.height/asset.img.width);
+    var b = drawArt(ctx, h.art, p.x, p.y, hh, DPR);
     if (b) { HBBOX[h.id] = b; addHit(b, { kind: 'beacon', lat: h.lat, lng: h.lng }); }
   });
 });
@@ -72,15 +55,14 @@ function drawHeartBadge(x, y, color) {
   ctx.restore();
   drawSprite(ctx, SP.heart, { h: color, o: '#6E2549' }, x, y + 7, 2, null);
 }
-function pill(x, y, text) { tryLabel(x, y, text, { size: 12, force: 1, bg: 'rgba(255,247,242,.96)', border: '#D9A3B8', fg: '#5B3046' }); }
+function pill(x, y, text) { if(S.zoom>9.4)tryLabel(x, y, text, { size: 13 }); }
 HOOKS.afterOverlays.push(function(){
   if(S.mode!=='map')return;
-  var p=proj((HOMES.bruce.lat+HOMES.elena.lat)/2,(HOMES.bruce.lng+HOMES.elena.lng)/2);
+  var p=repairPoint('mail');p={x:p.x+40,y:p.y-30};
   if(p.x<0||p.x>W||p.y<30||p.y>H-80)return;
   drawHeartBadge(p.x,p.y,C.pink);
 });
 HOOKS.beforePins.push(function () {
-  if(PAINTED.current&&PAINTED.alpha>.95)return;
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;

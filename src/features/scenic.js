@@ -1,22 +1,30 @@
 /* Storybook scenery is anchored to geography, cached with the base map, and
    painted behind labels and interactive places. All ornament is decorative. */
 window.OW_SCENIC = true;
+var SCENIC_AVOID=[];
 function scenicRand(a, b, seed) { return terHash(a, b, seed); }
 function scenicLand(x, y) { return terrainAt(x, y) === 'land'; }
 function scenicAvoid(x, y, radius) {
-  var places = [HOMES.bruce, HOMES.elena].concat(HOMEBASE).concat(
-    LANDMARKS.map(function (l) { return { lat: l[2], lng: l[3] }; }), S.memories, S.plans || []);
+  if(nycAvoid(x,y,8))return true;
+  if(repairClear(x,y,radius))return true;
+  var places = SCENIC_AVOID;
   for (var i = 0; i < places.length; i++) {
-    var p = proj(places[i].lat, places[i].lng), dx = x - p.x, dy = (y - p.y) * 1.2;
+    var p = places[i], dx = x - p.x, dy = (y - p.y) * 1.2;
     if (dx * dx + dy * dy < radius * radius) return true;
   }
   return false;
 }
 function scenicClearing(g, place, radius, kind) {
+  if(kind==='cottage')radius=homeArtH(S.zoom)*.86*1.6*.58+8;
   var p = place.who?homeDisplayPos(place.who,S.zoom):proj(place.lat, place.lng);
   if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
+  if(kind==='cottage'){
+    g.save();g.beginPath();
+    for(var yy=p.y-radius*.4;yy<p.y+radius*.4;yy+=4)for(var xx=p.x-radius;xx<p.x+radius;xx+=4)if(terrainAt(xx,yy)==='land')g.rect(xx,yy,4,4);
+    g.clip();
+  }
   if(kind==='castle'||kind==='cottage'){
-    var terraceDepth=kind==='castle'?27:12;
+    var terraceDepth=kind==='castle'?27:0;
     for(var ledge=terraceDepth;ledge>=3;ledge-=3){
       g.fillStyle=ledge>12?'#716077':ledge>6?'#a08487':'#c4a88b';
       g.beginPath();g.ellipse(p.x,p.y+ledge,radius,radius*.30,0,0,7);g.fill();
@@ -44,13 +52,14 @@ function scenicClearing(g, place, radius, kind) {
       scenicMark(g,xx,yy,'#e0bd84',2,8);
       scenicMark(g,xx,yy+5,'#af8055',8,2);
     }
+    g.restore();
   }
 }
 function scenicWaterfall(g, place) {
   if (!isRevealed(place.lat,place.lng,1.1)) return;
   var p=proj(place.lat,place.lng);
   if (p.x<-60||p.x>W+60||p.y<-60||p.y>H+60) return;
-  drawArt(g,'pack-bridge',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
+  drawArt(g,'soft-waterfall',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
 }
 function scenicPier(g, place) {
   var p=proj(place.lat,place.lng);
@@ -58,7 +67,8 @@ function scenicPier(g, place) {
   var shore=null;
   for(var i=24;i<78;i+=6) if(terrainAt(p.x+i,p.y+i*.36)==='water'){shore={x:p.x+i,y:p.y+i*.36};break;}
   if(!shore)return;
-  drawArt(g,'story-pier',shore.x+20,shore.y+25,S.zoom>9.3?76:48,1);
+  var h=homeArtH(S.zoom)*.65;
+  drawArt(g,'story-pier',shore.x+h*.22,shore.y+h*.18,h,1);
 }
 function scenicMark(g, x, y, color, w, h) {
   g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), w, h);
@@ -83,54 +93,67 @@ function scenicBloom(g, x, y, s, pink) {
   scenicMark(g, x, y, '#fff3d4', 2, 2);
 }
 function scenicCoast(g) {
-  /* A stepped, two-tone lip follows the actual geographic coast pixels. */
+  /* Broken limestone ledges and pale shallows, rather than wooden palisades. */
   for (var y = 4; y < H - 4; y += 5) for (var x = 4; x < W - 4; x += 5) {
     if (!scenicLand(x, y)) continue;
     if (terrainAt(x + 7, y) !== 'water' && terrainAt(x, y + 7) !== 'water') continue;
-    var depth=S.zoom>9?18:7;
-    scenicMark(g, x+2, y+2, '#736477', 5, depth);
-    scenicMark(g, x+2, y+2, '#a98272', 3, depth-2);
-    scenicMark(g, x+2, y+depth, '#d4b398', 4, 2);
-    scenicMark(g, x, y + 2, '#a36b4d', 5, 3);
-    scenicMark(g, x, y, '#e6ad71', 5, 2);
-    if (terrainAt(x + 10, y + 4) === 'water') scenicMark(g, x + 8, y + 4, '#d8f5e7', 4, 2);
+    var world=unproj(x,y),ledge=terNoise(world.lng*24,world.lat*24)>.62;
+    var depth=ledge?Math.min(10,4+(S.zoom-7)*2):3;
+    scenicMark(g,x+2,y+3,'#99b9b2',5,depth+2);
+    if(ledge){scenicMark(g,x+1,y+2,'#a69cad',5,depth);scenicMark(g,x+1,y+2,'#c7b8b2',3,depth-1);}
+    scenicMark(g,x,y+1,'#d5d6aa',5,3);
+    scenicMark(g,x,y,'#b8cf88',5,2);
+    if (terrainAt(x + 10, y + 4) === 'water') {scenicMark(g,x+6,y+4,'#7fc9c9',5,3);scenicMark(g,x+8,y+5,'#e0eee0',3,1);}
   }
 }
 /* Geographic relief is sampled in world coordinates, so its ridges and
    meadows stay attached to the same ground through every camera movement. */
 var SCENIC_PATTERNS={};
 function scenicTexture(g,name){var a=artLoad(name);if(!a.ok)return null;if(!SCENIC_PATTERNS[name])SCENIC_PATTERNS[name]=g.createPattern(a.img,'repeat');return SCENIC_PATTERNS[name];}
+var SCENIC_GROUND=null,SCENIC_TEXTURE_PIXELS={};
+function scenicTexturePixels(name){
+ if(SCENIC_TEXTURE_PIXELS[name])return SCENIC_TEXTURE_PIXELS[name];
+ var a=artLoad(name);if(!a.ok)return null;
+ var c=document.createElement('canvas');c.width=a.img.width;c.height=a.img.height;
+ var g=c.getContext('2d');g.drawImage(a.img,0,0);
+ return SCENIC_TEXTURE_PIXELS[name]={data:g.getImageData(0,0,c.width,c.height).data,w:c.width,h:c.height};
+}
 function scenicGround(g) {
-  var z=S.zoom, step=6;
-  var grass=scenicTexture(g,'pack-grass-medium'),moss=scenicTexture(g,'pack-forest-floor');
-  for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
-    if(!scenicLand(x,y))continue;
-    var p=unproj(x,y), detail=Math.max(0,Math.min(1,(z-5)/3));
-    var continental=terNoise(p.lng/3,p.lat/3);
-    var n=terNoise(p.lng/.12,p.lat/.12)*detail+continental*(1-detail);
-    var broad=terNoise(p.lng/.65,p.lat/.65)*detail+continental*(1-detail);
-    var ridge=Math.sin(p.lng*13+p.lat*9+ broad*5)*.5+.5;
-    var shade=(n*.4+broad*.6);
-    g.fillStyle=shade>.5?'rgba(31,85,58,'+Math.min(.26,(shade-.5)*.8)+')':'rgba(243,220,133,'+Math.min(.22,(.5-shade)*.7)+')';
-    g.fillRect(x,y,step,step);
-    var texture=grove(p.lat,p.lng)>.45?moss:grass;
-    if(texture){g.save();g.globalAlpha=.14;g.fillStyle=texture;g.fillRect(x,y,step,step);g.restore();}
-    /* Narrow contour bands form shaded terraces with a lit grass rim. */
-    var band=(shade*12)%1;
-    if(S.zoom>9.5&&band<.025&&broad>.58){
-      g.fillStyle='#706c68';g.fillRect(x,y+2,step,5);
-      g.fillStyle='#ac9470';g.fillRect(x,y,step,3);
-      g.fillStyle='#d2ce8b';g.fillRect(x,y-2,step,2);
-    }
-    if(ridge>.88&&broad>.5){g.fillStyle='rgba(49,86,66,.13)';g.fillRect(x,y+step-2,step,2);}
+ var z=S.zoom,step=8,cols=Math.ceil(W/step),rows=Math.ceil(H/step),lats=[],lngs=[];
+ if(!SCENIC_GROUND){var cv=document.createElement('canvas');SCENIC_GROUND={cv:cv,g:cv.getContext('2d')};}
+ var raster=SCENIC_GROUND;if(!raster.image||raster.cv.width!==cols||raster.cv.height!==rows){raster.cv.width=cols;raster.cv.height=rows;raster.image=raster.g.createImageData(cols,rows);}
+ var pixels=raster.image.data;pixels.fill(0);
+ for(var yy=0;yy<H;yy+=step)lats.push(unproj(0,yy).lat);
+ for(var xx=0;xx<W;xx+=step)lngs.push(unproj(xx,0).lng);
+ var grass=scenicTexturePixels('pack-grass-medium'),moss=scenicTexturePixels('pack-forest-floor');
+ var left=lngToWX(S.center.lng,z)-W/2,top=latToWY(S.center.lat,z)-H/2,details=[];
+ var detail=Math.max(0,Math.min(1,(z-5)/3));
+ for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
+  if(!scenicLand(x,y))continue;
+  var lat=lats[y/step],lng=lngs[x/step],continental=terNoise(lng/3,lat/3);
+  var n=terNoise(lng/.12,lat/.12)*detail+continental*(1-detail),broad=terNoise(lng/.65,lat/.65)*detail+continental*(1-detail);
+  var shade=n*.4+broad*.6,dark=shade>.5,alpha=dark?Math.min(.26,(shade-.5)*.8):Math.min(.22,(.5-shade)*.7);
+  var r=dark?31:243,gr=dark?85:220,b=dark?58:133,texture=broad>.5?moss:grass;
+  if(texture){
+   var tx=((Math.floor(left+x)%texture.w)+texture.w)%texture.w,ty=((Math.floor(top+y)%texture.h)+texture.h)%texture.h,k=(ty*texture.w+tx)*4;
+   var ta=.14*(1-marylandWeight(lat,lng))*texture.data[k+3]/255,a=ta+alpha*(1-ta);
+   r=(texture.data[k]*ta+r*alpha*(1-ta))/a;gr=(texture.data[k+1]*ta+gr*alpha*(1-ta))/a;b=(texture.data[k+2]*ta+b*alpha*(1-ta))/a;alpha=a;
   }
+  var i=((y/step)*cols+x/step)*4;pixels[i]=r;pixels[i+1]=gr;pixels[i+2]=b;pixels[i+3]=alpha*255;
+  var band=(shade*12)%1;if(z>9.5&&band<.025&&broad>.58)details.push({x:x,y:y});
+ }
+ raster.g.putImageData(raster.image,0,0);
+ g.save();g.imageSmoothingEnabled=false;g.drawImage(raster.cv,0,0,cols,rows,0,0,cols*step,rows*step);g.restore();
+ details.forEach(function(p){g.fillStyle='#706c68';g.fillRect(p.x,p.y+2,step,5);g.fillStyle='#ac9470';g.fillRect(p.x,p.y,step,3);g.fillStyle='#d2ce8b';g.fillRect(p.x,p.y-2,step,2);});
 }
 function drawScenic() {
+  SCENIC_AVOID=[HOMES.bruce,HOMES.elena].concat(HOMEBASE,LANDMARKS.map(function(l){return{lat:l[2],lng:l[3]};}),S.memories,S.plans||[]).map(function(p){return proj(p.lat,p.lng);});
   var g = scenicCtx, z = S.zoom;
-  g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, W, H);
   if (!TER.on) return;
   scenicGround(g);
   scenicCoast(g);
+  marylandGrounds(g);
   var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
   var local = Math.max(0, Math.min(1, (z - 8.9) / 1.15));
   /* Two persistent grids fade across the regional/local transition. */
@@ -144,18 +167,18 @@ function drawScenic() {
       [36.5,-106.1],[39.3,-106.3],[42.8,-109.2],[46.7,-112.1],[51.2,-116.4]].forEach(function(a){
       var p=proj(a[0],a[1]);
       if(p.x>-70&&p.x<W+70&&p.y>-60&&p.y<H+70&&scenicLand(p.x,p.y))
-        drawArt(g,'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
+        drawArt(g,a[1]>-85?'soft-ridge':'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
     });
   }
-  if (z > 9) {
-    scenicClearing(g,HOMES.bruce,Math.min(56,homeArtH(z)*.52),'cottage');
-    scenicClearing(g,HOMES.elena,Math.min(62,homeArtH(z)*.55),'castle');
-    scenicPier(g,HOMES.bruce);
-  }
+  /* Home grounds use the same authored composition at every ordinary zoom. */
+  scenicPier(g,HOMES.bruce);
   if (z > 8) {
     scenicWaterfall(g,{lat:41.1165,lng:-75.0121});
     scenicWaterfall(g,{lat:38.9976,lng:-77.2530});
   }
+  drawNYCScenery(g);
+  drawDCGardens(g);
+  marylandDetails(g);
 }
 function scenicCellWeight(gx,gy,cell,z,spacing) {
   /* Screen-density budget depends only on zoom, never the visible item count.
@@ -179,6 +202,8 @@ function scenicVegetation(g,tl,br,cell,alpha,spacing,fine) {
     var lat = (gy + .25 + scenicRand(gx,gy,71)*.5)*cell;
     var lng = (gx + .25 + scenicRand(gx,gy,72)*.5)*cell;
     var p = proj(lat,lng), r = scenicRand(gx,gy,73);
+    var regionalWeight=1-marylandWeight(lat,lng);if(regionalWeight<.005)continue;
+    weight*=regionalWeight;g.globalAlpha=alpha*weight;
     if (p.x < -45 || p.x > W+45 || p.y < -45 || p.y > H+45) continue;
     var land = scenicLand(p.x,p.y), meadow = grove(lat,lng);
     if (!land) {
@@ -212,20 +237,9 @@ function scenicVegetation(g,tl,br,cell,alpha,spacing,fine) {
   });
   g.restore();
 }
-/* Clouds sit in the foreground corners without covering the central places. */
+/* Country labels only. Clouds never attach to viewport corners. */
 HOOKS.afterOverlays.push(function () {
   if(S.mode!=='map')return;
-  var wide=Math.max(0,Math.min(1,(9-S.zoom)/3));
-  var h=Math.min(190,W*(.29+wide*.15));
-  ctx.save();ctx.globalAlpha=.94;
-  drawArt(ctx,'story-cloud',12,H+h*.15,h,1);
-  drawArt(ctx,'story-cloud',W+20,H+h*.25,h*1.08,1);
-  if(wide>.1){
-    ctx.globalAlpha=wide*.94;
-    drawArt(ctx,'story-cloud',-45,h*.65,h*.85,1);
-    drawArt(ctx,'story-cloud',W+65,h*.72,h*.9,1);
-  }
-  ctx.restore();
   if(S.zoom<5.3){
     [['CANADA',53,-105],['UNITED STATES',39,-98],['MEXICO',24,-103]].forEach(function(a){
       var p=proj(a[1],a[2]);

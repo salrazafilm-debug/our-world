@@ -1,0 +1,20 @@
+{
+  "cloud-calm": {
+    "path": "art/cloud-calm.png",
+    "width": 360,
+    "height": 136,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "clouds",
+    "use": "quiet, world-anchored cloud bank",
+    "source": "art-src/world/calm-cloud-rounded.png",
+    "crop": [
+      155,
+      14,
+      1860,
+      703
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "source": "art-src/world/civic-post-office.png",
+  "path": "art/civic-post-office.png",
+  "width": 256,
+  "height": 204,
+  "anchor": [
+    0.5,
+    1
+  ],
+  "use": "white civic post office with attached roof envelope logo"
+}

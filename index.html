@@ -1326,7 +1326,6 @@ var HOMES = {
 var REVEAL_KM = 20;          // a discovery clears a region this wide
 var UNLOCK_KM = 3;           // how close you must be for a sealed letter to open
 var PIXEL = 3;               // map pixel-art block size (css px)
-var FOGPIXEL = 2;            // preserve the illustrated clouds' clustered shading
 
 /* No pre-placed landmarks. Every mark on this map is one of ours. */
 
@@ -1343,7 +1342,7 @@ var PARKS = [
 /* Places worth a proper icon. Drawn only once the area around them is cleared. */
 var LM_ICON = { fallsTall: '\ud83d\udca7', fallsWide: '\ud83c\udf0a', cup: '\u2615', mountain: '\u26f0\ufe0f', sun: '\u2728', liberty: '\ud83d\uddfd', skyline: '\ud83c\udfd9\ufe0f', lighthouse: '\u26f5' };
 /* a few landmarks use the new art; the rest keep their pixel sprites */
-var LM_ART = { liberty: 'story-nyc', mountain: 'story-mountain', skyline: 'city', lighthouse: 'story-lighthouse' };
+var LM_ART = { liberty: 'story-nyc', mountain: 'soft-ridge', skyline: 'city', lighthouse: 'story-lighthouse' };
 function lmDraw(type, x, y, sc) {
   var a = LM_ART[type];
   if (a) { var h = SP[type].length * sc * 1.5, b = drawArt(ctx, a, x, y, h, DPR); if (b) return b; }
@@ -1594,12 +1593,15 @@ var ACTIONS = {};
 var ROWHOOKS = {};          /* features subscribe to extra collections here */
 
 /* ============================== state ============================== */
+/* Open with surrounding geography visible. Explicit Local navigation keeps
+   its existing closer camera; identity selection and reload share this zoom. */
+var START_ZOOM = 10.0;
 var S = {
   who: null,
   mode: 'map',                // 'map' | 'globe'
   view: 'local',
   center: { lat: HOMES.bruce.lat, lng: HOMES.bruce.lng },
-  zoom: 11.2,
+  zoom: START_ZOOM,
   globe: { lon: -77, lat: 38, scale: 1 },   // scale 1 = earth view, <0.5 = space
   regions: [],                // discovered, from db
   memories: [], surprises: [], deleted: {}, trips: [], plans: [],
@@ -1722,8 +1724,9 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   baseCv.width  = Math.max(1, Math.ceil(W / PIXEL));    baseCv.height = Math.max(1, Math.ceil(H / PIXEL));
-  scenicCv.width = Math.max(1, Math.ceil(W / 2)); scenicCv.height = Math.max(1, Math.ceil(H / 2));
-  fogCv.width   = Math.max(1, Math.ceil(W / FOGPIXEL)); fogCv.height  = Math.max(1, Math.ceil(H / FOGPIXEL));
+  scenicCv.width = Math.max(1, Math.ceil(W * DPR)); scenicCv.height = Math.max(1, Math.ceil(H * DPR));
+  fogCv.width   = Math.max(1, Math.ceil(W * DPR)); fogCv.height  = Math.max(1, Math.ceil(H * DPR));
+  if(typeof FOG_RENDER!=='undefined')FOG_RENDER.key='';
   baseDirty = true;
   draw();
 }
@@ -1766,10 +1769,11 @@ function drawBase() {
 
   var step = 13, dash = 4;
   var wx0 = Math.floor(ox / s / step) * step, wy0 = Math.floor(oy / s / step) * step;
-  g.fillStyle = 'rgba(255,255,255,.34)';
+  g.fillStyle = 'rgba(255,255,255,.22)';
   for (var wy = wy0; wy < wy0 + bh + step; wy += step) {
     var rowi = Math.round(wy / step);
     for (var wx = wx0; wx < wx0 + bw + step * 2; wx += step) {
+      if(terHash(Math.round(wx/step),rowi,512)<.32)continue;
       var jog = (rowi % 2) * (step / 2) + ((Math.round(wx / step) * 7 + rowi * 13) % 3);
       g.fillRect(Math.round(wx + jog - ox / s), Math.round(wy - oy / s), dash, 1);
     }
@@ -1874,6 +1878,7 @@ function drawBase() {
     var RT = window.OW_ROUTES, wgt = Math.max(0.9, (z - 6) * 0.34);
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (i = 0; i < RT.length; i++) {
+      if(RT[i][1].some(function(a){return marylandWeight(a[0],a[1])>.2;}))continue;
       var pts = RT[i][1];
       g.strokeStyle = 'rgba(139,105,68,.55)'; g.lineWidth = wgt + 1.5;
       g.beginPath();
@@ -1931,6 +1936,7 @@ function drawBase() {
     wg.addColorStop(1, 'rgba(231,183,101,0)');
     g.fillStyle = wg; g.beginPath(); g.arc(rcx, rcy, rr2, 0, 7); g.fill();
   }
+  marylandBay(g, s);
   baseDirty = false;
 }
 
@@ -1943,93 +1949,17 @@ var CLOUD_SHAPES = [
   [[0,1,4,2],[1,0,3,1],[0,3,3,1]],
   [[0,1,9,2],[1,0,3,1],[5,0,3,1],[3,3,4,1]]
 ];
+var FOG_RENDER={key:'',builds:0};
 function drawFog() {
-  var g = fogCtx, s = FOGPIXEL, bw = fogCv.width, bh = fogCv.height;
-  g.setTransform(1, 0, 0, 1, 0, 0);
-  g.globalCompositeOperation = 'source-over';
-  g.clearRect(0, 0, bw, bh);
-
-  /* The milky veil over unexplored ground fades away as you zoom out, so the
-     far views stay crisp and colourful; only the drifting clouds remain. */
-  var haze = 0;
-  /* A single pixel-cloud layer, clipped by the discovery mask below. */
-  g.save(); g.scale(1 / s, 1 / s);
-  drawSkyClouds(S.zoom, g);
-  g.restore();
-
-  /* Clouds live over the ground, not over the screen: each one belongs to a
-     patch of the world, so panning moves the map underneath them and every
-     area keeps its own sky. They drift west to east, real-life slow. */
-  var i;
-  var u = 3;                             /* clouds keep one apparent size */
-  /* Patches sit further apart the further out you are, so the sky stays
-     readable instead of turning into static. Fixed ladder, so they only
-     re-form at a couple of zoom boundaries rather than on every notch. */
-  var wantDeg = 105 * kmPerPx(S.center.lat, S.zoom) / (111 * Math.cos(rad(S.center.lat)));
-  var LADDER = [0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12];
-  var CELL = LADDER[LADDER.length - 1];
-  for (var li = 0; li < LADDER.length; li++) { if (LADDER[li] >= wantDeg) { CELL = LADDER[li]; break; } }
-  var DRIFT = cloudPhase * 0.00042;      /* degrees of longitude, very gently */
-
-  var tl = unproj(0, 0), br = unproj(W, H);
-  var latHi = Math.max(tl.lat, br.lat) + CELL * 2, latLo = Math.min(tl.lat, br.lat) - CELL * 2;
-  var lngLo = Math.min(tl.lng, br.lng) - CELL * 3, lngHi = Math.max(tl.lng, br.lng) + CELL * 3;
-
-  function hash2(a, b) {
-    var h = (a * 374761393 + b * 668265263) >>> 0;
-    h = (h ^ (h >>> 13)) >>> 0;
-    h = Math.imul(h, 1274126177) >>> 0;
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-  }
-  var cols = ['rgba(222,196,222,.90)', 'rgba(244,222,236,.95)', 'rgba(255,246,251,.98)'];
-
-  var gy0 = Math.floor(latLo / CELL), gy1 = Math.ceil(latHi / CELL);
-  var gx0 = Math.floor(lngLo / CELL), gx1 = Math.ceil(lngHi / CELL);
-  /* the old blocky clouds are retired: soft cloud sprites (src/features/terrain.js) replace them */
-  if (false && (gy1 - gy0) * (gx1 - gx0) < 4000) {
-    for (var gy = gy0; gy <= gy1; gy++) {
-      for (var gx = gx0; gx <= gx1; gx++) {
-        var h0 = hash2(gx, gy);
-        if (h0 < 0.34) continue;                   /* gaps, so skies differ by place */
-        var h1 = hash2(gx + 7919, gy), h2 = hash2(gx, gy + 104729), h3 = hash2(gx + 31, gy + 17);
-        var layer = h3 < 0.34 ? 0 : (h3 < 0.7 ? 1 : 2);
-        var clat = (gy + 0.5 + (h1 - 0.5) * 0.7) * CELL;
-        var clng = (gx + 0.5 + (h2 - 0.5) * 0.7) * CELL + DRIFT * (0.55 + layer * 0.3);
-        var cp = proj(clat, clng);
-        var cx = cp.x / s, cy = cp.y / s;
-        var shape = CLOUD_SHAPES[Math.floor(h1 * CLOUD_SHAPES.length) % CLOUD_SHAPES.length];
-        var uu = Math.max(2, Math.round(u * (0.7 + h2 * 0.75)));
-        if (cx < -uu * 12 || cy < -uu * 6 || cx > bw + uu * 12 || cy > bh + uu * 6) continue;
-        g.fillStyle = cols[layer];
-        for (var q = 0; q < shape.length; q++) {
-          g.fillRect(Math.round(cx + shape[q][0] * uu), Math.round(cy + shape[q][1] * uu),
-                     shape[q][2] * uu, shape[q][3] * uu);
-        }
-      }
-    }
-  }
-
-  /* punch out everywhere we've been */
-  g.globalCompositeOperation = 'destination-out';
-  if (canFilter) g.filter = 'blur(' + Math.max(2, 10 / s) + 'px)';
-  var rs = allRegions();
-  for (i = 0; i < rs.length; i++) {
-    var reg = rs[i], pt = proj(reg.lat, reg.lng), r = kmToPx(reg.r) / s;
-    if (r < 0.4) continue;
-    var cx = pt.x / s, cy = pt.y / s;
-    if (cx < -r - 20 || cy < -r - 20 || cx > bw + r + 20 || cy > bh + r + 20) continue;
-    if (canFilter) {
-      g.fillStyle = '#000';
-      blobPath(g, cx, cy, r, blobFor(reg.id));
-      g.fill();
-    } else {
-      var gg = g.createRadialGradient(cx, cy, r * 0.72, cx, cy, r);
-      gg.addColorStop(0, 'rgba(0,0,0,1)'); gg.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gg; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
-    }
-  }
-  if (canFilter) g.filter = 'none';
-  g.globalCompositeOperation = 'source-over';
+  var rs=allRegions(),cloudReady=cartoonCloudReady()+':'+artLoad('story-cloud').ok;
+  var key=[S.center.lat,S.center.lng,S.zoom,W,H,cloudReady,MD_TOWNBOXES.length,NYC_WORLD.visible&&NYC_WORLD.ready?NYC_WORLD.key:'',rs.map(function(r){return r.id+':'+r.lat+':'+r.lng+':'+r.r;}).join('|'),S.memories.concat(S.plans||[]).map(function(m){return m.id+':'+m.lat+':'+m.lng;}).join('|'),S.me?S.me.lat+':'+S.me.lng:''].join('/');
+  if(key===FOG_RENDER.key)return;
+  FOG_RENDER.key=key;FOG_RENDER.builds++;
+  var g=fogCtx,bw=fogCv.width,bh=fogCv.height;
+  g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-over';g.clearRect(0,0,bw,bh);
+  g.save();g.scale(DPR,DPR);drawSkyClouds(S.zoom,g);g.restore();
+  /* The map stays visible between intact cloud banks. POI-aware placement in
+     drawSkyClouds makes important areas less crowded; no cutout masks. */
 }
 
 /* ============================== globe ============================== */
@@ -2200,18 +2130,20 @@ function tryLabel(x, y, text, opts) {
   ctx.font = size + 'px "Pixelify Sans", monospace';
   var w = ctx.measureText(text).width + 10, h = size + 6;
   var b = { x: Math.round(x - w / 2), y: Math.round(y - h), w: Math.round(w), h: h };
-  if (!opts.force && !labelFree(b)) return false;
+  if(!labelFree(b))return false;
   labelBoxes.push(b);
   labelBox(x, y, text, opts);
   return true;
 }
 
 function homeDisplayPos(k, z) {
-  if(typeof PAINTED!=='undefined'&&PAINTED.current){var painted=paintedBox(k);if(painted)return{x:painted.x+painted.w/2,y:painted.baseY};}
-  var h = HOMES[k], p = proj(h.lat, h.lng);
+  var h = HOMES[k], p = typeof repairPoint==='function'?repairPoint(k):proj(h.lat, h.lng);
   /* Homes stay on Maryland's western shore. Never spread them east across
      the bay to make room for labels. The geographic coordinate is unchanged. */
-  if (terrainAt(p.x,p.y)!=='land') {
+  if(k==='bruce'){
+    var half=homeArtH(z)*.86*1.6*.47;
+    for(var dx=0;dx<=180;dx+=3){var x=p.x-dx;if(terrainAt(x-half,p.y+5)==='land'&&terrainAt(x+half,p.y+5)==='land'&&terrainAt(x,p.y-10)==='land'){p.x=x;break;}}
+  } else if (terrainAt(p.x,p.y)!=='land') {
     for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){p.x-=dx;break;}
   }
   return p;
@@ -2221,6 +2153,8 @@ function drawMapOverlays() {
   hitboxes = [];
   labelBoxes = [];
   var z = S.zoom, i, p;
+  repairReserveLabels();
+  nycReserveLabels();
 
   /* Quiet illustrated discovery boundaries; no animated border sparkles. */
   var rs = allRegions();
@@ -2260,6 +2194,7 @@ function drawMapOverlays() {
     for (i = 0; i < SL.length; i++) {
       p = proj(SL[i][1], SL[i][2]);
       if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 20) continue;
+      if(!labelFree({x:p.x-65,y:p.y-12,w:130,h:24}))continue;
       ctx.save();
       ctx.letterSpacing = '2px';
       ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
@@ -2275,6 +2210,7 @@ function drawMapOverlays() {
   /* counties and city areas — the labels you see most of the time */
   var A = window.OW_AREAS;
   for (i = 0; i < A.length; i++) {
+    if(z<10.3)continue;
     if (!isRevealed(A[i][1], A[i][2], 1.25)) continue;
     if (z < 9.8 && HB_PILLS[A[i][0]]) continue;          /* the home base draws its own name pills */
     p = proj(A[i][1], A[i][2]);
@@ -2311,7 +2247,7 @@ function drawMapOverlays() {
   (function drawFlight() {
     var fp = [], fi;
     for (fi = 0; fi < FLIGHT.length; fi++) fp.push(proj(FLIGHT[fi][0], FLIGHT[fi][1]));
-    if(PAINTED.current==='maryland'&&PAINTED.alpha>.95)fp[0]=homeDisplayPos('bruce',z);
+    fp[0]=homeDisplayPos('bruce',z);
     /* one control point per leg, bowed north so the hop arcs instead of ruling a line */
     var ctrl = [], segLen = [], total = 0;
     for (fi = 0; fi < fp.length - 1; fi++) {
@@ -2322,23 +2258,7 @@ function drawMapOverlays() {
       segLen.push(len); total += len;
     }
     if (!total) return;
-    PAINTED.flight={points:fp,ctrl:ctrl};
-
-    ctx.save();
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    var dashOff = reduceMotion ? 0 : -(cloudPhase * 0.9) % 22;
-    for (fi = 0; fi < fp.length - 1; fi++) {
-      ctx.beginPath();
-      ctx.moveTo(fp[fi].x, fp[fi].y);
-      ctx.quadraticCurveTo(ctrl[fi].x, ctrl[fi].y, fp[fi + 1].x, fp[fi + 1].y);
-      ctx.setLineDash([]); ctx.strokeStyle = 'rgba(255,251,253,.75)'; ctx.lineWidth = 7;
-      ctx.stroke();
-      ctx.setLineDash([11, 11]); ctx.lineDashOffset = dashOff;
-      ctx.strokeStyle = 'rgba(231,183,101,.95)'; ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-    ctx.setLineDash([]); ctx.lineDashOffset = 0;
-    ctx.restore();
+    FLIGHT_FRAME.flight={points:fp,ctrl:ctrl};
 
     /* where the plane has got to — one slow pass, about two and a half minutes end to end */
     var ft = ((cloudPhase % 1600) / 1600) * total, seg = 0;
@@ -2350,29 +2270,28 @@ function drawMapOverlays() {
 
     var vx=2*iu*(ctrl[seg].x-fp[seg].x)+2*u*(fp[seg+1].x-ctrl[seg].x);
     var vy=2*iu*(ctrl[seg].y-fp[seg].y)+2*u*(fp[seg+1].y-ctrl[seg].y);
-    PAINTED.plane={x:px2,y:py2,scale:z>5?3:2,heading:Math.atan2(vy,vx)};
+    FLIGHT_FRAME.plane={x:px2,y:py2,scale:z>5?3:2,heading:Math.atan2(vy,vx)};
   })();
 
   runHooks('terrain');
-  if(!paintedFillsView())drawFog();
+  drawFog();
   ctx.save(); ctx.imageSmoothingEnabled = false;
   ctx.drawImage(fogCv, 0, 0, fogCv.width, fogCv.height, 0, 0, W, H);
   ctx.restore();
-  drawPaintedRegion();
-  paintedFlightPath();
+  repairFlightPath();
 
   /* landmarks */
   for (i = 0; i < LANDMARKS.length; i++) {
     var lm = LANDMARKS[i],special=specialForCity(lm[0]);
+    if(lm[0]==='nyc'&&nycWorldLandmark(lm))continue;
     if(z<6.1&&!LAKE_CITY_ART[lm[0]])continue;
     if(LAKE_CITY_ART[lm[0]]){var cityPoint=proj(lm[2],lm[3]);if(cityPoint.x>-200&&cityPoint.x<W+200&&cityPoint.y>-180&&cityPoint.y<H+180&&drawLakeCity(lm,cityPoint))continue;}
-    if(paintedBox(lm[0]))continue;
     /* A planned stop is drawn before we get there. The moment the ground around it
        is actually cleared it stops being planned and behaves like everywhere else. */
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
     if (!special && !planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
-    if(paintedCovers(p.x,p.y)){addHit({x:p.x-20,y:p.y-35,w:40,h:40},{kind:'landmark',id:lm[0]});continue;}
+    if(lm[0]==='dc')p=repairPoint('dc');
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
     var lsc = Math.max(2, Math.round((z > 11.4 ? 4 : (z > 10.4 ? 3 : 2)) * 1.4 * (lm[6] || 1)));   /* places are about 1.4x bigger than before */
@@ -2430,8 +2349,12 @@ function drawMapOverlays() {
       ctx.fillStyle = 'rgba(165,225,229,' + (0.16 + shim * 0.16) + ')';
       ctx.beginPath(); ctx.arc(p.x, p.y - 8 * lsc, 11 * lsc, 0, 7); ctx.fill();
     }
+    if(lm[0]==='dc'){
+      var monument=drawArt(ctx,'pack-monument',p.x-homeArtH(z)*.73,p.y-4,homeArtH(z)*1.25,DPR);
+      if(monument)addHit(monument,{kind:'landmark',id:'dc'});
+    }
     var lb = (special&&drawArt(ctx,special.worldIcon,p.x,p.y,Math.min(120,58+(z-7)*13),DPR)) || (lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc));
-    if(special){ctx.save();ctx.font='600 14px "Pixelify Sans",monospace';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#6f6854';ctx.strokeText(lm[1],p.x,lb.y-8);ctx.fillStyle='#fff3dc';ctx.fillText(lm[1],p.x,lb.y-8);ctx.restore();}
+    if(special&&z>9.2)tryLabel(p.x,lb.y-18,lm[1],{size:13});
     else if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 13, fg: C.deep, border: C.gold, force: 1 });
     labelBoxes.push({ x: lb.x - 4, y: lb.y - 4, w: lb.w + 8, h: lb.h + 8 });
     addHit({ x: lb.x - 8, y: lb.y - 20, w: lb.w + 16, h: lb.h + 26 }, { kind: 'landmark', id: lm[0] });
@@ -2440,18 +2363,12 @@ function drawMapOverlays() {
   /* homes */
   HOMEBOXES = {};
   ['elena', 'bruce'].forEach(function (k) {
-    if(paintedBox(k))return;
-    if(z<6.1)return;
     var h = HOMES[k]; var q = homeDisplayPos(k, z), actual = proj(h.lat,h.lng);
     if (q.x < -60 || q.y < -70 || q.x > W + 60 || q.y > H + 40) return;
     var sc = z > 10.6 ? 4 : (z > 9 ? 3 : 2);
     var bob = 0;                       /* homes stand still — everything placed beside them depends on it */
     var hz = homeArtH(z);
-    if (z < 9.5) {
-      ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle = '#fff3d8'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(actual.x,actual.y); ctx.lineTo(q.x,q.y); ctx.stroke(); ctx.restore();
-    }
-    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'story-cottage', q.x, q.y, hz * 1.04, DPR)) ||
+    var box = (k === 'elena' ? drawArt(ctx, 'story-castle', q.x, q.y, hz * 1.12, DPR) : drawArt(ctx, 'blue-cottage-map', q.x, q.y, hz * .86, DPR)) ||
       (k === 'elena'
         ? drawSprite(ctx, SP.castle, PAL.castle, q.x, q.y + bob, sc, '#FFFFFF')
         : drawSprite(ctx, SP.cottage, PAL.gold, q.x, q.y + bob, sc, '#FFFFFF'));
@@ -2474,7 +2391,6 @@ function drawMapOverlays() {
   });
 
   /* memories — pins sharing a spot fan out in a ring so none hides another */
-  paintedRegister();
   runHooks('beforePins');
   drawMemoryMarkers(false);
 
@@ -2550,7 +2466,7 @@ function draw() {
   if ('textRendering' in ctx) ctx.textRendering = 'optimizeSpeed';     /* no joined "fi" in map labels */
   ctx.clearRect(0, 0, W, H);
   if(drawSpecialRegion()){specialDrawFade();return;}
-  paintedPrepare();PAINTED.plane=null;PAINTED.flight=null;
+  repairPrepare();nycPrepare();FLIGHT_FRAME.plane=null;FLIGHT_FRAME.flight=null;
 
   if (S.mode === 'globe') {
     drawGlobe();
@@ -2559,15 +2475,14 @@ function draw() {
     return;
   }
 
-  if (baseDirty) { drawBase(); runHooks('afterBase'); if(paintedFillsView()){scenicCtx.setTransform(1,0,0,1,0,0);scenicCtx.clearRect(0,0,scenicCv.width,scenicCv.height);}else drawScenic(); }
+  if (baseDirty) { drawBase(); runHooks('afterBase'); drawScenic(); }
   ctx.drawImage(baseCv, 0, 0, baseCv.width, baseCv.height, 0, 0, W, H);
   ctx.drawImage(scenicCv, 0, 0, scenicCv.width, scenicCv.height, 0, 0, W, H);
   ctx.imageSmoothingEnabled = true;
   runHooks('afterFog');
   drawMapOverlays();
-  ctx.save();paintedClipOutside();lakeCityClipAtmosphere();runHooks('afterOverlays');ctx.restore();
-  drawPaintedAvatars();
-  if(PAINTED.plane)drawFlightAircraft(PAINTED.plane);
+  ctx.save();lakeCityClipAtmosphere();runHooks('afterOverlays');ctx.restore();
+  if(FLIGHT_FRAME.plane)drawFlightAircraft(FLIGHT_FRAME.plane);
   specialDrawFade();
 }
 
@@ -2583,6 +2498,8 @@ requestAnimationFrame(loop);
 
 /* ============================== interaction ============================== */
 var drag = null, pinch = null;
+var MAP_DRAW_QUEUED=false;
+function requestMapDraw(){if(MAP_DRAW_QUEUED)return;MAP_DRAW_QUEUED=true;requestAnimationFrame(function(){MAP_DRAW_QUEUED=false;draw();});}
 function evPos(e) { var r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 
 cv.addEventListener('pointerdown', function (e) {
@@ -2608,7 +2525,7 @@ cv.addEventListener('pointermove', function (e) {
     S.center.lat = Math.max(5, Math.min(62, wyToLat(ny, z)));
     baseDirty = true;
   }
-  draw();
+  requestMapDraw();
 });
 function endDrag(e) {
   if (!drag || drag.id !== e.pointerId) return;
@@ -2666,7 +2583,7 @@ function zoomBy(d, at) {
   }
   baseDirty = true;
   setViewButtons(S.zoom >= 9.6 ? 'local' : 'dmv');
-  draw();
+  requestMapDraw();
 }
 
 function handleTap(pos) {
@@ -3775,7 +3692,7 @@ function setWho(k) {
   hopIdx = Math.max(0, placesList().map(function (r) { return r.t; }).indexOf(k === 'elena' ? 'Arnold & Annapolis' : 'Chesapeake Beach'));
   document.getElementById('menam').textContent = whoName(k);
   var h = HOMES[k];
-  S.center.lat = h.lat; S.center.lng = h.lng; S.zoom = 11.2;
+  S.center.lat = h.lat; S.center.lng = h.lng; S.zoom = START_ZOOM;
   baseDirty = true;
   document.getElementById('intro').style.display = 'none';
   setViewButtons('local');
@@ -3880,21 +3797,39 @@ var WORLD_ASSETS = {"pack-pine":{"path":"art/world/vegetation/pine.png","width":
    shrunk once to the exact pixel height it is drawn at, so it stays sharp at
    every zoom, and keeps its proportions. */
 
-var ART = {}, ARTSIZED = {};
+/* Shared soft map art keeps antialiased edges. Major architecture, clouds,
+   UI and canonical avatars retain their existing rendering. */
+var SOFT_FOLIAGE={};
+[['pine',['pack-pine','tree-pine','story-pine']],['pine-tall',['pack-pine-tall']],['oak',['pack-oak','tree-oak','story-oak']],['cherry',['pack-cherry','tree-cherry','story-cherry']],['crimson',['pack-crimson']],['bush',['pack-bush','bush','bush-pink']],['flowers',['pack-flowers','flowers','flowers2','flowers3','flowers4']],['rocks',['pack-rocks','rock']],['grass',['pack-grass']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft/'+group[0]+'.png';});});
+[['ridge',['soft-ridge']],['hills',['soft-hills']],['waterfall',['soft-waterfall']],['bridge',['pack-bridge','story-bridge']],['dock',['pack-dock','story-pier']],['bench',['bench']],['lamp',['lamp']],['boat',['pack-boat','boat']],['cottage',['story-cottage']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft-scenery/'+group[0]+'.png';});});
+[['castle',['story-castle','castle-pink']],['blue-home',['blue-cottage-map','cottage']],['post-office',['civic-post-office','story-post-office']],['capitol',['pack-capitol']],['monument',['pack-monument']],['lighthouse',['story-lighthouse','lighthouse']]].forEach(function(group){group[1].forEach(function(name){SOFT_FOLIAGE[name]='art/world/soft-buildings/'+group[0]+'.png';});});
+var CARTOON_CLOUDS=[0,1,2,3,4,5].map(function(i){var name='soft-cloud-'+i;SOFT_FOLIAGE[name]='art/world/soft-clouds/cloud-'+i+'.png';return name;});
+function cartoonCloudReady(){return CARTOON_CLOUDS.every(function(name){return artLoad(name).ok;});}
+var SOFT_ASPECT_LIMIT={'story-castle':.8,'castle-pink':.8,'blue-cottage-map':1.6,'civic-post-office':1.35};
+var ART = {}, ARTSIZED = {}, SOFT_SOURCES = {};
 function artLoad(name) {
   if (ART[name]) return ART[name];
-  var e = ART[name] = { ok: false }, im = new Image();
-  im.onload = function () { e.img = im; e.ok = true; if (typeof baseDirty !== 'undefined') baseDirty = true; };
+  if(SOFT_FOLIAGE[name]&&SOFT_SOURCES[SOFT_FOLIAGE[name]])return ART[name]=SOFT_SOURCES[SOFT_FOLIAGE[name]];
+  var e = ART[name] = { ok: false, soft:!!SOFT_FOLIAGE[name] }, im = new Image();
+  if(e.soft)SOFT_SOURCES[SOFT_FOLIAGE[name]]=e;
+  im.onload = function () { e.img = im; e.ok = true; if (typeof baseDirty !== 'undefined') baseDirty = true; if(typeof requestMapDraw==='function'&&W)requestMapDraw(); };
   im.onerror = function () { e.bad = true; };
-  im.src = (typeof WORLD_ASSETS!=='undefined'&&WORLD_ASSETS[name])?WORLD_ASSETS[name].path:'art/' + name + '.png';
+  im.src = SOFT_FOLIAGE[name] || ((typeof WORLD_ASSETS!=='undefined'&&WORLD_ASSETS[name])?WORLD_ASSETS[name].path:'art/' + name + '.png');
   return e;
 }
 ['castle-pink', 'cottage', 'mountain', 'lighthouse', 'city', 'tree-cherry', 'tree-pine', 'tree-oak', 'bush-pink', 'boat', 'rock', 'flowers', 'sign']
   .forEach(artLoad);
 ['city-ghost', 'blossom', 'cloud1', 'cloud2'].forEach(artLoad);
 artLoad('story-cloud');
+CARTOON_CLOUDS.forEach(artLoad);
 artLoad('story-nyc');
 artLoad('map-airplane');
+artLoad('blue-cottage-map');
+artLoad('pack-capitol');
+artLoad('pack-monument');
+artLoad('civic-post-office');
+['pack-rocks','pack-dock','pack-boat','lamp','bench'].forEach(artLoad);
+['soft-ridge','soft-hills','soft-waterfall'].forEach(artLoad);
 ['pack-pine','pack-pine-tall','pack-oak','pack-cherry','pack-crimson','pack-bush','pack-flowers','pack-grass-medium','pack-forest-floor'].forEach(artLoad);
 ['story-cottage', 'story-castle', 'story-lighthouse', 'story-post-office', 'story-cherry', 'story-pine', 'story-oak', 'story-mountain', 'story-bridge', 'story-pier'].forEach(artLoad);
 
@@ -3905,20 +3840,27 @@ function artSized(name, h, res) {
   if (ARTSIZED[key]) return ARTSIZED[key];
   var pw = Math.max(4, Math.round(e.img.width * px / e.img.height));
   var c = document.createElement('canvas'); c.width = pw; c.height = px;
-  /* Pixel assets retain hard edges at every scale, including downsampling. */
-  var g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  var g = c.getContext('2d'); g.imageSmoothingEnabled = e.soft;
+  if(e.soft)g.imageSmoothingQuality='high';
   g.drawImage(e.img, 0, 0, pw, px);
-  var id = g.getImageData(0, 0, pw, px);
-  for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 100 ? 255 : 0;
-  g.putImageData(id, 0, 0);
+  if(!e.soft){var id = g.getImageData(0, 0, pw, px);
+    for (var k = 3; k < id.data.length; k += 4) id.data[k] = id.data[k] > 100 ? 255 : 0;
+    g.putImageData(id, 0, 0);
+  }
   return (ARTSIZED[key] = c);
 }
 /* stands on (x, y), h tall (css px); returns its box, or null while the art loads */
 function drawArt(g, name, x, y, h, res) {
+  var asset=artLoad(name),limit=SOFT_ASPECT_LIMIT[name];
+  if(limit&&asset.ok)h=Math.min(h,h*limit*asset.img.height/asset.img.width);
+  /* Large close-zoom clouds reuse their source, not giant per-height canvases. */
+  if(name.indexOf('soft-cloud-')===0&&asset.ok){var cw=h*asset.img.width/asset.img.height;g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(asset.img,x-cw/2,y-h,cw,h);g.restore();return{x:x-cw/2,y:y-h,w:cw,h:h};}
+  if(SOFT_FOLIAGE[name])res=Math.max(2,res||1);
   var c = artSized(name, h, res);
   if (!c) return null;
   var w = c.width / (res || 1), hh = c.height / (res || 1), pad = (c.pad || 0) / (res || 1);
-  g.save(); g.imageSmoothingEnabled = false;
+  g.save(); g.imageSmoothingEnabled = !!SOFT_FOLIAGE[name];
+  if(SOFT_FOLIAGE[name])g.imageSmoothingQuality='high';
   g.drawImage(c, Math.round(x - w / 2), Math.round(y - hh + pad), w, hh);
   g.restore();
   return { x: x - w / 2, y: y - hh, w: w, h: hh };
@@ -4154,82 +4096,44 @@ document.getElementById('specialBack').addEventListener('click',specialBack);
 document.addEventListener('click',function(e){if(e.target.closest('[data-act="close"]'))specialCancelPending();});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){specialCancelPending();if(SPECIAL.active&&!sheet.classList.contains('open')&&!S.placing&&!lbEl.classList.contains('on')&&!calEl.classList.contains('open'))specialBack();}});
 
-/* ---- world/authored-regions.js ---- */
-/* Ordinary-map painted regions only. Camera/proj/unproj and memory data are
-   unchanged. UV points describe decorative artwork, not navigable geography. */
-var PAINTED={current:null,rect:null,matrix:null,alpha:0,plane:null};
-var PAINTED_REGIONS={
- maryland:{lat:38.86335,lng:-76.51815,radius:155,anchor:{u:.55,v:.585},width:700,
-  atlas:'art/world/painted/maryland-atlas.webp',local:'art/world/painted/maryland-local.webp',
-  points:{elena:{u:.545,v:.505,w:.19,h:.105},bruce:{u:.59,v:.68,w:.21,h:.09},mail:{u:.552,v:.583,w:.17,h:.075},dc:{u:.29,v:.445,w:.27,h:.095}},
-  localPoints:{elena:{u:.54,v:.50,w:.075,h:.052},bruce:{u:.575,v:.672,w:.08,h:.04},mail:{u:.554,v:.581,w:.07,h:.035},dc:{u:.30,v:.44,w:.10,h:.05}}},
- nyc:{lat:40.758,lng:-73.9855,radius:125,anchor:{u:.67,v:.445},width:650,
-  atlas:'art/world/painted/nyc-regional.webp',
-  points:{nyc:{u:.67,v:.445,w:.56,h:.15}}}
-};
-Object.keys(PAINTED_REGIONS).forEach(function(id){var c=PAINTED_REGIONS[id];['atlas','local'].forEach(function(k){if(!c[k])return;var im=new Image();im.onload=function(){c[k+'Image']=im;};im.src=c[k];});});
-function paintedSmooth(a,b,v){var t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t);}
-function paintedPrepare(){
- PAINTED.current=null;PAINTED.rect=null;PAINTED.alpha=0;
- if(S.mode!=='map'||SPECIAL.active)return;
- var chosen=null,best=Infinity;
- Object.keys(PAINTED_REGIONS).forEach(function(id){var c=PAINTED_REGIONS[id],d=haversine(S.center.lat,S.center.lng,c.lat,c.lng);if(d<c.radius&&d<best&&c.atlasImage){chosen=id;best=d;}});
- if(!chosen)return;
- var c=PAINTED_REGIONS[chosen],im=c.atlasImage,p=proj(c.lat,c.lng);
- /* Fixed Mercator-sized patch: pan/zoom remains the ordinary map transform. */
- var w=c.width*Math.pow(2,S.zoom-7.8),h=w*im.naturalHeight/im.naturalWidth;
- PAINTED.current=chosen;PAINTED.alpha=(1-paintedSmooth(c.radius*.8,c.radius,best))*paintedSmooth(5.8,6.8,S.zoom);
- var a=w,b=0,d=h,tx=p.x-c.anchor.u*w,ty=p.y-c.anchor.v*h;
- if(chosen==='maryland'){
-  var e=proj(HOMES.elena.lat,HOMES.elena.lng),house=proj(HOMES.bruce.lat,HOMES.bruce.lng),dc=proj(38.8895,-77.0353);
-  var extra=Math.max(0,110-(house.y-e.y)/2);e.y-=extra;house.y+=extra;
-  var pe=c.points.elena,pb=c.points.bruce,pd=c.points.dc;
-  a=Math.max(190,e.x-dc.x)/(pe.u-pd.u);
-  d=(house.y-e.y)/(pb.v-pe.v);
-  b=0; /* never shear pixel buildings or tilt their vertical walls */
-  tx=(e.x+house.x)/2-a*(pe.u+pb.u)/2;ty=e.y-d*pe.v;
- }
- PAINTED.atlasMatrix={a:a,b:b,d:d,x:tx,y:ty};
- if(c.localPoints){var lp=c.localPoints,localD=(house.y-e.y)/(lp.bruce.v-lp.elena.v),localA=Math.max(190,e.x-dc.x)/(lp.elena.u-lp.dc.u);PAINTED.localMatrix={a:localA,b:0,d:localD,x:(e.x+house.x)/2-localA*(lp.elena.u+lp.bruce.u)/2,y:e.y-localD*lp.elena.v};}
- PAINTED.matrix=c.localPoints&&S.zoom>9.5?PAINTED.localMatrix:PAINTED.atlasMatrix;
- a=PAINTED.matrix.a;b=PAINTED.matrix.b;d=PAINTED.matrix.d;tx=PAINTED.matrix.x;ty=PAINTED.matrix.y;
- PAINTED.rect={x:Math.min(tx,tx+b),y:ty,w:a+Math.abs(b),h:d};
+/* ---- world/map-repair.js ---- */
+/* Decorative landmark spacing only. Geographic projection and data stay intact. */
+var FLIGHT_FRAME={plane:null,flight:null};
+var REPAIR={key:'',points:{},boxes:[]};
+function repairPrepare(){
+ var key=[S.center.lat,S.center.lng,S.zoom,W,H].join('/');if(key===REPAIR.key)return;
+ REPAIR.key=key;
+ var e=proj(HOMES.elena.lat,HOMES.elena.lng),b=proj(HOMES.bruce.lat,HOMES.bruce.lng);
+ var m=proj((HOMES.elena.lat+HOMES.bruce.lat)/2,(HOMES.elena.lng+HOMES.bruce.lng)/2);
+ var gap=Math.max(0,homeArtH(S.zoom)*1.45-(b.y-e.y)/2);
+ e.y-=gap;b.y+=gap;b.x-=homeArtH(S.zoom)*.5;
+ var dc=proj(38.8895,-77.0353),n=proj(38.79,-77.40);
+ dc.x=Math.min(dc.x,m.x-homeArtH(S.zoom)*2.65);
+ n.x=Math.min(n.x,m.x-homeArtH(S.zoom)*2.15);n.y=Math.max(n.y,m.y+homeArtH(S.zoom)*1.65);
+ /* The wider civic facade needs a dry clearing on the western shore. */
+ m.x-=homeArtH(S.zoom)*.7;
+ REPAIR.points={elena:e,bruce:b,mail:m,dc:dc,'hb-nova':n};
+ REPAIR.boxes=['elena','bruce','mail','dc','hb-nova'].map(repairBox);
 }
-function paintedPoint(u,v){var m=PAINTED.matrix;return{x:m.x+m.a*u+m.b*v,y:m.y+m.d*v};}
-function paintedBox(id){
- if(!PAINTED.current||PAINTED.alpha<.95)return null;
- var config=PAINTED_REGIONS[PAINTED.current],p=(config.localPoints&&S.zoom>9.5?config.localPoints:config.points)[id],g=PAINTED.rect;if(!p)return null;
- var q=paintedPoint(p.u,p.v),m=PAINTED.matrix,w=p.w*m.a+Math.abs(m.b)*p.h;
- return{x:q.x-w/2,y:q.y-p.h*m.d,w:w,h:p.h*m.d,baseY:q.y};
+function repairPoint(id){var p=REPAIR.points[id];return p?{x:p.x,y:p.y}:null;}
+function repairBox(id){
+ var p=repairPoint(id),h=homeArtH(S.zoom),w;
+ if(id==='elena'){h*=1.12;w=h*.8;}
+ else if(id==='bruce'){h*=.86;w=h*1.6;}
+ else if(id==='mail'){h*=.82;w=h*1.35;}
+ else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.35,y:p.y-homeArtH(S.zoom)*1.5,w:homeArtH(S.zoom)*2.5,h:homeArtH(S.zoom)*1.85,id:id};}
+ else {h*=1.05;w=homeArtH(S.zoom)*1.55;}
+ return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }
-function paintedCovers(x,y){var m=PAINTED.matrix;if(!PAINTED.rect||PAINTED.alpha<.95)return false;var v=(y-m.y)/m.d,u=(x-m.x-m.b*v)/m.a;return u>0&&u<1&&v>0&&v<1;}
-function drawPaintedRegion(){
- if(!PAINTED.current)return;
- var c=PAINTED_REGIONS[PAINTED.current],g=PAINTED.rect,m=PAINTED.atlasMatrix;
- ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=PAINTED.alpha;
- ctx.transform(m.a/c.atlasImage.naturalWidth,0,m.b/c.atlasImage.naturalHeight,m.d/c.atlasImage.naturalHeight,m.x,m.y);ctx.drawImage(c.atlasImage,0,0);
- ctx.restore();
- if(c.localImage){m=PAINTED.localMatrix;ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=PAINTED.alpha*paintedSmooth(8.8,10.2,S.zoom);ctx.transform(m.a/c.localImage.naturalWidth,0,m.b/c.localImage.naturalHeight,m.d/c.localImage.naturalHeight,m.x,m.y);ctx.drawImage(c.localImage,0,0);ctx.restore();}
+function repairClear(x,y,radius){var r=radius||0;return REPAIR.boxes.some(function(b){return x>b.x-20-r&&x<b.x+b.w+20+r&&y>b.y-16&&y-r*2<b.y+b.h+22;});}
+function repairReserveLabels(){
+ REPAIR.boxes.forEach(function(b){labelBoxes.push({x:b.x-8,y:b.y-8,w:b.w+16,h:b.h+16});});
+ S.memories.forEach(function(m){var p=proj(m.lat,m.lng);labelBoxes.push({x:p.x-26,y:p.y-65,w:52,h:74});});
 }
-function paintedFillsView(){return paintedCovers(0,0)&&paintedCovers(W,0)&&paintedCovers(0,H)&&paintedCovers(W,H);}
-function paintedFlightPath(){
- if(!PAINTED.current||!PAINTED.flight)return;
- ctx.save();ctx.setLineDash([7,9]);ctx.strokeStyle='rgba(255,247,228,.7)';ctx.lineWidth=2;
- var f=PAINTED.flight;for(var i=0;i<f.points.length-1;i++){ctx.beginPath();ctx.moveTo(f.points[i].x,f.points[i].y);ctx.quadraticCurveTo(f.ctrl[i].x,f.ctrl[i].y,f.points[i+1].x,f.points[i+1].y);ctx.stroke();}ctx.restore();
-}
-function paintedRegister(){
- ['elena','bruce'].forEach(function(who){var b=paintedBox(who);if(!b)return;HOMEBOXES[who]={x:b.x,y:b.y,w:b.w,h:b.h,sc:3,baseY:b.baseY};addHit(b,{kind:'home',who:who});});
- var mail=paintedBox('mail');if(mail)addHit(mail,{kind:'mail'});
- ['dc','nyc'].forEach(function(id){var b=paintedBox(id);if(b)addHit(b,{kind:'landmark',id:id});});
-}
-function paintedClipOutside(){
- var r=PAINTED.rect;if(!r||PAINTED.alpha<.95)return;
- var a=paintedPoint(0,0),b=paintedPoint(1,0),c=paintedPoint(1,1),d=paintedPoint(0,1);
- ctx.beginPath();ctx.rect(0,0,W,H);ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.lineTo(c.x,c.y);ctx.lineTo(d.x,d.y);ctx.closePath();ctx.clip('evenodd');
-}
-function drawPaintedAvatars(){
- if(PAINTED.current!=='maryland'||PAINTED.alpha<.95||!S.who)return;
- [S.who,PR.partner?other(S.who):null].forEach(function(who){if(!who)return;var b=paintedBox(who);if(!b)return;var height=Math.min(80,b.h*.8),x=b.x-height*.35,y=b.baseY;var box=drawAvatar(ctx,who,x,y,height,null,{res:DPR});if(box)addHit(box,{kind:'avatar',who:who});});
+function repairFlightPath(){
+ var f=FLIGHT_FRAME.flight;if(!f)return;
+ ctx.save();ctx.setLineDash([7,9]);ctx.strokeStyle='rgba(255,247,228,.65)';ctx.lineWidth=2;
+ for(var i=0;i<f.points.length-1;i++){ctx.beginPath();ctx.moveTo(f.points[i].x,f.points[i].y);ctx.quadraticCurveTo(f.ctrl[i].x,f.ctrl[i].y,f.points[i+1].x,f.points[i+1].y);ctx.stroke();}ctx.restore();
 }
 
 /* ---- world/lake-cities.js ---- */
@@ -4258,26 +4162,393 @@ function lakeCityClipAtmosphere(){
  ctx.clip('evenodd');
 }
 
+/* ---- world/nyc-waterfront.js ---- */
+/* Ordinary-map NYC: modular architecture over the REAL geographic base.
+   Decorative footprints are exaggerated for readability; proj/unproj, saved
+   coordinates and the existing deliberate-entry close-up are never replaced. */
+var NYC_WORLD={key:'',visible:false,ready:false,parts:[],boxes:[]};
+var NYC_PARTS=['nyc-brownstones','nyc-empire','nyc-east-skyline','nyc-brooklyn-bridge','pack-liberty'];
+var NYC_TRAIL=[[-65,-290],[-145,-230],[-95,-155],[-155,-80],[-135,10],[-185,95],[-140,165],[-190,260]];
+var NYC_WINDOW_MASKS={};
+function nycWindowMask(name){
+ if(NYC_WINDOW_MASKS[name])return NYC_WINDOW_MASKS[name];
+ var a=artLoad(name);if(!a.ok)return null;
+ var c=document.createElement('canvas');c.width=a.img.width;c.height=a.img.height;
+ var g=c.getContext('2d');g.drawImage(a.img,0,0);var im=g.getImageData(0,0,c.width,c.height),d=im.data;
+ for(var i=0;i<d.length;i+=4){var lit=d[i+3]>200&&d[i]>185&&d[i+1]>125&&d[i]-d[i+2]>85&&d[i+1]-d[i+2]>42;d[i]=255;d[i+1]=221;d[i+2]=126;d[i+3]=lit?225:0;}
+ g.putImageData(im,0,0);return NYC_WINDOW_MASKS[name]=c;
+}
+function nycPrepare(){
+ var p=proj(40.7580,-73.9855),s=Math.max(.12,Math.min(2.1,Math.pow(2,(S.zoom-7.8)*.55)));
+ var b={x:p.x-260*s,y:p.y-330*s,w:530*s,h:650*s};
+ var visible=S.mode==='map'&&b.x<W&&b.y<H&&b.x+b.w>0&&b.y+b.h>0;
+ if(!visible){NYC_WORLD.visible=false;return;}
+ var ready=NYC_PARTS.every(function(id){return artLoad(id).ok;});
+ /* Start all imminent assets together, not one request per frame. */
+ NYC_PARTS.forEach(artLoad);
+ var key=[p.x,p.y,S.zoom,W,H,ready].join('/');
+ if(NYC_WORLD.key===key){NYC_WORLD.visible=true;return;}
+ function part(name,x,y,h,id){var a=artLoad(name),aspect=a.ok?a.img.width/a.img.height:1.6;return{name:name,x:p.x+x*s,y:p.y+y*s,h:h*s,w:h*s*aspect,id:id};}
+ var parts=[part('nyc-brownstones',-94,12,62,'brownstones'),part('nyc-empire',0,-6,112,'empire'),part('nyc-east-skyline',94,-27,83,'east'),part('nyc-brooklyn-bridge',112,48,64,'bridge')];
+ var liberty=proj(40.6892,-74.0445);
+ NYC_WORLD={key:key,visible:true,ready:ready,anchor:p,scale:s,bounds:b,parts:parts,boxes:[],liberty:{x:liberty.x+112*s,y:liberty.y+115*s},boats:[]};
+ nycUpdateBoxes();
+}
+function nycUpdateBoxes(){
+ var n=NYC_WORLD,s=n.scale;if(!n.visible)return;
+ n.boxes=n.parts.map(function(p){return{x:p.x-p.w/2,y:p.y-p.h,w:p.w,h:p.h,id:p.id};});
+ n.boxes.push({x:n.liberty.x-34*s,y:n.liberty.y-75*s,w:68*s,h:93*s,id:'liberty'});
+}
+function nycFootprints(){return NYC_WORLD.visible&&NYC_WORLD.ready?NYC_WORLD.boxes:[];}
+function nycAvoid(x,y,pad){return nycFootprints().some(function(b){return x>b.x-pad&&x<b.x+b.w+pad&&y>b.y-pad&&y<b.y+b.h+pad;});}
+function nycOnScreen(x,y,r){return x>-r&&y>-r&&x<W+r&&y<H+r;}
+function nycPoint(x,y){var n=NYC_WORLD;return{x:n.anchor.x+x*n.scale,y:n.anchor.y+y*n.scale};}
+function nycTrailDistance(x,y){
+ var best=1e9;
+ for(var i=1;i<NYC_TRAIL.length;i++){
+  var a=NYC_TRAIL[i-1],b=NYC_TRAIL[i],dx=b[0]-a[0],dy=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy)));
+  best=Math.min(best,Math.hypot(x-a[0]-dx*t,y-a[1]-dy*t));
+ }
+ return best;
+}
+function nycWaterSite(target,radius,s){
+ var best=null,score=1e9;
+ for(var dy=-radius;dy<=radius;dy+=8*s)for(var dx=-radius;dx<=radius;dx+=8*s){
+  var x=target.x+dx,y=target.y+dy;
+  if(terrainAt(x,y)!=='water'||terrainAt(x-22*s,y)!=='water'||terrainAt(x+22*s,y)!=='water')continue;
+  var d=dx*dx+dy*dy;if(d<score){score=d;best={x:x,y:y};}
+ }
+ return best;
+}
+function nycGround(g){
+ var n=NYC_WORLD,s=n.scale,step=10*s,land=[];
+ /* Low-contrast meadow and coastal shallows. Only tint existing geography;
+    nothing paints a new coastline, rectangular terrain image or water plate. */
+ for(var ly=-320;ly<320;ly+=10)for(var lx=-250;lx<270;lx+=10){
+  var p=nycPoint(lx,ly);if(!nycOnScreen(p.x,p.y,step))continue;
+  var edge=Math.min(1,Math.max(0,(1-Math.max(Math.abs(lx)/260,Math.abs(ly)/330))*5));
+  var landHere=terrainAt(p.x,p.y)==='land',r=terHash(lx,ly,831),patch=terNoise(lx/95,ly/110);
+  if(landHere){
+   land.push({x:p.x,y:p.y});g.fillStyle='rgba('+Math.round(133+patch*24)+','+Math.round(165+patch*25)+','+Math.round(77+patch*20)+','+edge*.6+')';g.fillRect(p.x,p.y,step+1,step+1);
+  }else if(terrainAt(p.x,p.y)==='water'){
+   var shore=terrainAt(p.x-18*s,p.y)==='land'||terrainAt(p.x,p.y-18*s)==='land';
+   g.fillStyle=shore?'rgba(72,180,195,'+edge*.40+')':'rgba(24,107,168,'+edge*.28+')';g.fillRect(p.x,p.y,step+1,step+1);
+   if(r<.12){g.fillStyle='rgba(208,239,227,.45)';g.fillRect(p.x,p.y,6*s,1.5*s);}
+  }
+ }
+ g.save();g.beginPath();land.forEach(function(p){g.rect(p.x,p.y,step+1,step+1);});g.clip();
+ /* The winding trail and city promenade are physical tan dirt/stone paths. */
+ function path(points){g.beginPath();var a=nycPoint(points[0][0],points[0][1]);g.moveTo(a.x,a.y);for(var i=1;i<points.length;i++){var p=nycPoint(points[i][0],points[i][1]),prev=nycPoint(points[i-1][0],points[i-1][1]);g.quadraticCurveTo(prev.x,prev.y,(prev.x+p.x)/2,(prev.y+p.y)/2);}var last=nycPoint(points[points.length-1][0],points[points.length-1][1]);g.lineTo(last.x,last.y);}
+ g.lineCap='round';g.lineJoin='round';
+ [NYC_TRAIL,[[-175,65],[-110,45],[-40,22],[30,6],[112,-15],[175,-32]]].forEach(function(points){path(points);g.strokeStyle='#9c8e62';g.lineWidth=8*s;g.stroke();path(points);g.strokeStyle='#e0c592';g.lineWidth=5*s;g.stroke();});
+ g.restore();
+ /* Cliffs and foam follow actual shore pixels, not the buildings' silhouette. */
+ land.forEach(function(p){
+  var east=terrainAt(p.x+step,p.y)==='water',south=terrainAt(p.x,p.y+step)==='water';if(!east&&!south)return;
+  var x=p.x+(east?step:0),y=p.y+(south?step:0);
+  var depth=(10+Math.max(0,Math.min(1,(p.y-n.anchor.y)/(240*s)))*6)*s;
+  scenicMark(g,x,y,'#736078',7*s,depth);scenicMark(g,x,y,'#b18a8c',3*s,depth-2*s);scenicMark(g,x,y-2*s,'#ead29a',7*s,3*s);
+  if(terrainAt(x+8*s,y+depth)==='water')scenicMark(g,x+8*s,y+depth,'#c0ece6',6*s,2*s);
+ });
+}
+function nycGardens(g){
+ var n=NYC_WORLD,s=n.scale,items=[];
+ var groves=[[-145,-240,18],[-25,-200,15],[155,-160,16],[-205,-65,16],[-165,145,20],[-95,250,16],[165,95,8],[-25,-115,17],[-75,115,13],[-195,240,14]];
+ groves.forEach(function(a,k){for(var i=0;i<a[2];i++){
+  var angle=terHash(k,i,821)*6.283,dist=Math.sqrt(terHash(k,i,822))*57;
+  var x=a[0]+Math.cos(angle)*dist,y=a[1]+Math.sin(angle)*dist,p=nycPoint(x,y);
+  if(!nycOnScreen(p.x,p.y,65*s)||terrainAt(p.x,p.y)!=='land'||nycAvoid(p.x,p.y,8*s)||nycTrailDistance(x,y)<13)continue;
+  var perspective=.9+Math.max(0,Math.min(1,(y+300)/600))*.2;
+  var h=(30+terHash(k,i,823)*21)*s*perspective,cherry=terHash(k,i,824)<.3;
+  items.push({x:p.x,y:p.y,h:h,name:cherry?'pack-cherry':i%3?'pack-pine':'pack-oak'});
+  if(i%2===0)items.push({x:p.x+13*s,y:p.y+8*s,h:12*s,name:i%4?'pack-flowers':'pack-bush'});
+ }});
+ /* Small flower drifts beside the trail, not identical buildings everywhere. */
+ for(var i=0;i<85;i++){
+  var a=NYC_TRAIL[i%NYC_TRAIL.length],x=a[0]+(terHash(i,0,825)-.5)*55,y=a[1]+(terHash(i,1,825)-.5)*45,p=nycPoint(x,y);
+  if(terrainAt(p.x,p.y)==='land'&&!nycAvoid(p.x,p.y,8*s)&&nycTrailDistance(x,y)>9)items.push({x:p.x,y:p.y,h:(8+terHash(i,2,825)*6)*s,name:i%5?'pack-flowers':'pack-bush'});
+ }
+ items.sort(function(a,b){return a.y-b.y;});items.forEach(function(it){drawArt(g,it.name,it.x,it.y,it.h,1);});
+ /* A handful of warm lanterns along the promenade, not a glowing road. */
+ [[-125,48],[-52,30],[22,8],[108,-12]].forEach(function(a){var p=nycPoint(a[0],a[1]);if(terrainAt(p.x,p.y)!=='land')return;
+  scenicMark(g,p.x-1*s,p.y-14*s,'#705253',2*s,14*s);scenicMark(g,p.x-3*s,p.y-15*s,'#97664c',6*s,6*s);scenicMark(g,p.x-2*s,p.y-14*s,'#ffe2a1',4*s,4*s);scenicMark(g,p.x-3*s,p.y,'#705253',6*s,2*s);
+ });
+}
+function nycIsland(g){
+ var n=NYC_WORLD,s=n.scale,p=n.liberty;
+ if(!nycOnScreen(p.x,p.y,100*s)||terrainAt(p.x,p.y)!=='water')return;
+ /* Liberty's own compact island is a decorative landmark footprint. */
+ for(var y=9;y>=0;y-=3){g.fillStyle=y>5?'#806b85':y>2?'#b8958a':'#efdbad';g.beginPath();g.ellipse(p.x,p.y+y*s,30*s,13*s,0,0,7);g.fill();}
+ g.fillStyle='#91b561';g.beginPath();g.ellipse(p.x,p.y-2*s,24*s,9*s,0,0,7);g.fill();
+ for(var i=0;i<7;i++){var a=i/7*6.283;drawArt(g,'pack-flowers',p.x+Math.cos(a)*23*s,p.y+Math.sin(a)*7*s,8*s,1);}
+ drawArt(g,'pack-liberty',p.x,p.y-4*s,70*s,1);
+ g.strokeStyle='#c4e6e7';g.lineWidth=1.5*s;g.beginPath();g.ellipse(p.x,p.y+5*s,38*s,19*s,0,.1,2.9);g.stroke();
+}
+function drawNYCScenery(g){
+ var n=NYC_WORLD;if(!n.visible||!n.ready)return;
+ var island=nycWaterSite(n.liberty,80*n.scale,n.scale);if(island)n.liberty=island;nycUpdateBoxes();
+ /* Below the DMV scale, smoothly simplify supporting terrain, not the city.
+    Avoid oversized garden trails spreading into neighboring regions afar. */
+ g.save();g.globalAlpha=cloudEase(5.8,7.2,S.zoom);nycGround(g);nycGardens(g);g.restore();
+ n.parts.slice().sort(function(a,b){return a.y-b.y;}).forEach(function(p){
+  g.save();g.globalAlpha=.18;g.fillStyle='#4c4257';g.beginPath();g.ellipse(p.x,p.y,p.w*.45,6*n.scale,0,0,7);g.fill();g.restore();
+  /* The prepared components already have clean alpha: draw their shared PNGs
+     directly, avoiding a separate resized canvas for every pinch-zoom frame. */
+  var sprite=artLoad(p.name);g.save();g.imageSmoothingEnabled=false;g.drawImage(sprite.img,Math.round(p.x-p.w/2),Math.round(p.y-p.h),p.w,p.h);g.restore();
+ });
+ var bridge=n.parts[3];g.save();g.globalAlpha=.35;
+ [-.24,.30].forEach(function(offset){for(var i=0;i<7;i++){var x=bridge.x+bridge.w*offset+(i%2?1:-1)*n.scale,y=bridge.y+(i*7+8)*n.scale;if(terrainAt(x,y)==='water')scenicMark(g,x,y,i%2?'#f0ce9d':'#afcede',(4+i%3)*n.scale,2*n.scale);}});g.restore();
+ nycIsland(g);
+ n.boats=[];[[-30,185],[165,155],[190,-5]].forEach(function(a,i){var p=nycWaterSite(nycPoint(a[0],a[1]),55*n.scale,n.scale);if(p&&!nycAvoid(p.x,p.y,10*n.scale)){n.boats.push(p);drawArt(g,'pack-boat',p.x,p.y,(i?21:26)*n.scale,1);}});
+}
+function nycReserveLabels(){nycFootprints().forEach(function(b){labelBoxes.push({x:b.x-5,y:b.y-7,w:b.w+10,h:b.h+14});});}
+function nycWorldLandmark(lm){
+ var n=NYC_WORLD;if(!n.visible||!n.ready)return false;
+ /* Windows remain warmly lit above the evening atmosphere. The mask follows
+    existing architectural window pixels; no random lights or flashing. */
+ ctx.save();ctx.imageSmoothingEnabled=false;ctx.globalAlpha=.85;
+ n.parts.forEach(function(p){if(p.id==='bridge')return;var lights=nycWindowMask(p.name);if(lights)ctx.drawImage(lights,Math.round(p.x-p.w/2),Math.round(p.y-p.h),p.w,p.h);});ctx.restore();
+ /* All pieces lead to the SAME existing city card; memories retain priority. */
+ n.boxes.forEach(function(b){addHit({x:b.x-4,y:b.y-4,w:b.w+8,h:b.h+8},{kind:'landmark',id:lm[0]});});
+ if(S.zoom>6.6){
+  var x=n.anchor.x,y=n.anchor.y-132*n.scale;
+  if(nycOnScreen(x,y,20)){ctx.save();ctx.font='600 15px "Pixelify Sans",monospace';var width=ctx.measureText('New York City').width,box={x:x-width/2-3,y:y-20,w:width+6,h:22};
+   if(labelFree(box)){labelBoxes.push(box);ctx.textAlign='center';ctx.textBaseline='bottom';ctx.lineWidth=3;ctx.strokeStyle='#574452';ctx.strokeText('New York City',x,y);ctx.fillStyle='#fff2df';ctx.fillText('New York City',x,y);}ctx.restore();}
+ }
+ return true;
+}
+
+/* ---- world/dc-gardens.js ---- */
+/* An authored civic garden around the existing DC display anchor.
+   Decorative only: all map coordinates, memories and city actions are intact. */
+function drawDCGardens(g){
+ var p=repairPoint('dc'),u=homeArtH(S.zoom);
+ if(!p||p.x<-u*2||p.x>W+u*2||p.y<-u*2||p.y>H+u)return;
+ g.save();g.beginPath();
+ for(var y=p.y-u*1.5;y<p.y+u*.36;y+=5)for(var x=p.x-u*1.4;x<p.x+u*1.2;x+=5)if(terrainAt(x,y)==='land')g.rect(x,y,5,5);
+ g.clip();
+ g.fillStyle='#90ae67';g.beginPath();g.ellipse(p.x-u*.1,p.y-u*.35,u*1.28,u*.65,0,0,7);g.fill();
+ /* A quiet town edge behind the civic grounds, below the Capitol silhouette. */
+ drawArt(g,'story-cottage',p.x+u*.59,p.y-u*.55,u*.33,1);
+ drawArt(g,'story-cottage',p.x+u*.95,p.y-u*.52,u*.28,1);
+ /* Rounded stone promenade surrounding an open central lawn. */
+ g.strokeStyle='#9c916e';g.lineWidth=8;g.beginPath();g.ellipse(p.x-u*.1,p.y-u*.03,u*1.13,u*.28,0,0,7);g.stroke();
+ g.strokeStyle='#e4d2a5';g.lineWidth=5;g.stroke();
+ g.fillStyle='#b4c57d';g.beginPath();g.ellipse(p.x-u*.1,p.y-u*.03,u*.93,u*.16,0,0,7);g.fill();
+ /* Small formal reflecting pool, gardens and benches in the forecourt. */
+ var pool={x:p.x-u*.65,y:p.y+u*.02,w:u*.45,h:u*.12};
+ scenicMark(g,pool.x-2,pool.y-2,'#dfd2b1',pool.w+4,pool.h+4);scenicMark(g,pool.x,pool.y,'#559fae',pool.w,pool.h);scenicMark(g,pool.x+3,pool.y+2,'#b0ddda',pool.w*.55,2);
+ [[-.95,-.22],[.68,-.18],[-.9,.20],[.57,.20]].forEach(function(a,i){var x=p.x+a[0]*u,y=p.y+a[1]*u;drawArt(g,'pack-flowers',x,y,u*.20,1);
+  if(i<2){scenicMark(g,x-5,y+6,'#705345',12,3);scenicMark(g,x-4,y+9,'#4d493c',2,4);scenicMark(g,x+4,y+9,'#4d493c',2,4);}
+ });
+ var trees=[[-1.18,-.18],[-1.12,-.72],[-.85,-1.02],[.82,-.3],[.9,-.74],[.5,-1.05],[-1.06,.30],[.87,.30]];
+ trees.map(function(a,i){return{x:p.x+a[0]*u,y:p.y+a[1]*u,h:u*(i%3?.42:.5),name:i%3?'pack-cherry':'pack-pine'};}).sort(function(a,b){return a.y-b.y;}).forEach(function(t){drawArt(g,t.name,t.x,t.y,t.h,1);});
+ g.restore();
+}
+
+/* ---- world/story-roads.js ---- */
+/* A sparse illustrated road hierarchy over the existing geographic routes.
+   Decoration only: no new destinations, routing or stored coordinates. */
+var STORY_ROAD_GEOMETRY=[];
+var STORY_ROADS={'I-95':1,'US-50 / Bay Bridge':1,'MD-2/4':.8,'I-66':.75};
+/* Named crossings, geographic approaches; never infer bridges from wet pixels.
+   US-50/301 Bay Bridge, US-50 Severn (Pearl Harbor Memorial), I-66 Roosevelt.
+   Coordinates describe decorative spans, not navigation or memory positions. */
+var STORY_BRIDGES=[
+ {id:'US-50 / Bay Bridge',name:'Chesapeake Bay Bridge',a:[39.005,-76.445],b:[38.977,-76.333],cable:true},
+ {id:'US-50 / Bay Bridge',name:'Severn River Bridge',a:[38.995,-76.515],b:[39.003,-76.500]},
+ {id:'I-66',name:'Theodore Roosevelt Bridge',a:[38.890,-77.066],b:[38.893,-77.049]}
+];
+function storyBridge(g,bridge,width){
+ var a=proj.apply(null,bridge.a),b=proj.apply(null,bridge.b),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);if(len<3)return;
+ if(Math.max(a.x,b.x)<-80||Math.min(a.x,b.x)>W+80||Math.max(a.y,b.y)<-80||Math.min(a.y,b.y)>H+80)return;
+ g.save();g.translate(a.x,a.y);g.rotate(Math.atan2(dy,dx));
+ g.strokeStyle='#485968';g.lineWidth=width+4;g.beginPath();g.moveTo(0,3);g.lineTo(len,3);g.stroke();
+ g.strokeStyle='#9baab0';g.lineWidth=width;g.beginPath();g.moveTo(0,0);g.lineTo(len,0);g.stroke();
+ g.strokeStyle='#e4dfca';g.lineWidth=1.5;
+ [-1,1].forEach(function(side){g.beginPath();g.moveTo(0,side*width*.55);g.lineTo(len,side*width*.55);g.stroke();});
+ if(bridge.cable){var height=Math.min(36,Math.max(9,len*.18));
+  [.28,.72].forEach(function(t){g.fillStyle='#6b7181';g.fillRect(len*t-2,-height,4,height+width);});
+  g.beginPath();g.moveTo(0,0);g.lineTo(len*.28,-height);g.quadraticCurveTo(len*.5,height*.35,len*.72,-height);g.lineTo(len,0);g.stroke();
+  for(var t=.32;t<.71;t+=.055){var q=(t-.28)/.44,y=-height*(1-q)*(1-q)+height*.7*(1-q)*q-height*q*q;g.beginPath();g.moveTo(len*t,y);g.lineTo(len*t,0);g.stroke();}
+ }else{g.fillStyle='#777e88';[.25,.5,.75].forEach(function(t){g.fillRect(len*t-1,width*.5,3,5);});}
+ g.restore();
+}
+function storyRoadNear(x,y,r){return STORY_ROAD_GEOMETRY.some(function(road){for(var i=1;i<road.points.length;i++){var a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r)return true;}return false;});}
+function storyRoadOffset(x,y,r){
+ var nearest=null;
+ STORY_ROAD_GEOMETRY.forEach(function(road){for(var i=1;i<road.points.length;i++){var a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1))),px=a.x+t*dx,py=a.y+t*dy,d=Math.hypot(x-px,y-py);if(!nearest||d<nearest.d)nearest={x:px,y:py,d:d,dx:dx,dy:dy};}});
+ if(!nearest||nearest.d>=r)return{x:x,y:y};
+ var nx=x-nearest.x,ny=y-nearest.y,d=nearest.d;
+ if(d<.001){nx=-nearest.dy;ny=nearest.dx;d=Math.hypot(nx,ny)||1;}
+ return{x:nearest.x+nx/d*r,y:nearest.y+ny/d*r};
+}
+function storyRoadSamples(a,b,id){
+ var lo=0,hi=1,dx=b.x-a.x,dy=b.y-a.y;
+ [[a.x,dx,-40,W+40],[a.y,dy,-40,H+40]].forEach(function(axis){if(Math.abs(axis[1])<.00001){if(axis[0]<axis[2]||axis[0]>axis[3])hi=-1;return;}var t0=(axis[2]-axis[0])/axis[1],t1=(axis[3]-axis[0])/axis[1];lo=Math.max(lo,Math.min(t0,t1));hi=Math.min(hi,Math.max(t0,t1));});
+ var samples=[],n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));for(var j=Math.ceil(lo*n);j<=Math.floor(hi*n);j++){var t=j/n;samples.push({x:a.x+dx*t,y:a.y+dy*t,index:id*10000000+j});}return samples;
+}
+function drawStoryRoads(g){
+ STORY_ROAD_GEOMETRY=[];var z=S.zoom,alpha=cloudEase(5.8,7.4,z);if(alpha<.001)return;
+ var u=homeArtH(z),width=Math.min(8,Math.max(3,u*.075));
+ (window.OW_ROUTES||[]).forEach(function(route){
+  if(!STORY_ROADS[route[0]])return;
+  var coords=route[1];
+  if(route[0]==='US-50 / Bay Bridge')coords=[[38.90,-77.02],[38.92,-76.92],[38.96,-76.73],[38.98,-76.61],[38.995,-76.515],[39.003,-76.500],[39.005,-76.445],[38.977,-76.333],[38.98,-76.16],[38.86,-76.10],[38.77,-76.08],[38.57,-76.07],[38.44,-75.83]];
+  if(route[0]==='I-66')coords=[[38.893,-77.049],[38.890,-77.066],[38.88,-77.11],[38.86,-77.30],[38.79,-77.52]];
+  var points=coords.map(function(a){return proj(a[0],a[1]);}),samples=[];
+  for(var i=1;i<points.length;i++)samples=samples.concat(storyRoadSamples(points[i-1],points[i],i));
+  var onscreen=samples.some(function(p){return p.x>-30&&p.x<W+30&&p.y>-30&&p.y<H+30;});if(!onscreen)return;
+  STORY_ROAD_GEOMETRY.push({id:route[0],points:points});
+  function trace(){g.beginPath();for(var i=1;i<points.length;i++){var list=storyRoadSamples(points[i-1],points[i],i),last=null;list.forEach(function(p){var dry=terrainAt(p.x,p.y)==='land'&&terrainAt(p.x-width,p.y)==='land'&&terrainAt(p.x+width,p.y)==='land';if(dry&&last){g.moveTo(last.x,last.y);g.lineTo(p.x,p.y);}last=dry?p:null;});}}
+  g.save();g.globalAlpha=alpha*STORY_ROADS[route[0]];g.lineCap='round';g.lineJoin='round';
+  /* Deck edges also read as small bridge railings over geographic water. */
+  trace(points);g.strokeStyle='#bdc5b8';g.lineWidth=width+3;g.stroke();
+  trace(points);g.strokeStyle='#8195a0';g.lineWidth=width;g.stroke();
+  g.globalAlpha*=cloudEase(7,8.5,z);g.setLineDash([Math.max(4,width*.85),Math.max(7,width*1.5)]);trace(points);g.strokeStyle='#fff0ce';g.lineWidth=Math.max(.8,width*.15);g.stroke();g.setLineDash([]);
+  g.globalAlpha=alpha*.75;
+  STORY_BRIDGES.filter(function(b){return b.id===route[0];}).forEach(function(b){storyBridge(g,b,width);});
+  g.restore();
+ });
+}
+
+/* ---- world/maryland-landscape.js ---- */
+/* Authored Chesapeake scenery. Coordinates and memory projection stay geographic;
+   the bay's eastern rim is stylized in the base itself, never a scene overlay. */
+function marylandWeight(lat,lng){
+ return cloudEase(37.4,38,lat)*(1-cloudEase(39.6,40.2,lat))*cloudEase(-78.3,-77.7,lng)*(1-cloudEase(-75.4,-74.9,lng));
+}
+function marylandBay(g,s){
+ if(S.zoom<5.5)return;
+ /* Retain the real northern bay shore around Sandy Point and Kent Island.
+    Decorative widening begins south of the Bay Bridge approaches. */
+ var coast=[[38.95,-76.30],[38.89,-76.30],[38.69,-76.34],[38.48,-76.27],[38.28,-76.16],[38.05,-76.0],[37.75,-75.84]];
+ var width=.30*cloudEase(5.5,7.2,S.zoom),ring=coast.map(function(a,i){return[a[0],a[1]-.08*Math.sin(Math.PI*i/(coast.length-1))];}).concat(coast.slice().reverse().map(function(a,i){var t=(coast.length-1-i)/(coast.length-1);return[a[0],a[1]+width*Math.sin(Math.PI*t)];}));
+ var a=proj(39.5,-76.6),b=proj(37.7,-75.5);if(b.x<0||a.x>W||b.y<0||a.y>H)return;
+ g.save();g.beginPath();ring.forEach(function(a,i){var p=proj(a[0],a[1]);if(i)g.lineTo(p.x/s,p.y/s);else g.moveTo(p.x/s,p.y/s);});g.closePath();g.clip();
+ /* Preserve the same water color family used by terrainAt's land/water mask. */
+ var water=g.createLinearGradient(0,0,0,H/s);water.addColorStop(0,'#2995C7');water.addColorStop(.55,'#36ACD2');water.addColorStop(1,'#237FB5');g.fillStyle=water;g.fillRect(0,0,W/s,H/s);
+ var step=18,ox=lngToWX(S.center.lng,S.zoom)-W/2,oy=latToWY(S.center.lat,S.zoom)-H/2;
+ g.fillStyle='#67b9cd';for(var y=-((oy/s)%step);y<H/s;y+=step)for(var x=-((ox/s)%step);x<W/s;x+=step)g.fillRect(x+(Math.floor((y+oy/s)/step)%2)*7,y,3,1);
+ g.restore();
+}
+function marylandPoints(){return{e:homeDisplayPos('elena',S.zoom),b:homeDisplayPos('bruce',S.zoom),m:repairPoint('mail'),d:repairPoint('dc'),n:repairPoint('hb-nova')};}
+function marylandPathPoints(){var p=marylandPoints();return[['e','m'],['m','b'],['m','d'],['d','n']].map(function(l,i){var a=p[l[0]],b=p[l[1]],bow=i%2?.14:-.12;return[a,{x:(a.x+b.x)/2-(b.y-a.y)*bow,y:(a.y+b.y)/2+(b.x-a.x)*bow},b];});}
+var MD_PATHS=[];
+function marylandPathNear(x,y,margin){return MD_PATHS.some(function(p){for(var i=0;i<=20;i++){var t=i/20,u=1-t,px=u*u*p[0].x+2*u*t*p[1].x+t*t*p[2].x,py=u*u*p[0].y+2*u*t*p[1].y+t*t*p[2].y;if(Math.hypot(x-px,y-py)<margin)return true;}return false;});}
+function marylandLandClip(g,box){g.beginPath();for(var y=box.y;y<box.y+box.h;y+=5)for(var x=box.x;x<box.x+box.w;x+=5)if(scenicLand(x,y))g.rect(x,y,5,5);g.clip();}
+function marylandGrounds(g){
+ var p=marylandPoints(),u=homeArtH(S.zoom);
+ /* Broad woodland floors tie the trees into coherent terrain regions. */
+ MD_GROVES.forEach(function(a,i){var q=proj(a[0],a[1]),r=Math.abs(proj(a[0],a[1]+a[2]*1.4).x-q.x);if(r<4||q.x+r<0||q.x-r>W||q.y+r<0||q.y-r>H)return;
+  g.save();marylandLandClip(g,{x:Math.max(0,q.x-r*1.2),y:Math.max(0,q.y-r*1.2),w:Math.min(W,r*2.4),h:Math.min(H,r*2.4)});
+  [.95,.72,.45].forEach(function(scale,j){g.fillStyle=['rgba(113,151,75,.12)','rgba(86,129,65,.12)','rgba(63,111,61,.10)'][j];g.beginPath();for(var k=0;k<=16;k++){var angle=k/16*Math.PI*2,rr=r*scale*(.82+terHash(i,k%16,237)*.3),x=q.x+Math.cos(angle)*rr,y=q.y+Math.sin(angle)*rr*.85;if(k)g.lineTo(x,y);else g.moveTo(x,y);}g.closePath();g.fill();});g.restore();
+ });
+ /* Physical tan paths live below trees and all interactive artwork. */
+ drawStoryRoads(g);
+ g.save();g.lineCap='round';g.lineJoin='round';
+ MD_PATHS=marylandPathPoints();MD_PATHS.forEach(function(a){g.beginPath();g.moveTo(a[0].x,a[0].y);g.quadraticCurveTo(a[1].x,a[1].y,a[2].x,a[2].y);g.strokeStyle='#b6a175';g.lineWidth=Math.max(6,u*.12);g.stroke();g.strokeStyle='#e4ca95';g.lineWidth=Math.max(4,u*.075);g.stroke();});g.restore();
+ ['e','b','m'].forEach(function(id){var a=p[id],rx=u*(id==='m'?.86:1.02),ry=u*.29;if(a.x<-rx||a.x>W+rx||a.y<-u||a.y>H+u)return;
+  g.save();marylandLandClip(g,{x:a.x-rx-8,y:a.y-u*.35,w:rx*2+16,h:u*.85});
+  g.fillStyle='#b7c57d';g.beginPath();g.ellipse(a.x,a.y+3,rx+6,ry+8,0,0,7);g.fill();
+  g.fillStyle='#e0d0a3';g.beginPath();g.ellipse(a.x,a.y+4,rx,ry,0,0,7);g.fill();
+  g.strokeStyle='#f1dfb3';g.lineWidth=2;g.stroke();
+  /* Flower beds edge the curved forecourt, leaving an open entrance. */
+  for(var j=0;j<12;j++){var angle=j/12*Math.PI*2;if(Math.sin(angle)>.5&&Math.abs(Math.cos(angle))<.5)continue;var x=a.x+Math.cos(angle)*rx*.91,y=a.y+4+Math.sin(angle)*ry*.94;drawArt(g,'pack-bush',x,y,u*.13,1);drawArt(g,'pack-flowers',x,y-2,u*.12,1);}
+  for(var stair=0;stair<3;stair++){scenicMark(g,a.x-u*.15,a.y+ry-3+stair*3,'#b3ab91',u*.3,3);scenicMark(g,a.x-u*.15,a.y+ry-3+stair*3,'#f3e2bd',u*.3,1);}
+  g.restore();
+ });
+}
+var MD_GROVES=[[39.35,-77.25,.22],[39.22,-76.83,.18],[39.48,-76.45,.18],[39.16,-76.42,.12],[38.99,-77.32,.15],[38.87,-76.83,.12],[38.68,-77.02,.19],[38.49,-76.75,.17],[38.32,-76.57,.16],[38.85,-75.93,.18],[39.12,-75.8,.16],[38.30,-75.65,.18]];
+var MD_TOWNS=[[39.29,-76.61,'Baltimore'],[39.74,-75.55,'Wilmington'],[38.97,-76.49,'Annapolis'],[38.75,-76.55,'Calvert']],MD_TOWNBOXES=[];
+function marylandForest(lat,lng){var v=0;MD_GROVES.forEach(function(a){var dx=(lng-a[1])*.78,dy=lat-a[0],d=Math.hypot(dx,dy)/(a[2]*1.65);v=Math.max(v,1-cloudEase(.35,1,d));});return v;}
+function marylandVegetation(g){
+ var z=S.zoom;if(z<5.8)return;var tl=unproj(-70,-70),br=unproj(W+70,H+70),u=homeArtH(z),items=[];
+ var layers=[{cell:.032,a:1},{cell:.008,a:cloudEase(8.5,10.8,z)}];
+ layers.forEach(function(l,lv){if(l.a<.01)return;var cell=l.cell,loY=Math.floor(Math.max(37.4,br.lat)/cell),hiY=Math.ceil(Math.min(40.2,tl.lat)/cell),loX=Math.floor(Math.max(-78.3,tl.lng)/cell),hiX=Math.ceil(Math.min(-74.9,br.lng)/cell);
+  for(var iy=loY;iy<=hiY;iy++)for(var ix=loX;ix<=hiX;ix++){
+   var lat=(iy+.12+terHash(ix,iy,141)*.76)*cell,lng=(ix+.12+terHash(ix,iy,142)*.76)*cell,weight=marylandWeight(lat,lng),rate=scenicCellWeight(ix,iy,cell,z,lv?19:12);if(weight<.2||rate<.01)continue;
+   var p=proj(lat,lng),r=terHash(ix,iy,143),forest=marylandForest(lat,lng),grain=terNoise(lng*32,lat*32),h=u*(.28+terHash(ix,iy,144)*.24);
+   if(p.x<-45||p.x>W+45||p.y<-20||p.y>H+60||!scenicLand(p.x,p.y)||scenicAvoid(p.x,p.y,u*.34)||marylandPathNear(p.x,p.y,h*.32+5)||storyRoadNear(p.x,p.y,h*.32+5)||MD_TOWNS.some(function(a){var q=proj(a[0],a[1]);return Math.hypot(p.x-q.x,p.y-q.y)<u*.85;}))continue;
+   var a=l.a*rate*weight;
+   if(r<forest*.78+(grain>.55?.1:.02))items.push({x:p.x,y:p.y,h:h,a:a,art:terHash(ix,iy,145)<(.18+(1-forest)*.22)?'pack-cherry':r<.3?'pack-pine-tall':'pack-pine'});
+   else if(r>.58&&r<.79)items.push({x:p.x,y:p.y,h:u*(.10+terHash(ix,iy,146)*.08),a:a,art:r>.75?'pack-rocks':r>.63?'pack-flowers':'pack-bush'});
+  }
+ });
+ items.sort(function(a,b){return a.y-b.y;}).forEach(function(it){g.save();g.globalAlpha=it.a;drawArt(g,it.art,it.x,it.y,it.h,1);g.restore();});
+}
+function marylandLamp(g,x,y,h){drawArt(g,'lamp',x,y,h,1);}
+function marylandDetails(g){
+ /* Overlapping distant ridges establish a back-to-front relief hierarchy. */
+ [[39.40,-77.35,.78],[39.48,-77.53,.62]].forEach(function(a,i){var q=proj(a[0],a[1]),u=homeArtH(S.zoom);if(q.x>-u&&q.x<W+u&&q.y>-u&&q.y<H+u&&scenicLand(q.x,q.y)&&!repairClear(q.x,q.y))drawArt(g,i?'soft-hills':'soft-ridge',q.x,q.y,u*a[2],1);});
+ marylandVegetation(g);
+ var u=homeArtH(S.zoom),p=marylandPoints();
+ /* Garden framing is authored per landmark, never a random building scatter. */
+ ['e','m','b'].forEach(function(id){var a=p[id];if(a.x<-u*2||a.x>W+u*2||a.y<-u||a.y>H+u)return;
+  [-1,1].forEach(function(side){var x=a.x+side*u*(id==='m'?.77:.94),y=a.y+u*.15;if(scenicLand(x,y)){marylandLamp(g,x,y,u*.31);drawArt(g,'pack-flowers',x+side*5,y+3,u*.16,1);}});
+  var trees=id==='e'?[[-1.02,-.75],[.95,-.65],[-1.12,.2]]:id==='b'?[[-1.12,-.4],[-1.05,.32]]:[[-.97,-.5],[-.98,.22]];
+  trees.forEach(function(v,i){var x=a.x+v[0]*u,y=a.y+v[1]*u;if(scenicLand(x,y))drawArt(g,i%2?'pack-pine':'pack-cherry',x,y,u*.43,1);});
+  if(scenicLand(a.x-u*.50,a.y+u*.23))drawArt(g,'bench',a.x-u*.50,a.y+u*.23,u*.15,1);
+ });
+ marylandHarbor(g,39.015,-76.47,'annapolis');
+ marylandRelief(g,p.n,u);
+ /* Supporting towns use existing geographic names and never create new taps. */
+ MD_TOWNBOXES=[];MD_TOWNS.forEach(function(a,i){
+  var q=proj(a[0],a[1]);if(q.x<-u||q.x>W+u||q.y<-u||q.y>H+u||repairClear(q.x,q.y)||!scenicLand(q.x,q.y))return;
+  var scale=u*.52;
+  [[-.35,-.13],[.32,-.21],[0,.17]].forEach(function(v,j){
+   var x=q.x+v[0]*u,y=q.y+v[1]*u;
+   /* Supporting cottages sit beside the roadway rather than over its center. */
+   var center=storyRoadOffset(x,y-scale*.4,scale*.62),site={x:center.x,y:center.y+scale*.4};
+   if(scenicLand(site.x,site.y)&&!repairClear(site.x,site.y)&&!repairClear(site.x,site.y-scale*.5)){var box=drawArt(g,j===1&&i<2?'city':'story-cottage',site.x,site.y,scale*(j===1?1.15:.9),1);if(box)MD_TOWNBOXES.push(box);}
+  });
+ });
+}
+function marylandRelief(g,p,u){
+ if(p.x<-u*2||p.x>W+u*2||p.y<-u||p.y>H+u)return;
+ /* Foothill grove and a spring-fed cascade beside the existing mountain. */
+ var x=p.x-u*.88,y=p.y+u*.15;if(!scenicLand(x,y)||repairClear(x,y))return;
+ g.save();marylandLandClip(g,{x:x-u*.38,y:y-u*.4,w:u*.76,h:u*.85});
+ g.fillStyle='#8daa71';g.beginPath();g.ellipse(x,y,u*.35,u*.3,0,0,7);g.fill();
+ drawArt(g,'soft-waterfall',x+u*.04,y+u*.16,u*.48,1);
+ drawArt(g,'pack-rocks',x-u*.13,y+u*.19,u*.18,1);drawArt(g,'pack-bridge',x+u*.03,y+u*.25,u*.21,1);
+ drawArt(g,'pack-pine',x-u*.26,y-u*.08,u*.48,1);drawArt(g,'pack-cherry',x+u*.28,y+u*.06,u*.4,1);g.restore();
+}
+function marylandHarbor(g,lat,lng,id){
+ var p=proj(lat,lng),u=homeArtH(S.zoom);if(p.x<-u||p.x>W+u||p.y<-u||p.y>H+u)return;
+ var site=null;for(var dx=0;dx<u;dx+=4){if(terrainAt(p.x+dx,p.y)==='water'&&terrainAt(p.x+dx+12,p.y)==='water'){site={x:p.x+dx,y:p.y};break;}}
+ if(!site)return;drawArt(g,'pack-dock',site.x,site.y+u*.16,u*.25,1);
+ [[.45,.1],[.76,.42]].forEach(function(a){var x=site.x+a[0]*u,y=site.y+a[1]*u;if(terrainAt(x,y)==='water')drawArt(g,'pack-boat',x,y,u*.3,1);});
+}
+
 /* ---- features/scenic.js ---- */
 /* Storybook scenery is anchored to geography, cached with the base map, and
    painted behind labels and interactive places. All ornament is decorative. */
 window.OW_SCENIC = true;
+var SCENIC_AVOID=[];
 function scenicRand(a, b, seed) { return terHash(a, b, seed); }
 function scenicLand(x, y) { return terrainAt(x, y) === 'land'; }
 function scenicAvoid(x, y, radius) {
-  var places = [HOMES.bruce, HOMES.elena].concat(HOMEBASE).concat(
-    LANDMARKS.map(function (l) { return { lat: l[2], lng: l[3] }; }), S.memories, S.plans || []);
+  if(nycAvoid(x,y,8))return true;
+  if(repairClear(x,y,radius))return true;
+  var places = SCENIC_AVOID;
   for (var i = 0; i < places.length; i++) {
-    var p = proj(places[i].lat, places[i].lng), dx = x - p.x, dy = (y - p.y) * 1.2;
+    var p = places[i], dx = x - p.x, dy = (y - p.y) * 1.2;
     if (dx * dx + dy * dy < radius * radius) return true;
   }
   return false;
 }
 function scenicClearing(g, place, radius, kind) {
+  if(kind==='cottage')radius=homeArtH(S.zoom)*.86*1.6*.58+8;
   var p = place.who?homeDisplayPos(place.who,S.zoom):proj(place.lat, place.lng);
   if (p.x < -radius || p.y < -radius || p.x > W+radius || p.y > H+radius) return;
+  if(kind==='cottage'){
+    g.save();g.beginPath();
+    for(var yy=p.y-radius*.4;yy<p.y+radius*.4;yy+=4)for(var xx=p.x-radius;xx<p.x+radius;xx+=4)if(terrainAt(xx,yy)==='land')g.rect(xx,yy,4,4);
+    g.clip();
+  }
   if(kind==='castle'||kind==='cottage'){
-    var terraceDepth=kind==='castle'?27:12;
+    var terraceDepth=kind==='castle'?27:0;
     for(var ledge=terraceDepth;ledge>=3;ledge-=3){
       g.fillStyle=ledge>12?'#716077':ledge>6?'#a08487':'#c4a88b';
       g.beginPath();g.ellipse(p.x,p.y+ledge,radius,radius*.30,0,0,7);g.fill();
@@ -4305,13 +4576,14 @@ function scenicClearing(g, place, radius, kind) {
       scenicMark(g,xx,yy,'#e0bd84',2,8);
       scenicMark(g,xx,yy+5,'#af8055',8,2);
     }
+    g.restore();
   }
 }
 function scenicWaterfall(g, place) {
   if (!isRevealed(place.lat,place.lng,1.1)) return;
   var p=proj(place.lat,place.lng);
   if (p.x<-60||p.x>W+60||p.y<-60||p.y>H+60) return;
-  drawArt(g,'pack-bridge',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
+  drawArt(g,'soft-waterfall',p.x,p.y+16,Math.max(34,Math.min(70,24+S.zoom*4)),1);
 }
 function scenicPier(g, place) {
   var p=proj(place.lat,place.lng);
@@ -4319,7 +4591,8 @@ function scenicPier(g, place) {
   var shore=null;
   for(var i=24;i<78;i+=6) if(terrainAt(p.x+i,p.y+i*.36)==='water'){shore={x:p.x+i,y:p.y+i*.36};break;}
   if(!shore)return;
-  drawArt(g,'story-pier',shore.x+20,shore.y+25,S.zoom>9.3?76:48,1);
+  var h=homeArtH(S.zoom)*.65;
+  drawArt(g,'story-pier',shore.x+h*.22,shore.y+h*.18,h,1);
 }
 function scenicMark(g, x, y, color, w, h) {
   g.fillStyle = color; g.fillRect(Math.round(x), Math.round(y), w, h);
@@ -4344,54 +4617,67 @@ function scenicBloom(g, x, y, s, pink) {
   scenicMark(g, x, y, '#fff3d4', 2, 2);
 }
 function scenicCoast(g) {
-  /* A stepped, two-tone lip follows the actual geographic coast pixels. */
+  /* Broken limestone ledges and pale shallows, rather than wooden palisades. */
   for (var y = 4; y < H - 4; y += 5) for (var x = 4; x < W - 4; x += 5) {
     if (!scenicLand(x, y)) continue;
     if (terrainAt(x + 7, y) !== 'water' && terrainAt(x, y + 7) !== 'water') continue;
-    var depth=S.zoom>9?18:7;
-    scenicMark(g, x+2, y+2, '#736477', 5, depth);
-    scenicMark(g, x+2, y+2, '#a98272', 3, depth-2);
-    scenicMark(g, x+2, y+depth, '#d4b398', 4, 2);
-    scenicMark(g, x, y + 2, '#a36b4d', 5, 3);
-    scenicMark(g, x, y, '#e6ad71', 5, 2);
-    if (terrainAt(x + 10, y + 4) === 'water') scenicMark(g, x + 8, y + 4, '#d8f5e7', 4, 2);
+    var world=unproj(x,y),ledge=terNoise(world.lng*24,world.lat*24)>.62;
+    var depth=ledge?Math.min(10,4+(S.zoom-7)*2):3;
+    scenicMark(g,x+2,y+3,'#99b9b2',5,depth+2);
+    if(ledge){scenicMark(g,x+1,y+2,'#a69cad',5,depth);scenicMark(g,x+1,y+2,'#c7b8b2',3,depth-1);}
+    scenicMark(g,x,y+1,'#d5d6aa',5,3);
+    scenicMark(g,x,y,'#b8cf88',5,2);
+    if (terrainAt(x + 10, y + 4) === 'water') {scenicMark(g,x+6,y+4,'#7fc9c9',5,3);scenicMark(g,x+8,y+5,'#e0eee0',3,1);}
   }
 }
 /* Geographic relief is sampled in world coordinates, so its ridges and
    meadows stay attached to the same ground through every camera movement. */
 var SCENIC_PATTERNS={};
 function scenicTexture(g,name){var a=artLoad(name);if(!a.ok)return null;if(!SCENIC_PATTERNS[name])SCENIC_PATTERNS[name]=g.createPattern(a.img,'repeat');return SCENIC_PATTERNS[name];}
+var SCENIC_GROUND=null,SCENIC_TEXTURE_PIXELS={};
+function scenicTexturePixels(name){
+ if(SCENIC_TEXTURE_PIXELS[name])return SCENIC_TEXTURE_PIXELS[name];
+ var a=artLoad(name);if(!a.ok)return null;
+ var c=document.createElement('canvas');c.width=a.img.width;c.height=a.img.height;
+ var g=c.getContext('2d');g.drawImage(a.img,0,0);
+ return SCENIC_TEXTURE_PIXELS[name]={data:g.getImageData(0,0,c.width,c.height).data,w:c.width,h:c.height};
+}
 function scenicGround(g) {
-  var z=S.zoom, step=6;
-  var grass=scenicTexture(g,'pack-grass-medium'),moss=scenicTexture(g,'pack-forest-floor');
-  for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
-    if(!scenicLand(x,y))continue;
-    var p=unproj(x,y), detail=Math.max(0,Math.min(1,(z-5)/3));
-    var continental=terNoise(p.lng/3,p.lat/3);
-    var n=terNoise(p.lng/.12,p.lat/.12)*detail+continental*(1-detail);
-    var broad=terNoise(p.lng/.65,p.lat/.65)*detail+continental*(1-detail);
-    var ridge=Math.sin(p.lng*13+p.lat*9+ broad*5)*.5+.5;
-    var shade=(n*.4+broad*.6);
-    g.fillStyle=shade>.5?'rgba(31,85,58,'+Math.min(.26,(shade-.5)*.8)+')':'rgba(243,220,133,'+Math.min(.22,(.5-shade)*.7)+')';
-    g.fillRect(x,y,step,step);
-    var texture=grove(p.lat,p.lng)>.45?moss:grass;
-    if(texture){g.save();g.globalAlpha=.14;g.fillStyle=texture;g.fillRect(x,y,step,step);g.restore();}
-    /* Narrow contour bands form shaded terraces with a lit grass rim. */
-    var band=(shade*12)%1;
-    if(S.zoom>9.5&&band<.025&&broad>.58){
-      g.fillStyle='#706c68';g.fillRect(x,y+2,step,5);
-      g.fillStyle='#ac9470';g.fillRect(x,y,step,3);
-      g.fillStyle='#d2ce8b';g.fillRect(x,y-2,step,2);
-    }
-    if(ridge>.88&&broad>.5){g.fillStyle='rgba(49,86,66,.13)';g.fillRect(x,y+step-2,step,2);}
+ var z=S.zoom,step=8,cols=Math.ceil(W/step),rows=Math.ceil(H/step),lats=[],lngs=[];
+ if(!SCENIC_GROUND){var cv=document.createElement('canvas');SCENIC_GROUND={cv:cv,g:cv.getContext('2d')};}
+ var raster=SCENIC_GROUND;if(!raster.image||raster.cv.width!==cols||raster.cv.height!==rows){raster.cv.width=cols;raster.cv.height=rows;raster.image=raster.g.createImageData(cols,rows);}
+ var pixels=raster.image.data;pixels.fill(0);
+ for(var yy=0;yy<H;yy+=step)lats.push(unproj(0,yy).lat);
+ for(var xx=0;xx<W;xx+=step)lngs.push(unproj(xx,0).lng);
+ var grass=scenicTexturePixels('pack-grass-medium'),moss=scenicTexturePixels('pack-forest-floor');
+ var left=lngToWX(S.center.lng,z)-W/2,top=latToWY(S.center.lat,z)-H/2,details=[];
+ var detail=Math.max(0,Math.min(1,(z-5)/3));
+ for(var y=0;y<H;y+=step)for(var x=0;x<W;x+=step){
+  if(!scenicLand(x,y))continue;
+  var lat=lats[y/step],lng=lngs[x/step],continental=terNoise(lng/3,lat/3);
+  var n=terNoise(lng/.12,lat/.12)*detail+continental*(1-detail),broad=terNoise(lng/.65,lat/.65)*detail+continental*(1-detail);
+  var shade=n*.4+broad*.6,dark=shade>.5,alpha=dark?Math.min(.26,(shade-.5)*.8):Math.min(.22,(.5-shade)*.7);
+  var r=dark?31:243,gr=dark?85:220,b=dark?58:133,texture=broad>.5?moss:grass;
+  if(texture){
+   var tx=((Math.floor(left+x)%texture.w)+texture.w)%texture.w,ty=((Math.floor(top+y)%texture.h)+texture.h)%texture.h,k=(ty*texture.w+tx)*4;
+   var ta=.14*(1-marylandWeight(lat,lng))*texture.data[k+3]/255,a=ta+alpha*(1-ta);
+   r=(texture.data[k]*ta+r*alpha*(1-ta))/a;gr=(texture.data[k+1]*ta+gr*alpha*(1-ta))/a;b=(texture.data[k+2]*ta+b*alpha*(1-ta))/a;alpha=a;
   }
+  var i=((y/step)*cols+x/step)*4;pixels[i]=r;pixels[i+1]=gr;pixels[i+2]=b;pixels[i+3]=alpha*255;
+  var band=(shade*12)%1;if(z>9.5&&band<.025&&broad>.58)details.push({x:x,y:y});
+ }
+ raster.g.putImageData(raster.image,0,0);
+ g.save();g.imageSmoothingEnabled=false;g.drawImage(raster.cv,0,0,cols,rows,0,0,cols*step,rows*step);g.restore();
+ details.forEach(function(p){g.fillStyle='#706c68';g.fillRect(p.x,p.y+2,step,5);g.fillStyle='#ac9470';g.fillRect(p.x,p.y,step,3);g.fillStyle='#d2ce8b';g.fillRect(p.x,p.y-2,step,2);});
 }
 function drawScenic() {
+  SCENIC_AVOID=[HOMES.bruce,HOMES.elena].concat(HOMEBASE,LANDMARKS.map(function(l){return{lat:l[2],lng:l[3]};}),S.memories,S.plans||[]).map(function(p){return proj(p.lat,p.lng);});
   var g = scenicCtx, z = S.zoom;
-  g.setTransform(.5, 0, 0, .5, 0, 0); g.clearRect(0, 0, W, H);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, W, H);
   if (!TER.on) return;
   scenicGround(g);
   scenicCoast(g);
+  marylandGrounds(g);
   var tl = unproj(-60, -60), br = unproj(W + 60, H + 60);
   var local = Math.max(0, Math.min(1, (z - 8.9) / 1.15));
   /* Two persistent grids fade across the regional/local transition. */
@@ -4405,18 +4691,18 @@ function drawScenic() {
       [36.5,-106.1],[39.3,-106.3],[42.8,-109.2],[46.7,-112.1],[51.2,-116.4]].forEach(function(a){
       var p=proj(a[0],a[1]);
       if(p.x>-70&&p.x<W+70&&p.y>-60&&p.y<H+70&&scenicLand(p.x,p.y))
-        drawArt(g,'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
+        drawArt(g,a[1]>-85?'soft-ridge':'story-mountain',p.x,p.y,Math.round(Math.min(65,28+(z-3)*6)/4)*4,1);
     });
   }
-  if (z > 9) {
-    scenicClearing(g,HOMES.bruce,Math.min(56,homeArtH(z)*.52),'cottage');
-    scenicClearing(g,HOMES.elena,Math.min(62,homeArtH(z)*.55),'castle');
-    scenicPier(g,HOMES.bruce);
-  }
+  /* Home grounds use the same authored composition at every ordinary zoom. */
+  scenicPier(g,HOMES.bruce);
   if (z > 8) {
     scenicWaterfall(g,{lat:41.1165,lng:-75.0121});
     scenicWaterfall(g,{lat:38.9976,lng:-77.2530});
   }
+  drawNYCScenery(g);
+  drawDCGardens(g);
+  marylandDetails(g);
 }
 function scenicCellWeight(gx,gy,cell,z,spacing) {
   /* Screen-density budget depends only on zoom, never the visible item count.
@@ -4440,6 +4726,8 @@ function scenicVegetation(g,tl,br,cell,alpha,spacing,fine) {
     var lat = (gy + .25 + scenicRand(gx,gy,71)*.5)*cell;
     var lng = (gx + .25 + scenicRand(gx,gy,72)*.5)*cell;
     var p = proj(lat,lng), r = scenicRand(gx,gy,73);
+    var regionalWeight=1-marylandWeight(lat,lng);if(regionalWeight<.005)continue;
+    weight*=regionalWeight;g.globalAlpha=alpha*weight;
     if (p.x < -45 || p.x > W+45 || p.y < -45 || p.y > H+45) continue;
     var land = scenicLand(p.x,p.y), meadow = grove(lat,lng);
     if (!land) {
@@ -4473,20 +4761,9 @@ function scenicVegetation(g,tl,br,cell,alpha,spacing,fine) {
   });
   g.restore();
 }
-/* Clouds sit in the foreground corners without covering the central places. */
+/* Country labels only. Clouds never attach to viewport corners. */
 HOOKS.afterOverlays.push(function () {
   if(S.mode!=='map')return;
-  var wide=Math.max(0,Math.min(1,(9-S.zoom)/3));
-  var h=Math.min(190,W*(.29+wide*.15));
-  ctx.save();ctx.globalAlpha=.94;
-  drawArt(ctx,'story-cloud',12,H+h*.15,h,1);
-  drawArt(ctx,'story-cloud',W+20,H+h*.25,h*1.08,1);
-  if(wide>.1){
-    ctx.globalAlpha=wide*.94;
-    drawArt(ctx,'story-cloud',-45,h*.65,h*.85,1);
-    drawArt(ctx,'story-cloud',W+65,h*.72,h*.9,1);
-  }
-  ctx.restore();
   if(S.zoom<5.3){
     [['CANADA',53,-105],['UNITED STATES',39,-98],['MEXICO',24,-103]].forEach(function(a){
       var p=proj(a[1],a[2]);
@@ -4503,12 +4780,12 @@ HOOKS.afterOverlays.push(function () {
    out in the parts we have not explored yet. */
 
 var HOMEBASE = [
-  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'story-mountain', scale: 1.05 }
+  { id: 'hb-nova', name: 'Northern Virginia', lat: 38.79, lng: -77.40, r: 20, art: 'soft-ridge', scale: 1.05 }
 ];
 function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.id, name: h.name, lat: h.lat, lng: h.lng, r: h.r, home: 1 }; }); }
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
-function homeArtH(z) { return Math.max(51, Math.min(117, 51 + (z - 6.9) * 15)); }   /* homes and the castle: big and easy to see, always well above the trees */
+function homeArtH(z) { return Math.max(28, Math.min(117, 51 + (z - 6.9) * 15)); }
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };
@@ -4516,26 +4793,7 @@ var HB_PILLS = { 'Northern Virginia': 1, 'Calvert County': 1 };
 var GHOST_CITIES = [['Baltimore', 39.29, -76.61], ['Richmond', 37.54, -77.43], ['Philadelphia', 39.95, -75.17], ['Wilmington', 39.74, -75.55],
   ['Frederick', 39.41, -77.41], ['Fredericksburg', 38.30, -77.46], ['Harrisburg', 40.27, -76.88], ['Norfolk', 36.85, -76.29], ['Hagerstown', 39.64, -77.72]];
 
-/* the gold paths between our places (drawn first, under the trees) */
-HOOKS.terrain.unshift(function () {
-  if (S.mode !== 'map' || S.zoom > 10.6) return;
-  var P = {
-    n: proj(HOMEBASE[0].lat, HOMEBASE[0].lng),
-    e: proj(HOMES.elena.lat, HOMES.elena.lng), b: proj(HOMES.bruce.lat, HOMES.bruce.lng)
-  };
-  var links = [['e', 'b'], ['b', 'n'], ['n', 'e']];
-  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  function path(a, b, bow) {
-    var dx = b.x - a.x, dy = b.y - a.y;
-    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo((a.x + b.x) / 2 - dy * bow, (a.y + b.y) / 2 + dx * bow, b.x, b.y);
-  }
-  links.forEach(function (l, i) {
-    var bow = i % 2 ? 0.14 : -0.12;
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = 'rgba(132,99,64,.38)'; ctx.lineWidth = 7; ctx.stroke();
-    path(P[l[0]], P[l[1]], bow); ctx.strokeStyle = '#d9bc87'; ctx.lineWidth = 4; ctx.stroke();
-  });
-  ctx.restore();
-});
+/* Physical paths are cached below vegetation in maryland-landscape.js. */
 
 /* ghost cities and the two home-base landmarks (after the trees, so they sit on top) */
 HOOKS.terrain.push(function () {
@@ -4543,6 +4801,7 @@ HOOKS.terrain.push(function () {
   var z = S.zoom;
   if (z > 5.6 && z < 9.6) {
     GHOST_CITIES.forEach(function (c) {
+      if(marylandWeight(c[1],c[2])>.2)return;
       if (isRevealed(c[1], c[2], 1.1)) return;
       if (haversine(c[1], c[2], HOMES.elena.lat, HOMES.elena.lng) < 55 || haversine(c[1], c[2], HOMES.bruce.lat, HOMES.bruce.lng) < 55) return;   /* home stays countryside */
       var p = proj(c[1], c[2]);
@@ -4554,10 +4813,11 @@ HOOKS.terrain.push(function () {
   }
   HBBOX = {};
   HOMEBASE.forEach(function (h) {
-    if(z<6.1)return;
-    var p = proj(h.lat, h.lng);
+    var p = repairPoint(h.id)||proj(h.lat, h.lng);
     if (p.x < -80 || p.y < -20 || p.x > W + 80 || p.y > H + 80) return;
-    var b = drawArt(ctx, h.art, p.x, p.y, homeArtH(z) * h.scale, DPR);
+    var hh=homeArtH(z)*h.scale,asset=artLoad(h.art);
+    if(h.id==='hb-nova'&&asset.ok)hh=Math.min(hh,homeArtH(z)*1.55*asset.img.height/asset.img.width);
+    var b = drawArt(ctx, h.art, p.x, p.y, hh, DPR);
     if (b) { HBBOX[h.id] = b; addHit(b, { kind: 'beacon', lat: h.lat, lng: h.lng }); }
   });
 });
@@ -4571,15 +4831,14 @@ function drawHeartBadge(x, y, color) {
   ctx.restore();
   drawSprite(ctx, SP.heart, { h: color, o: '#6E2549' }, x, y + 7, 2, null);
 }
-function pill(x, y, text) { tryLabel(x, y, text, { size: 12, force: 1, bg: 'rgba(255,247,242,.96)', border: '#D9A3B8', fg: '#5B3046' }); }
+function pill(x, y, text) { if(S.zoom>9.4)tryLabel(x, y, text, { size: 13 }); }
 HOOKS.afterOverlays.push(function(){
   if(S.mode!=='map')return;
-  var p=proj((HOMES.bruce.lat+HOMES.elena.lat)/2,(HOMES.bruce.lng+HOMES.elena.lng)/2);
+  var p=repairPoint('mail');p={x:p.x+40,y:p.y-30};
   if(p.x<0||p.x>W||p.y<30||p.y>H-80)return;
   drawHeartBadge(p.x,p.y,C.pink);
 });
 HOOKS.beforePins.push(function () {
-  if(PAINTED.current&&PAINTED.alpha>.95)return;
   if (S.mode !== 'map' || S.zoom > 9.8) return;
   ['elena', 'bruce'].forEach(function (k) {
     var b = HOMEBOXES[k]; if (!b) return;
@@ -4747,48 +5006,74 @@ function terGrain() {
 }
 HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fillRect(0, 0, baseCv.width, baseCv.height); });
 
-/* Soft clouds over the ground we have not explored yet. They sit on the world
-   (drifting very slowly), gather thickest at the edges of the screen and thin
-   out toward the middle, so the view is framed like the reference art. */
-function drawSkyClouds(z, target) {
-  var sky = target || ctx;
-  var list = [];
-  var cloudLayers = [
-    { cell: z<5.5?5.12:z<7?1.28:0.32, a: 1, seed: 500 },
-    { cell: 0.08, a: Math.max(0, Math.min(1, (z - 9.1) / 1.2)), seed: 600 }
-  ];
-  for (var li = 0; li < cloudLayers.length; li++) {
-    var cl = cloudLayers[li];
-    if (cl.a <= 0.01) continue;
-    var cell = cl.cell, px = cell * 111 / kmPerPx(S.center.lat, z);
-    var tl = unproj(-px, -px), br = unproj(W + px, H + px);
-    var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
-    var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
-    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 700) continue;
-    var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
-    for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
-    var h0 = terHash(gx, gy, cl.seed + 31);
-    if (h0 > 0.52) continue;
-    var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
-    var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
-    var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
-    if (isRevealed(lat, lng0, 1.25) || isRevealed(lat, lng0 - half, 1.25) || isRevealed(lat, lng0 + half, 1.25) ||
-        isRevealed(lat + half * 0.5, lng0, 1.25) || isRevealed(lat - half * 0.5, lng0, 1.25)) continue;
-    var lng = lng0 + drift * (0.6 + terHash(gx, gy, cl.seed + 34) * 0.6);
-    var p = proj(lat, lng);
-    var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
-    edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.68) continue;
-    var w = Math.max(190, Math.min(360, px * (0.9 + terHash(gx, gy, cl.seed + 35) * 0.32)));
-    list.push({ x: p.x, y: p.y, h: w * 0.30, n: 'story-cloud', a: cl.a * (0.95 - 0.55 * edge) });
-    }
-  }
-  list.sort(function (a, b) { return a.y - b.y; });
-  list.forEach(function (c) {
-    sky.save(); sky.globalAlpha = c.a;
-    drawArt(sky, c.n, c.x, c.y + c.h * 0.5, c.h, 1, false);
-    sky.restore();
+/* A single world-anchored cloud field. Permanent seeded bands crossfade with
+   zoom. Neither positions nor opacity depend on screen edges or animation time. */
+var CLOUD_DEBUG=[];
+function cloudEase(a,b,z){var t=Math.max(0,Math.min(1,(z-a)/(b-a)));return t*t*(3-2*t);}
+function cloudBands(z){return[
+ {cell:5.12,alpha:1-cloudEase(4.8,6,z),seed:501},
+ {cell:1.28,alpha:cloudEase(4.8,6,z)*(1-cloudEase(6.5,7.7,z)),seed:502},
+ {cell:.32,alpha:cloudEase(6.5,7.7,z)*(1-cloudEase(9,10.2,z)),seed:503},
+ {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
+];}
+function cloudImportantAreas(){
+ var areas=REPAIR.boxes.slice();
+ LANDMARKS.forEach(function(l){
+  if(l[0]==='nyc'&&nycFootprints().length)return;
+  if(!specialForCity(l[0])&&!l[8]&&!isRevealed(l[2],l[3],1.06))return;
+  var p=l[0]==='dc'?repairPoint('dc'):proj(l[2],l[3]),h=LAKE_CITY_ART[l[0]]?90:homeArtH(S.zoom);
+  areas.push({x:p.x-h*.75,y:p.y-h,w:h*1.5,h:h});
+ });
+ areas=areas.concat(nycFootprints(),MD_TOWNBOXES);
+ S.memories.concat(S.plans||[]).forEach(function(m){var p=proj(m.lat,m.lng);areas.push({x:p.x-24,y:p.y-60,w:48,h:76});});
+ if(S.me){var p=proj(S.me.lat,S.me.lng);areas.push({x:p.x-25,y:p.y-35,w:50,h:60});}
+ return areas;
+}
+/* Reduce WHOLE cloud banks near important places. Never punch landmark-shaped
+   holes into cloud artwork or replace the visible map with a fog backdrop. */
+function cloudRoom(c,areas){
+ var room=1;
+ areas.forEach(function(a){
+  var dx=(c.x-a.x-a.w/2)/(c.w*.45+a.w*.7+20),dy=(c.y-a.y-a.h/2)/(c.h*.45+a.h*.7+20);
+  room=Math.min(room,cloudEase(.8,1.6,Math.sqrt(dx*dx+dy*dy)));
+ });
+ return room;
+}
+function drawSkyClouds(z,target){
+ var sky=target||ctx,list=[],areas=cloudImportantAreas(),ready=cartoonCloudReady();
+ cloudBands(z).forEach(function(band){
+  if(band.alpha<.001)return;
+  /* Broad, irregular banks, not a small cloud stamped into every grid square.
+     The hidden lattice only bounds work; full-cell jitter, independent sizes
+     and sparse companions break its rows. Two depth passes keep larger,
+     quieter banks behind the occasional smaller foreground silhouette. */
+  var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360;
+  [0,1].forEach(function(depth){
+   var sx=cell*(depth?5.2:3.7),sy=cell*(depth?4.2:2.5),seed=band.seed+depth*31;
+   var margin=Math.max(700,cellPx*24),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
+   var y0=Math.floor(Math.min(tl.lat,br.lat)/sy)-1,y1=Math.ceil(Math.max(tl.lat,br.lat)/sy)+1;
+   var x0=Math.floor(Math.min(tl.lng,br.lng)/sx)-1,x1=Math.ceil(Math.max(tl.lng,br.lng)/sx)+1;
+   for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
+    if(depth&&terHash(gx,gy,seed+8)<.68)continue;
+    var name=ready?CARTOON_CLOUDS[Math.min(5,Math.floor(terHash(gx,gy,seed+15)*6))]:'story-cloud',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
+    var lat=(gy+.5+(terHash(gx,gy,seed+1)-.5)*1.6)*sy;
+    var lng=(gx+.5+(terHash(gx,gy,seed+2)-.5)*1.6)*sx;
+    var p=proj(lat,lng),h=cellPx*(depth?1.2+terHash(gx,gy,seed+3)*1.1:.9+terHash(gx,gy,seed+3)*1.4);
+    var w=h*aspect;
+    if(p.x-w/2>W||p.x+w/2<0||p.y-h/2>H||p.y+h/2<0)continue;
+    var cloud={id:band.seed+':'+depth+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*.94,depth:depth,name:name,aspect:aspect,flip:terHash(gx,gy,seed+6)>.5};
+    cloud.room=cloudRoom(cloud,areas);
+    /* Seeded thinning keeps most remaining banks substantial, rather than
+       turning every nearby bank into transparent haze. Blend the boundary so
+       zooming changes density gently instead of popping clouds on/off. */
+    var threshold=.25+terHash(gx,gy,seed+10)*.5;
+    cloud.alpha*=cloudEase(threshold-.15,threshold+.15,cloud.room*(isRevealed(lat,lng,.95)?.8:1));
+    list.push(cloud);
+   }
   });
+ });
+ list.sort(function(a,b){return a.depth-b.depth||a.y-b.y;});CLOUD_DEBUG=list;
+ list.forEach(function(c){if(c.alpha<.001)return;sky.save();sky.globalAlpha=c.alpha;sky.translate(c.x,c.y);sky.scale((c.flip?-1:1)*c.w/(c.h*c.aspect),1);drawArt(sky,c.name,0,c.h/2,c.h,1);sky.restore();});
 }
 
 
@@ -6722,29 +7007,28 @@ function shortName(k) { return whoName(k).replace('Princess ', ''); }
 
 /* ---------------- on the map ---------------- */
 var MAILBOX = null;
-var MAIL_MAP_BUILDING = false; /* Mail is available from Menu; only the two homes occupy the home map. */
+var MAIL_MAP_BUILDING = true;
 HOOKS.beforePins.push(function () {
-  if(paintedBox('mail'))return;
   MAILBOX = null;
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
-  var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */
-  var p = proj(MAIL_POS.lat, MAIL_POS.lng);
-  var h = Math.round(homeArtH(z) * 0.8), w = h * 449 / 314;
+  var z = S.zoom;
+  var p = repairPoint('mail');
+  var h = homeArtH(z) * .82, w = h * 1.35;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
-  var fade = Math.min(1, (z - 6.8) / 0.8), unread = mailUnread().length;
+  var fade = 1, unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;
   if (unread) {                                            /* a soft glow when mail is waiting */
     var g = ctx.createRadialGradient(p.x, p.y - h * 0.45, 0, p.x, p.y - h * 0.45, w * 0.55);
     g.addColorStop(0, 'rgba(255,214,140,.55)'); g.addColorStop(1, 'rgba(255,214,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.45, w * 0.55, 0, 6.283); ctx.fill();
   }
-  var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
+  var box = drawArt(ctx, 'civic-post-office', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
-    if (unread) {                                          /* the floating envelope with a red dot */
-      var bob = reduceMotion ? 0 : Math.sin(cloudPhase / 9) * 3, eh = Math.max(16, h * 0.32);
-      var eb = drawArt(ctx, 'mail/env-gold', p.x, box.y + eh * 0.2 + bob, eh, DPR);
-      if (eb) {
+    if(unread) {                                          /* logo is baked into the building; only count is separate */
+      var eh = Math.max(24, h * 0.45);
+      var eb = {x:box.x+box.w*.25,y:box.y,w:box.w*.5,h:eh};
+      if (eb && unread) {
         var r = Math.max(7, eh * 0.24), cx = eb.x + eb.w - r * 0.5, cy = eb.y + r * 0.4;
         ctx.fillStyle = '#D9363E'; ctx.strokeStyle = '#FFF2DF'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.fill(); ctx.stroke();
@@ -7011,6 +7295,80 @@ setInterval(function () {
   mailSeen = n;
 }, 5000);
 
+/* ---- features/pet-fittings.js ---- */
+/* Coordinates are in the actual puppy's 195 × 236 front view or 256px
+   animation cell. Individual item/pose overrides use the same attachment rig. */
+var PET_FIT_OVERRIDES={};
+var PET_FITS_READY=fetch('art/pets/fittings.json').then(function(r){if(!r.ok)throw Error('fits');return r.json();}).then(function(data){PET_FIT_OVERRIDES=data;if(typeof PB!=='undefined')PB.shown='';}).catch(function(){/* Built-in fits remain usable offline. */});
+var PET_RIG={front:{head:[98,34],eyes:[98,72],neck:[98,112],chest:[99,157],back:[98,145],pawL:[79,231],pawR:[133,231]}};
+PET_RIG.sleep={head:[118,15],eyes:[119,40],neck:[85,45],chest:[90,52],back:[55,32],pawL:[99,67],pawR:[136,67]};
+var PET_MOTION_RIG=[
+ [[128,29],[128,73],[128,120],[128,163],[128,160],[107,235],[163,235]],
+ [[128,29],[128,73],[128,120],[128,163],[128,160],[107,235],[163,235]],
+ [[124,27],[128,73],[132,121],[130,163],[128,160],[107,235],[163,235]],
+ [[130,29],[130,73],[130,120],[128,163],[128,160],[107,235],[163,235]],
+ [[192,68],[211,106],[177,128],[174,166],[102,143],[175,230],[215,229]],
+ [[192,68],[211,106],[177,128],[174,166],[102,143],[158,231],[218,201]],
+ [[192,68],[211,106],[177,128],[174,166],[102,143],[188,231],[216,223]],
+ [[192,68],[211,106],[177,128],[174,166],[102,143],[176,230],[217,209]],
+ [[151,95],[151,133],[136,155],[130,188],[100,130],[123,234],[178,234]],
+ [[156,113],[156,150],[137,171],[130,195],[100,130],[122,234],[178,234]],
+ [[153,135],[153,169],[136,185],[130,201],[100,130],[123,234],[178,234]],
+ [[153,105],[153,143],[136,163],[130,191],[100,130],[123,234],[178,234]],
+ [[153,102],[153,140],[136,163],[130,190],[100,130],[123,234],[178,234]],
+ [[153,107],[153,145],[136,168],[130,193],[100,130],[123,234],[178,234]],
+ [[153,107],[153,145],[136,168],[130,193],[100,130],[123,234],[178,234]],
+ [[153,96],[153,134],[136,157],[130,187],[100,130],[123,234],[178,234]]
+];
+PET_MOTION_RIG.forEach(function(row,i){var rig={};['head','eyes','neck','chest','back','pawL','pawR'].forEach(function(k,j){rig[k]=row[j];});PET_RIG['motion-'+i]=rig;});
+[[[166,217],[211,217],[39,217],[85,217]],[[140,216],[199,191],[39,217],[85,217]],[[178,217],[207,217],[57,217],[98,211]],[[160,217],[205,196],[40,217],[83,211]]].forEach(function(p,i){['pawL','pawR','rearL','rearR'].forEach(function(k,j){PET_RIG['motion-'+(i+4)][k]=p[j];});});
+var PET_ITEM_FITS={};
+function petInitFits(){
+PET_CATALOG.forEach(function(it){var f={anchor:'neck',width:78,dx:0,dy:0,rotation:0,z:4,align:'top'};
+ if(it.slot==='hat')f={anchor:'head',width:119,dx:0,dy:5,rotation:0,z:4,align:'bottom'};
+ if(it.slot==='collar')f={anchor:'neck',width:70,dx:0,dy:1,rotation:0,z:3,align:'top'};
+ if(it.slot==='boots')f={anchor:'pawL',width:32,dx:0,dy:0,rotation:0,z:5,align:'bottom'};
+ if(it.slot==='extra'){
+  var back=/backpack|cape|wings/.test(it.file);
+  f={anchor:back?'back':/camera/.test(it.file)?'chest':/halo/.test(it.file)?'head':'eyes',width:back?128:/headphones/.test(it.file)?130:/camera/.test(it.file)?49:92,dx:0,dy:0,rotation:0,z:back?0:6,align:'center'};
+ }
+ PET_ITEM_FITS[it.id]=f;
+});
+// Fit brim heights to the curls; tall crowns/wizard hats need their own width.
+['hat-crown','hat-wizard'].forEach(function(id){PET_ITEM_FITS[id].width=99;PET_ITEM_FITS[id].dy=1;});
+PET_ITEM_FITS['extra-halo'].dy=-24;PET_ITEM_FITS['extra-halo'].width=86;
+PET_ITEM_FITS['extra-goggles'].width=88;
+PET_ITEM_FITS['extra-camera'].dy=-9;
+PET_ITEM_FITS['extra-backpack'].dx=43;PET_ITEM_FITS['extra-backpack'].width=80;PET_ITEM_FITS['extra-backpack'].dy=10;
+PET_ITEM_FITS['extra-wings'].width=190;PET_ITEM_FITS['extra-bat-wings'].width=190;
+PET_ITEM_FITS['extra-headphones'].width=173;PET_ITEM_FITS['extra-headphones'].dy=-14;
+['hat-beanie-cream','hat-beanie-grey'].forEach(function(id){PET_ITEM_FITS[id].dy=15;});
+}
+function petFit(item,pose,part){var f=Object.assign({},PET_ITEM_FITS[item.id]),n=Number(pose.split('-')[1]),row=Math.floor(n/4);
+ if(pose!=='front'&&row===1){f.width*=item.slot==='hat'?.62:item.slot==='boots'?1:.68;if(item.slot==='hat')f.dy+=8;if(item.slot==='collar'||item.slot==='scarf'){f.dx=-15;f.dy=-10;f.rotation=-20;}if(item.slot==='extra'&&/glasses|goggles/.test(item.file)){f.dx=-18;f.dy=-16;f.width*=.75;}if(item.file==='extra-backpack'){f.dx=-15;f.dy=-7;f.z=2;f.width=61;}}
+ if(pose!=='front'&&row>=2){if(item.slot==='hat'){f.dy-=22;f.width*=.78;}if(item.slot==='collar'||item.slot==='scarf'||item.slot==='boots')f.z=0;if(item.file==='extra-camera')f.z=0;}
+ if(pose==='sleep'){f.width*=.65;if(item.slot==='scarf'||item.slot==='collar'||item.slot==='boots'||f.anchor==='back'||f.anchor==='chest')f.z=0;}
+ Object.assign(f,PET_FIT_OVERRIDES[item.id+'|'+pose]||{});if(part){f.anchor=part;Object.assign(f,PET_FIT_OVERRIDES[item.id+'|'+pose+'|'+part]||{});}return f;}
+function petFittedLayer(item,s,pose){
+ pose=pose||'front';var rig=PET_RIG[pose]||PET_RIG.front,f=petFit(item,pose),motion=pose.indexOf('motion-')===0,ratio=motion&&Math.floor(Number(pose.split('-')[1])/4)===1?256/195:1;
+ var walking=pose.indexOf('motion-')===0&&Math.floor(Number(pose.split('-')[1])/4)===1;
+ var parts=item.slot==='boots'?(walking?[{anchor:'rearL',suffix:'-left'},{anchor:'pawR',suffix:'-right'}]:[{anchor:'pawL',suffix:'-left'},{anchor:'pawR',suffix:'-right'}]):[{anchor:f.anchor,suffix:''}];
+ /* The side pose shows one near rear paw and one near front paw. Placing both
+    boots on the overlapping front paws produced a single floating shoe mass. */
+ return parts.map(function(part){var f=item.slot==='boots'?petFit(item,pose,part.anchor):petFit(item,pose),point=rig[f.anchor]||rig.neck,w=f.width*ratio*s,x=(point[0]+f.dx*ratio)*s,y=(point[1]+f.dy*ratio)*s;
+  var transform='translate(-50%,'+(f.align==='bottom'?'-100%':f.align==='center'?'-50%':'0')+') rotate('+f.rotation+'deg)';
+  var base='left:'+x+'px;top:'+y+'px;width:'+w+'px;transform-origin:50% '+(f.align==='bottom'?'100%':'0')+';transform:'+transform+';image-rendering:pixelated;',url='art/pets/fitted/'+item.file+part.suffix+'.png';
+  function image(z,clip){return '<img class="pf-l" alt="" draggable="false" data-file="'+item.file+'" src="'+url+'" style="'+base+'z-index:'+z+';'+(clip?'clip-path:'+clip+';':'')+'">';}
+  if(item.file==='extra-headphones')return image(0,'inset(0 0 55% 0)')+image(f.z,'inset(35% 70% 0 0)')+image(f.z,'inset(35% 0 0 70%)');
+  if((item.slot==='scarf'||item.slot==='collar')&&f.z>1)return image(0,'inset(0 0 73% 0)')+image(f.z,'inset(27% 0 0 0)');
+  return image(part.z===undefined?f.z:part.z);
+ }).join('');
+}
+function petMotionFigure(size,frame,eq,flip){
+ var row=Math.floor(frame/4),col=frame%4,layers='';if(PET_SHOP_ENABLED)PET_SLOTS.forEach(function(slot){var it=petItem(eq[slot]);if(it)layers+=petFittedLayer(it,size/256,'motion-'+frame);});
+ return '<div class="puppy-motion" role="img" aria-label="Puppy" style="position:relative;width:'+size+'px;height:'+size+'px;transform:scaleX('+(flip?-1:1)+')">'+layers+'<div style="position:absolute;inset:0;z-index:1;background-image:url(art/pets/puppy-motion.png);background-size:400% 400%;background-position:'+(col*100/3)+'% '+(row*100/3)+'%"></div></div>';
+}
+
 /* ---- features/pet.js ---- */
 /* Your Baby: a shared puppy who lives in a cozy room.
    - The room, the puppy and the accessories come from art/pets/ (cut from the art sheets
@@ -7025,6 +7383,7 @@ setInterval(function () {
      petvisit/<who> { at }                 when each of you last visited */
 
 var PET_STARTER = 20;                        /* a welcome gift of hearts */
+var PET_SHOP_ENABLED = false;                /* accessory art is being refit; keep the room available */
 var PET = { open: false, name: 'Baby', owned: [], equipped: {}, spent: 0, treats: 0, mode: 'room', tab: 'mine', sel: null, woke: 0, lastPet: 0, bubble: '', visits: {} };
 S.love = { bruce: 0, elena: 0 };
 S.spend = { bruce: 0, elena: 0 };          /* what each of you has spent (own document each, so shopping together is safe) */
@@ -7063,18 +7422,22 @@ var PET_ANCHOR = {
   'extra-backpack': { cx: 112, y: 150, sc: 1.1, a: 'c', z: 0 }, 'extra-cape': { cx: 112, y: 108, sc: 1.4, a: 't', z: 0 }, 'extra-wings': { cx: 112, y: 110, sc: 1.5, a: 'c', z: 0 }, 'extra-bat-wings': { cx: 112, y: 110, sc: 1.4, a: 'c', z: 0 }
 };
 var PET_SIZE = {};                           /* natural size of each accessory, learned as images load */
+petInitFits();
 
 function petLayer(item, s) {
+  return petFittedLayer(item,s,'front');
+/* Legacy measurements kept below for reference during fitting migration.
   var an = PET_ANCHOR[item.slot === 'extra' ? item.file : item.slot], nat = PET_SIZE[item.file];
   var url = 'art/pets/acc/' + item.file + '.png';
   var w = (nat ? nat[0] : 130) * an.sc * s, h = (nat ? nat[1] : 100) * an.sc * s;
   var left = an.cx * s - w / 2, top = an.a === 'b' ? an.y * s - h : (an.a === 'c' ? an.y * s - h / 2 : an.y * s);
   return '<img class="pf-l" alt="" draggable="false" src="' + url + '" data-file="' + item.file + '" style="left:' + left.toFixed(1) + 'px;top:' + top.toFixed(1) + 'px;width:' + w.toFixed(1) + 'px;z-index:' + an.z + '">';
+*/
 }
 /* the puppy plus what it is wearing; `h` is its height in css px, `eq` the outfit to show */
 function petFigure(h, eq, sleeping) {
   var s = h / PET_DOG_H, w = PET_DOG_W * s;
-  if (sleeping) return '<div class="pf" style="width:' + (163 * s).toFixed(0) + 'px;height:' + (71 * s).toFixed(0) + 'px"><img class="pf-dog" alt="" draggable="false" src="art/pets/dog-sleep.png" style="width:100%;z-index:1"></div>';
+  if (sleeping) {var sleepLayers='';if(PET_SHOP_ENABLED)PET_SLOTS.forEach(function(slot){var it=petItem(eq[slot]);if(it)sleepLayers+=petFittedLayer(it,s,'sleep');});return '<div class="pf" style="width:' + (163 * s).toFixed(0) + 'px;height:' + (71 * s).toFixed(0) + 'px">'+sleepLayers+'<img class="pf-dog" alt="" draggable="false" src="art/pets/dog-sleep.png" style="width:100%;z-index:1"></div>';}
   var html = '<div class="pf" style="width:' + w.toFixed(0) + 'px;height:' + h.toFixed(0) + 'px">';
   var layers = [];
   PET_SLOTS.forEach(function (sl) { var it = petItem(eq[sl]); if (it) layers.push(petLayer(it, s)); });
@@ -7233,7 +7596,7 @@ function petPill() { var p = document.getElementById('psHearts'); if (p) p.inner
 function petBump() { var p = document.getElementById('psHearts'); if (p) { p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); } }
 
 function petOpen() {
-  petEnsure(); closeSheet();
+  petEnsure(); closeSheet(); PET.mode = 'room';
   PET.open = true; PET.mode = 'room'; PET.sel = null;
   if (S.who) {
     PET.visits[S.who] = Date.now();
@@ -7270,7 +7633,7 @@ function petRender() {
       '<button class="ps-act" type="button" data-pet="cuddle"><img class="ic" alt="" src="art/heart.png">Cuddle</button>' +
       '<button class="ps-act" type="button" data-pet="treat"><img class="ic" alt="" src="art/ui/bone.png">Treat<small>\u2665 3</small></button>' +
       '<button class="ps-act" type="button" data-pet="play"><img class="ic" alt="" src="art/ui/ball.png">Play</button>' +
-      '<button class="ps-act" type="button" data-pet="shop"><img class="ic" alt="" src="art/ui/shop.png">Pup Shop</button>' +
+      (PET_SHOP_ENABLED ? '<button class="ps-act" type="button" data-pet="shop"><img class="ic" alt="" src="art/ui/shop.png">Pup Shop</button>' : '') +
     '</div>';
   petLayout(sleeping);
 }
@@ -7280,6 +7643,7 @@ function petRender() {
 var PG = null;                                     /* room geometry on screen */
 var PB = { x: 0.49, dir: 1, act: 'sit', until: 0, tx: 0.49, f: 0, raf: 0, last: 0, shown: '' };
 var PF = {};                                       /* frame images, by name */
+var puppyMotion = new Image(); puppyMotion.src = 'art/pets/puppy-motion.png';
 ['sleep'].forEach(function (n) { var im = new Image(); im.src = 'art/pets/dog-' + n + '.png'; PF[n] = im; });
 var X_MIN = 0.37, X_MAX = 0.62;
 function petLayout(sleeping) {
@@ -7312,10 +7676,18 @@ function petPose(bounce) {
   var x = PG.ox + PG.dw * PB.x, key;
   if (PB.act === 'sleep') {
     var im = PF.sleep, s = frameScale(), w = (im.naturalWidth || 163) * s, hh = (im.naturalHeight || 71) * s;
-    key = 'sleep|' + Math.round(hh);
-    if (PB.shown !== key) { dog.innerHTML = '<div class="pf pf-frame" style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px"><img alt="" draggable="false" src="' + im.src + '" style="width:100%;height:100%"></div>'; PB.shown = key; }
-    dog.style.left = x + 'px'; dog.style.top = (PG.baseY - hh * 0.92) + 'px';
+    key = 'sleep|' + Math.round(hh)+'|'+JSON.stringify(PET.equipped);
+    if (PB.shown !== key) { dog.innerHTML = petFigure(236*s,PET.equipped,true); PB.shown = key; }
+    dog.style.left = Math.max(w/2+12,Math.min(PG.vw-w/2-12,x)) + 'px'; dog.style.top = (PG.baseY - hh * 0.92) + 'px';
     return;
+  }
+  if(puppyMotion.complete&&puppyMotion.naturalWidth){
+    var time=performance.now(),walking=PB.act==='scoot',row=walking?1:PB.act==='eat'||PB.act==='sniff'?2:PB.act==='play'||PB.act==='happy'?3:0;
+    var frame=reduceMotion?0:row===0?(time%6000>5300?Math.floor(time/170)%4:0):Math.floor(time/(walking?135:240))%4;
+    var size=PG.h*1.12;
+    var motionKey=[row,frame,size,walking&&PB.tx<PB.x0,JSON.stringify(PET.equipped),JSON.stringify(PET_FIT_OVERRIDES)].join('|');
+    if(PB.shown!==motionKey){dog.innerHTML=petMotionFigure(size,row*4+frame,PET.equipped,walking&&PB.tx<PB.x0);PB.shown=motionKey;}
+    dog.style.left=Math.max(size/2+12,Math.min(PG.vw-size/2-12,x))+'px';dog.style.top=(PG.baseY-size*.94)+'px';return;
   }
   key = 'front|' + JSON.stringify(PET.equipped) + '|' + PG.h;
   if (PB.shown !== key) { dog.innerHTML = petFigure(PG.h, PET.equipped, false); petLearnSizes(dog); PB.shown = key; }
@@ -7325,10 +7697,10 @@ function petNext(now) {
   if (petSleeping()) { PB.act = 'sleep'; PB.until = now + 60000; return; }
   if (PB.act !== 'sit') { PB.act = 'sit'; PB.until = now + 5000 + Math.random() * 7000; return; }
   /* a little hop to a new spot on the bed, still facing you */
-  PB.act = 'scoot'; PB.t0 = now; PB.x0 = PB.x;
+  PB.act = Math.random()<.35?'sniff':'scoot'; PB.t0 = now; PB.x0 = PB.x;
   var span = X_MAX - X_MIN, d = (0.15 + Math.random() * 0.25) * span;
   PB.tx = Math.max(X_MIN, Math.min(X_MAX, PB.x + (Math.random() < 0.5 ? -d : d)));
-  PB.until = now + 20000;
+  PB.until = now + (PB.act==='sniff'?2200:20000);
 }
 function petTick(now) {
   if (!PET.open || PET.mode !== 'room') { PB.raf = 0; return; }
@@ -7340,14 +7712,14 @@ function petTick(now) {
     var dur = Math.max(700, Math.abs(PB.tx - PB.x0) * PG.dw * 9), t = Math.min(1, (now - PB.t0) / dur);
     PB.x = PB.x0 + (PB.tx - PB.x0) * (t * t * (3 - 2 * t));
     var hops = Math.max(1, Math.round(dur / 380));
-    petPose(Math.abs(Math.sin(t * Math.PI * hops)) * PG.h * 0.07);
-    if (t >= 1) PB.until = 0;
+    petPose();
+    if (t >= 1) { PB.act=PB.after||'sniff';PB.after=null;PB.t0=now;PB.until=now+3500; }
     return;
   }
   if (PB.act === 'play') {
     var tp = now - PB.t0;
-    petPose(Math.abs(Math.sin(tp / 1100 * Math.PI * 3)) * PG.h * 0.14 * (tp < 1100 ? 1 : 0));
-    if (tp > 1100) { PB.act = 'sit'; PB.until = now + 5000; }
+    petPose();
+    if (tp > 3500) { PB.act = 'sit'; PB.until = now + 5000; }
     return;
   }
   petPose();
@@ -7356,9 +7728,7 @@ function petSitFront() { PB.act = 'sit'; PB.until = performance.now() + 5000; pe
 
 var petSayT = null;
 function petSay(text, ms) {
-  var el = document.getElementById('psSay'); if (!el) return;
-  el.textContent = text; el.classList.add('on');
-  clearTimeout(petSayT); petSayT = setTimeout(function () { el.classList.remove('on'); }, ms || 2600);
+  /* Reactions are expressed by poses; the puppy no longer speaks in popups. */
 }
 function petHearts_fx() {
   var room = petEl.querySelector('.ps-room'), dog = document.getElementById('psDog'); if (!room || !dog) return;
@@ -7375,21 +7745,20 @@ function petHearts_fx() {
   }
 }
 function petHop() {
-  petSitFront();
-  var d = document.getElementById('psDog'); if (!d) return;
-  d.classList.remove('happy'); void d.offsetWidth; d.classList.add('happy'); petHearts_fx();
+  PB.act='happy';PB.until=performance.now()+2400;petPose();petHearts_fx();
 }
 var PET_LINES = ['Woof! 💗', 'I love you both!', 'Best day ever!', 'Pet me again!', 'Where are we going next?', '*tail wags*', 'Did you bring treats?', 'I missed you!', 'You two are my favourite people.'];
 
 function petClick(e) {
   var b = e.target.closest('[data-pet],[data-shop]');
-  if (!b) { if (e.target.closest('#psDog') && PET.mode === 'room') petAct('cuddle'); return; }
+  if (!b) { if (e.target.closest('#psDog') && PET.mode === 'room') petAct('cuddle');
+    else if(PET.mode==='room'&&PG&&e.target.closest('.ps-room')&&!petSleeping()&&!reduceMotion&&e.clientY>PG.baseY-PG.h*.45){PB.act='scoot';PB.t0=performance.now();PB.x0=PB.x;PB.tx=Math.max(X_MIN,Math.min(X_MAX,(e.clientX-PG.ox)/PG.dw));PB.until=PB.t0+20000;PB.after='sniff';}return; }
   if (b.dataset.shop) return shopClick(b);
   petAct(b.dataset.pet);
 }
 function petAct(a) {
   if (a === 'back') return petClose();
-  if (a === 'shop') { PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; return petRender(); }
+  if (a === 'shop') { if (!PET_SHOP_ENABLED) return; PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; return petRender(); }
   if (a === 'rename') {
     var nm = window.prompt('What is our baby called?', PET.name);
     if (nm && nm.trim()) { PET.name = nm.trim().slice(0, 18); petSavePet(); petRender(); }
@@ -7401,7 +7770,10 @@ function petAct(a) {
     if (typeof playSound === 'function') playSound('heart');
     if (Date.now() - PET.lastPet > 15 * 60000) { PET.lastPet = Date.now(); setTimeout(function () { earnHearts(1, 'cuddle'); }, 500); }
   } else if (a === 'play') {
-    PB.act = 'play'; PB.t0 = performance.now(); PB.until = PB.t0 + 5000; petHearts_fx(); petSay('Again! Again! 🎾', 2400);
+    var old=document.getElementById('puppyToy');if(old)old.remove();
+    PB.act=reduceMotion?'play':'scoot';PB.t0=performance.now();PB.x0=PB.x;PB.tx=PB.x<(X_MIN+X_MAX)/2?X_MAX:X_MIN;PB.after='play';PB.until=PB.t0+20000;
+    var toy=document.createElement('img');toy.id='puppyToy';toy.src='art/ui/ball.png';toy.alt='Play ball';toy.style.cssText='position:absolute;pointer-events:none;width:26px;left:'+(PG.ox+PG.dw*PB.tx-13)+'px;top:'+(PG.baseY-23)+'px';petEl.querySelector('.ps-room').appendChild(toy);
+    setTimeout(function(){toy.remove();},6500);
   } else if (a === 'treat') {
     petGiveTreat(PET_TREATS[0]);
   }
@@ -7416,7 +7788,7 @@ function petGiveTreat(t) {
     f.style.left = (r.left - pr.left + r.width * 0.2) + 'px'; f.style.top = (pr.height - 130) + 'px';
     f.style.setProperty('--dx', (r.width * 0.3) + 'px'); f.style.setProperty('--dy', -(pr.height - 130 - (r.top - pr.top) - r.height * 0.4) + 'px');
     petEl.appendChild(f); setTimeout(function () { f.remove(); }, 1000);
-    setTimeout(function () { petHop(); petSay('Yum! Thank you! 💗', 2800); }, 800);
+    setTimeout(function () { if(!PET.open||PET.mode!=='room')return;PB.act='eat';PB.until=performance.now()+3000;petPose(); }, 800);
   }
   if (typeof playSound === 'function') playSound('save');
   return true;
@@ -7437,7 +7809,7 @@ function shopCards() {
   if (!list.length) return '<div class="shop-empty">' + (tab === 'mine' ? 'Nothing in the wardrobe yet.<br>Open a shelf above and treat ' + esc(PET.name) + ' to something.' : 'Nothing here.') + '</div>';
   list.forEach(function (i) {
     var own = PET.owned.indexOf(i.id) >= 0, worn = PET.equipped[i.slot] === i.id;
-    html += '<button class="it' + (PET.sel === i.id ? ' sel' : '') + (worn ? ' worn' : '') + '" type="button" data-shop="pick" data-id="' + i.id + '"><img alt="" src="art/pets/acc/' + i.file + '.png">' +
+    html += '<button class="it' + (PET.sel === i.id ? ' sel' : '') + (worn ? ' worn' : '') + '" type="button" data-shop="pick" data-id="' + i.id + '"><img alt="" src="art/pets/fitted/' + i.file + '.png">' +
       (own ? '<span class="tick">' + (worn ? '✔' : '●') + '</span><span class="pr">' + (worn ? 'Wearing' : 'Owned') + '</span>' : '<span class="pr"><img src="art/heart.png" alt="">' + i.price + '</span>') + '</button>';
   });
   return html;
@@ -7659,7 +8031,7 @@ ACTIONS['grp'] = function (b) {
 var DASH = [
   ['mem',     'art/ui/book.png',     'Our Memories Book'],
   ['baby',    'art/ui/paw.png',      'Our First Baby'],
-  ['shop',    'art/ui/shop.png',     'Pup Shop'],
+  /* Pup Shop is temporarily hidden while accessory art is being refit. */
   ['cal',     'art/ui/calendar.png', 'Our Calendar'],
   ['letters', 'art/ui/letters.png',  'Love Letters'],
   ['avatars', 'art/ui/avatars.png',  'Our Avatars']
@@ -7676,7 +8048,7 @@ function dashEnsure() {
     if (d === 'goto') { dashClose(); flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), 13); return; }
     dashClose();
     if (d === 'baby') petOpen();
-    else if (d === 'shop') { petOpen(); PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; petRender(); }
+    else if (d === 'shop' && PET_SHOP_ENABLED) { petOpen(); PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; petRender(); }
     else if (d === 'cal') openCal();
     else if (d === 'mem') bookOpen();
     else if (d === 'letters') mailOpen({ room: true });

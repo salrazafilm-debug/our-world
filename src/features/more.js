@@ -47,7 +47,7 @@ ACTIONS['grp'] = function (b) {
 var DASH = [
   ['mem',     'art/ui/book.png',     'Our Memories Book'],
   ['baby',    'art/ui/paw.png',      'Our First Baby'],
-  ['shop',    'art/ui/shop.png',     'Pup Shop'],
+  /* Pup Shop is temporarily hidden while accessory art is being refit. */
   ['cal',     'art/ui/calendar.png', 'Our Calendar'],
   ['letters', 'art/ui/letters.png',  'Love Letters'],
   ['avatars', 'art/ui/avatars.png',  'Our Avatars']
@@ -64,7 +64,7 @@ function dashEnsure() {
     if (d === 'goto') { dashClose(); flyTo(parseFloat(b.dataset.lat), parseFloat(b.dataset.lng), 13); return; }
     dashClose();
     if (d === 'baby') petOpen();
-    else if (d === 'shop') { petOpen(); PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; petRender(); }
+    else if (d === 'shop' && PET_SHOP_ENABLED) { petOpen(); PET.mode = 'shop'; PET.tab = PET.owned.length ? 'mine' : 'hat'; PET.sel = null; petRender(); }
     else if (d === 'cal') openCal();
     else if (d === 'mem') bookOpen();
     else if (d === 'letters') mailOpen({ room: true });

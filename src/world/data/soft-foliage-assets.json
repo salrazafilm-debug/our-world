@@ -1,0 +1,173 @@
+[
+  {
+    "id": "pine",
+    "path": "art/world/soft/pine.png",
+    "width": 270,
+    "height": 320,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "tree",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      0,
+      0,
+      426,
+      450
+    ]
+  },
+  {
+    "id": "pine-tall",
+    "path": "art/world/soft/pine-tall.png",
+    "width": 215,
+    "height": 320,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "tree",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      426,
+      0,
+      426,
+      450
+    ]
+  },
+  {
+    "id": "oak",
+    "path": "art/world/soft/oak.png",
+    "width": 314,
+    "height": 320,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "tree",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      852,
+      0,
+      426,
+      450
+    ]
+  },
+  {
+    "id": "cherry",
+    "path": "art/world/soft/cherry.png",
+    "width": 320,
+    "height": 290,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "tree",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      0,
+      450,
+      426,
+      400
+    ]
+  },
+  {
+    "id": "crimson",
+    "path": "art/world/soft/crimson.png",
+    "width": 320,
+    "height": 290,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "tree",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      426,
+      450,
+      426,
+      400
+    ]
+  },
+  {
+    "id": "bush",
+    "path": "art/world/soft/bush.png",
+    "width": 320,
+    "height": 228,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "garden",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      852,
+      450,
+      426,
+      400
+    ]
+  },
+  {
+    "id": "flowers",
+    "path": "art/world/soft/flowers.png",
+    "width": 320,
+    "height": 198,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "garden",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      0,
+      850,
+      426,
+      380
+    ]
+  },
+  {
+    "id": "rocks",
+    "path": "art/world/soft/rocks.png",
+    "width": 320,
+    "height": 207,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "garden",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      426,
+      850,
+      426,
+      380
+    ]
+  },
+  {
+    "id": "grass",
+    "path": "art/world/soft/grass.png",
+    "width": 310,
+    "height": 181,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "garden",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-foliage-sheet.png",
+    "crop": [
+      852,
+      850,
+      426,
+      380
+    ]
+  }
+]

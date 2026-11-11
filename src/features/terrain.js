@@ -153,48 +153,74 @@ function terGrain() {
 }
 HOOKS.afterBase.unshift(function () { baseCtx.fillStyle = terGrain(); baseCtx.fillRect(0, 0, baseCv.width, baseCv.height); });
 
-/* Soft clouds over the ground we have not explored yet. They sit on the world
-   (drifting very slowly), gather thickest at the edges of the screen and thin
-   out toward the middle, so the view is framed like the reference art. */
-function drawSkyClouds(z, target) {
-  var sky = target || ctx;
-  var list = [];
-  var cloudLayers = [
-    { cell: z<5.5?5.12:z<7?1.28:0.32, a: 1, seed: 500 },
-    { cell: 0.08, a: Math.max(0, Math.min(1, (z - 9.1) / 1.2)), seed: 600 }
-  ];
-  for (var li = 0; li < cloudLayers.length; li++) {
-    var cl = cloudLayers[li];
-    if (cl.a <= 0.01) continue;
-    var cell = cl.cell, px = cell * 111 / kmPerPx(S.center.lat, z);
-    var tl = unproj(-px, -px), br = unproj(W + px, H + px);
-    var gy0 = Math.floor(Math.min(tl.lat, br.lat) / cell), gy1 = Math.ceil(Math.max(tl.lat, br.lat) / cell);
-    var gx0 = Math.floor(Math.min(tl.lng, br.lng) / cell) - 1, gx1 = Math.ceil(Math.max(tl.lng, br.lng) / cell);
-    if ((gy1 - gy0 + 1) * (gx1 - gx0 + 1) > 700) continue;
-    var drift = reduceMotion ? 0 : cloudPhase * 0.00002;
-    for (var gy = gy0; gy <= gy1; gy++) for (var gx = gx0; gx <= gx1; gx++) {
-    var h0 = terHash(gx, gy, cl.seed + 31);
-    if (h0 > 0.52) continue;
-    var lat = (gy + 0.5 + (terHash(gx, gy, cl.seed + 32) - 0.5) * 0.7) * cell;
-    var lng0 = (gx + 0.5 + (terHash(gx, gy, cl.seed + 33) - 0.5) * 0.7) * cell;
-    var half = cell * 0.55;          /* never let a cloud spill over ground we have been to */
-    if (isRevealed(lat, lng0, 1.25) || isRevealed(lat, lng0 - half, 1.25) || isRevealed(lat, lng0 + half, 1.25) ||
-        isRevealed(lat + half * 0.5, lng0, 1.25) || isRevealed(lat - half * 0.5, lng0, 1.25)) continue;
-    var lng = lng0 + drift * (0.6 + terHash(gx, gy, cl.seed + 34) * 0.6);
-    var p = proj(lat, lng);
-    var edge = Math.min(p.x, W - p.x, p.y - 40, H - p.y) / (Math.min(W, H) * 0.42);
-    edge = Math.max(0, Math.min(1, edge));
-    if (edge > 0.68) continue;
-    var w = Math.max(190, Math.min(360, px * (0.9 + terHash(gx, gy, cl.seed + 35) * 0.32)));
-    list.push({ x: p.x, y: p.y, h: w * 0.30, n: 'story-cloud', a: cl.a * (0.95 - 0.55 * edge) });
-    }
-  }
-  list.sort(function (a, b) { return a.y - b.y; });
-  list.forEach(function (c) {
-    sky.save(); sky.globalAlpha = c.a;
-    drawArt(sky, c.n, c.x, c.y + c.h * 0.5, c.h, 1, false);
-    sky.restore();
+/* A single world-anchored cloud field. Permanent seeded bands crossfade with
+   zoom. Neither positions nor opacity depend on screen edges or animation time. */
+var CLOUD_DEBUG=[];
+function cloudEase(a,b,z){var t=Math.max(0,Math.min(1,(z-a)/(b-a)));return t*t*(3-2*t);}
+function cloudBands(z){return[
+ {cell:5.12,alpha:1-cloudEase(4.8,6,z),seed:501},
+ {cell:1.28,alpha:cloudEase(4.8,6,z)*(1-cloudEase(6.5,7.7,z)),seed:502},
+ {cell:.32,alpha:cloudEase(6.5,7.7,z)*(1-cloudEase(9,10.2,z)),seed:503},
+ {cell:.08,alpha:cloudEase(9,10.2,z),seed:504}
+];}
+function cloudImportantAreas(){
+ var areas=REPAIR.boxes.slice();
+ LANDMARKS.forEach(function(l){
+  if(l[0]==='nyc'&&nycFootprints().length)return;
+  if(!specialForCity(l[0])&&!l[8]&&!isRevealed(l[2],l[3],1.06))return;
+  var p=l[0]==='dc'?repairPoint('dc'):proj(l[2],l[3]),h=LAKE_CITY_ART[l[0]]?90:homeArtH(S.zoom);
+  areas.push({x:p.x-h*.75,y:p.y-h,w:h*1.5,h:h});
+ });
+ areas=areas.concat(nycFootprints(),MD_TOWNBOXES);
+ S.memories.concat(S.plans||[]).forEach(function(m){var p=proj(m.lat,m.lng);areas.push({x:p.x-24,y:p.y-60,w:48,h:76});});
+ if(S.me){var p=proj(S.me.lat,S.me.lng);areas.push({x:p.x-25,y:p.y-35,w:50,h:60});}
+ return areas;
+}
+/* Reduce WHOLE cloud banks near important places. Never punch landmark-shaped
+   holes into cloud artwork or replace the visible map with a fog backdrop. */
+function cloudRoom(c,areas){
+ var room=1;
+ areas.forEach(function(a){
+  var dx=(c.x-a.x-a.w/2)/(c.w*.45+a.w*.7+20),dy=(c.y-a.y-a.h/2)/(c.h*.45+a.h*.7+20);
+  room=Math.min(room,cloudEase(.8,1.6,Math.sqrt(dx*dx+dy*dy)));
+ });
+ return room;
+}
+function drawSkyClouds(z,target){
+ var sky=target||ctx,list=[],areas=cloudImportantAreas(),ready=cartoonCloudReady();
+ cloudBands(z).forEach(function(band){
+  if(band.alpha<.001)return;
+  /* Broad, irregular banks, not a small cloud stamped into every grid square.
+     The hidden lattice only bounds work; full-cell jitter, independent sizes
+     and sparse companions break its rows. Two depth passes keep larger,
+     quieter banks behind the occasional smaller foreground silhouette. */
+  var cell=band.cell,cellPx=cell*256*Math.pow(2,z)/360;
+  [0,1].forEach(function(depth){
+   var sx=cell*(depth?5.2:3.7),sy=cell*(depth?4.2:2.5),seed=band.seed+depth*31;
+   var margin=Math.max(700,cellPx*24),tl=unproj(-margin,-margin),br=unproj(W+margin,H+margin);
+   var y0=Math.floor(Math.min(tl.lat,br.lat)/sy)-1,y1=Math.ceil(Math.max(tl.lat,br.lat)/sy)+1;
+   var x0=Math.floor(Math.min(tl.lng,br.lng)/sx)-1,x1=Math.ceil(Math.max(tl.lng,br.lng)/sx)+1;
+   for(var gy=y0;gy<=y1;gy++)for(var gx=x0;gx<=x1;gx++){
+    if(depth&&terHash(gx,gy,seed+8)<.68)continue;
+    var name=ready?CARTOON_CLOUDS[Math.min(5,Math.floor(terHash(gx,gy,seed+15)*6))]:'story-cloud',sprite=artLoad(name),aspect=sprite.ok?sprite.img.width/sprite.img.height:3;
+    var lat=(gy+.5+(terHash(gx,gy,seed+1)-.5)*1.6)*sy;
+    var lng=(gx+.5+(terHash(gx,gy,seed+2)-.5)*1.6)*sx;
+    var p=proj(lat,lng),h=cellPx*(depth?1.2+terHash(gx,gy,seed+3)*1.1:.9+terHash(gx,gy,seed+3)*1.4);
+    var w=h*aspect;
+    if(p.x-w/2>W||p.x+w/2<0||p.y-h/2>H||p.y+h/2<0)continue;
+    var cloud={id:band.seed+':'+depth+':'+gx+':'+gy,lat:lat,lng:lng,x:p.x,y:p.y,w:w,h:h,alpha:band.alpha*.94,depth:depth,name:name,aspect:aspect,flip:terHash(gx,gy,seed+6)>.5};
+    cloud.room=cloudRoom(cloud,areas);
+    /* Seeded thinning keeps most remaining banks substantial, rather than
+       turning every nearby bank into transparent haze. Blend the boundary so
+       zooming changes density gently instead of popping clouds on/off. */
+    var threshold=.25+terHash(gx,gy,seed+10)*.5;
+    cloud.alpha*=cloudEase(threshold-.15,threshold+.15,cloud.room*(isRevealed(lat,lng,.95)?.8:1));
+    list.push(cloud);
+   }
   });
+ });
+ list.sort(function(a,b){return a.depth-b.depth||a.y-b.y;});CLOUD_DEBUG=list;
+ list.forEach(function(c){if(c.alpha<.001)return;sky.save();sky.globalAlpha=c.alpha;sky.translate(c.x,c.y);sky.scale((c.flip?-1:1)*c.w/(c.h*c.aspect),1);drawArt(sky,c.name,0,c.h/2,c.h,1);sky.restore();});
 }
 
 

@@ -1,0 +1,173 @@
+[
+  {
+    "id": "ridge",
+    "path": "art/world/soft-scenery/ridge.png",
+    "width": 384,
+    "height": 244,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "terrain",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      0,
+      0,
+      449,
+      390
+    ]
+  },
+  {
+    "id": "hills",
+    "path": "art/world/soft-scenery/hills.png",
+    "width": 384,
+    "height": 203,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "terrain",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      449,
+      0,
+      417,
+      390
+    ]
+  },
+  {
+    "id": "waterfall",
+    "path": "art/world/soft-scenery/waterfall.png",
+    "width": 384,
+    "height": 268,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "terrain",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      866,
+      0,
+      446,
+      390
+    ]
+  },
+  {
+    "id": "bridge",
+    "path": "art/world/soft-scenery/bridge.png",
+    "width": 384,
+    "height": 215,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "prop",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      0,
+      390,
+      449,
+      378
+    ]
+  },
+  {
+    "id": "dock",
+    "path": "art/world/soft-scenery/dock.png",
+    "width": 354,
+    "height": 301,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "prop",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      449,
+      390,
+      417,
+      378
+    ]
+  },
+  {
+    "id": "bench",
+    "path": "art/world/soft-scenery/bench.png",
+    "width": 345,
+    "height": 241,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "prop",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      866,
+      390,
+      446,
+      378
+    ]
+  },
+  {
+    "id": "lamp",
+    "path": "art/world/soft-scenery/lamp.png",
+    "width": 167,
+    "height": 329,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "prop",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      0,
+      768,
+      449,
+      431
+    ]
+  },
+  {
+    "id": "boat",
+    "path": "art/world/soft-scenery/boat.png",
+    "width": 319,
+    "height": 336,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "prop",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      449,
+      768,
+      417,
+      431
+    ]
+  },
+  {
+    "id": "cottage",
+    "path": "art/world/soft-scenery/cottage.png",
+    "width": 384,
+    "height": 320,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "category": "prop",
+    "rendering": "smooth cartoon; preserve alpha",
+    "source": "art-src/world/soft-scenery-sheet.png",
+    "crop": [
+      866,
+      768,
+      446,
+      431
+    ]
+  }
+]

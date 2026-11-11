@@ -32,29 +32,28 @@ function shortName(k) { return whoName(k).replace('Princess ', ''); }
 
 /* ---------------- on the map ---------------- */
 var MAILBOX = null;
-var MAIL_MAP_BUILDING = false; /* Mail is available from Menu; only the two homes occupy the home map. */
+var MAIL_MAP_BUILDING = true;
 HOOKS.beforePins.push(function () {
-  if(paintedBox('mail'))return;
   MAILBOX = null;
   if (!MAIL_MAP_BUILDING || S.mode !== 'map' || !S.who) return;
-  var z = S.zoom; if (z < 6.8) return;                     /* too far out to see or tap */
-  var p = proj(MAIL_POS.lat, MAIL_POS.lng);
-  var h = Math.round(homeArtH(z) * 0.8), w = h * 449 / 314;
+  var z = S.zoom;
+  var p = repairPoint('mail');
+  var h = homeArtH(z) * .82, w = h * 1.35;
   if (p.x < -w || p.y < -h * 2 || p.x > W + w || p.y > H + h) return;
-  var fade = Math.min(1, (z - 6.8) / 0.8), unread = mailUnread().length;
+  var fade = 1, unread = mailUnread().length;
   ctx.save(); ctx.globalAlpha = fade;
   if (unread) {                                            /* a soft glow when mail is waiting */
     var g = ctx.createRadialGradient(p.x, p.y - h * 0.45, 0, p.x, p.y - h * 0.45, w * 0.55);
     g.addColorStop(0, 'rgba(255,214,140,.55)'); g.addColorStop(1, 'rgba(255,214,140,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y - h * 0.45, w * 0.55, 0, 6.283); ctx.fill();
   }
-  var box = drawArt(ctx, 'story-post-office', p.x, p.y, h, DPR);
+  var box = drawArt(ctx, 'civic-post-office', p.x, p.y, h, DPR);
   if (box) {
     MAILBOX = box;
-    if (unread) {                                          /* the floating envelope with a red dot */
-      var bob = reduceMotion ? 0 : Math.sin(cloudPhase / 9) * 3, eh = Math.max(16, h * 0.32);
-      var eb = drawArt(ctx, 'mail/env-gold', p.x, box.y + eh * 0.2 + bob, eh, DPR);
-      if (eb) {
+    if(unread) {                                          /* logo is baked into the building; only count is separate */
+      var eh = Math.max(24, h * 0.45);
+      var eb = {x:box.x+box.w*.25,y:box.y,w:box.w*.5,h:eh};
+      if (eb && unread) {
         var r = Math.max(7, eh * 0.24), cx = eb.x + eb.w - r * 0.5, cy = eb.y + r * 0.4;
         ctx.fillStyle = '#D9363E'; ctx.strokeStyle = '#FFF2DF'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.fill(); ctx.stroke();
