@@ -49,18 +49,22 @@ var PET_ANCHOR = {
   'extra-backpack': { cx: 112, y: 150, sc: 1.1, a: 'c', z: 0 }, 'extra-cape': { cx: 112, y: 108, sc: 1.4, a: 't', z: 0 }, 'extra-wings': { cx: 112, y: 110, sc: 1.5, a: 'c', z: 0 }, 'extra-bat-wings': { cx: 112, y: 110, sc: 1.4, a: 'c', z: 0 }
 };
 var PET_SIZE = {};                           /* natural size of each accessory, learned as images load */
+petInitFits();
 
 function petLayer(item, s) {
+  return petFittedLayer(item,s,'front');
+/* Legacy measurements kept below for reference during fitting migration.
   var an = PET_ANCHOR[item.slot === 'extra' ? item.file : item.slot], nat = PET_SIZE[item.file];
   var url = 'art/pets/acc/' + item.file + '.png';
   var w = (nat ? nat[0] : 130) * an.sc * s, h = (nat ? nat[1] : 100) * an.sc * s;
   var left = an.cx * s - w / 2, top = an.a === 'b' ? an.y * s - h : (an.a === 'c' ? an.y * s - h / 2 : an.y * s);
   return '<img class="pf-l" alt="" draggable="false" src="' + url + '" data-file="' + item.file + '" style="left:' + left.toFixed(1) + 'px;top:' + top.toFixed(1) + 'px;width:' + w.toFixed(1) + 'px;z-index:' + an.z + '">';
+*/
 }
 /* the puppy plus what it is wearing; `h` is its height in css px, `eq` the outfit to show */
 function petFigure(h, eq, sleeping) {
   var s = h / PET_DOG_H, w = PET_DOG_W * s;
-  if (sleeping) return '<div class="pf" style="width:' + (163 * s).toFixed(0) + 'px;height:' + (71 * s).toFixed(0) + 'px"><img class="pf-dog" alt="" draggable="false" src="art/pets/dog-sleep.png" style="width:100%;z-index:1"></div>';
+  if (sleeping) {var sleepLayers='';PET_SLOTS.forEach(function(slot){var it=petItem(eq[slot]);if(it)sleepLayers+=petFittedLayer(it,s,'sleep');});return '<div class="pf" style="width:' + (163 * s).toFixed(0) + 'px;height:' + (71 * s).toFixed(0) + 'px">'+sleepLayers+'<img class="pf-dog" alt="" draggable="false" src="art/pets/dog-sleep.png" style="width:100%;z-index:1"></div>';}
   var html = '<div class="pf" style="width:' + w.toFixed(0) + 'px;height:' + h.toFixed(0) + 'px">';
   var layers = [];
   PET_SLOTS.forEach(function (sl) { var it = petItem(eq[sl]); if (it) layers.push(petLayer(it, s)); });
@@ -299,18 +303,18 @@ function petPose(bounce) {
   var x = PG.ox + PG.dw * PB.x, key;
   if (PB.act === 'sleep') {
     var im = PF.sleep, s = frameScale(), w = (im.naturalWidth || 163) * s, hh = (im.naturalHeight || 71) * s;
-    key = 'sleep|' + Math.round(hh);
-    if (PB.shown !== key) { dog.innerHTML = '<div class="pf pf-frame" style="width:' + w.toFixed(0) + 'px;height:' + hh.toFixed(0) + 'px"><img alt="" draggable="false" src="' + im.src + '" style="width:100%;height:100%"></div>'; PB.shown = key; }
-    dog.style.left = x + 'px'; dog.style.top = (PG.baseY - hh * 0.92) + 'px';
+    key = 'sleep|' + Math.round(hh)+'|'+JSON.stringify(PET.equipped);
+    if (PB.shown !== key) { dog.innerHTML = petFigure(236*s,PET.equipped,true); PB.shown = key; }
+    dog.style.left = Math.max(w/2+12,Math.min(PG.vw-w/2-12,x)) + 'px'; dog.style.top = (PG.baseY - hh * 0.92) + 'px';
     return;
   }
-  if(puppyMotion.complete&&puppyMotion.naturalWidth&&!PET_SLOTS.some(function(s){return !!PET.equipped[s];})){
+  if(puppyMotion.complete&&puppyMotion.naturalWidth){
     var time=performance.now(),walking=PB.act==='scoot',row=walking?1:PB.act==='eat'||PB.act==='sniff'?2:PB.act==='play'||PB.act==='happy'?3:0;
     var frame=reduceMotion?0:row===0?(time%6000>5300?Math.floor(time/170)%4:0):Math.floor(time/(walking?135:240))%4;
     var size=PG.h*1.12;
-    if(PB.shown!=='motion'){dog.innerHTML='<div class="puppy-motion" role="img" aria-label="'+esc(PET.name)+' the puppy"></div>';PB.shown='motion';}
-    var sprite=dog.firstChild;sprite.style.cssText='width:'+size+'px;height:'+size+'px;background-image:url(art/pets/puppy-motion.png);background-size:400% 400%;background-position:'+(frame*100/3)+'% '+(row*100/3)+'%;transform:scaleX('+(walking&&PB.tx<PB.x0?-1:1)+');';
-    dog.style.left=x+'px';dog.style.top=(PG.baseY-size*.94)+'px';return;
+    var motionKey=[row,frame,size,walking&&PB.tx<PB.x0,JSON.stringify(PET.equipped),JSON.stringify(PET_FIT_OVERRIDES)].join('|');
+    if(PB.shown!==motionKey){dog.innerHTML=petMotionFigure(size,row*4+frame,PET.equipped,walking&&PB.tx<PB.x0);PB.shown=motionKey;}
+    dog.style.left=Math.max(size/2+12,Math.min(PG.vw-size/2-12,x))+'px';dog.style.top=(PG.baseY-size*.94)+'px';return;
   }
   key = 'front|' + JSON.stringify(PET.equipped) + '|' + PG.h;
   if (PB.shown !== key) { dog.innerHTML = petFigure(PG.h, PET.equipped, false); petLearnSizes(dog); PB.shown = key; }
@@ -432,7 +436,7 @@ function shopCards() {
   if (!list.length) return '<div class="shop-empty">' + (tab === 'mine' ? 'Nothing in the wardrobe yet.<br>Open a shelf above and treat ' + esc(PET.name) + ' to something.' : 'Nothing here.') + '</div>';
   list.forEach(function (i) {
     var own = PET.owned.indexOf(i.id) >= 0, worn = PET.equipped[i.slot] === i.id;
-    html += '<button class="it' + (PET.sel === i.id ? ' sel' : '') + (worn ? ' worn' : '') + '" type="button" data-shop="pick" data-id="' + i.id + '"><img alt="" src="art/pets/acc/' + i.file + '.png">' +
+    html += '<button class="it' + (PET.sel === i.id ? ' sel' : '') + (worn ? ' worn' : '') + '" type="button" data-shop="pick" data-id="' + i.id + '"><img alt="" src="art/pets/fitted/' + i.file + '.png">' +
       (own ? '<span class="tick">' + (worn ? '✔' : '●') + '</span><span class="pr">' + (worn ? 'Wearing' : 'Owned') + '</span>' : '<span class="pr"><img src="art/heart.png" alt="">' + i.price + '</span>') + '</button>';
   });
   return html;

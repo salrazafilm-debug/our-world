@@ -1,0 +1,296 @@
+{
+  "boots-black-buckle": {
+    "width": 134,
+    "height": 101,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-black-buckle.png"
+  },
+  "boots-black": {
+    "width": 125,
+    "height": 103,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-black.png"
+  },
+  "boots-blue-snow": {
+    "width": 133,
+    "height": 107,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-blue-snow.png"
+  },
+  "boots-fur-brown": {
+    "width": 130,
+    "height": 110,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-fur-brown.png"
+  },
+  "boots-purple-paw": {
+    "width": 125,
+    "height": 106,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-purple-paw.png"
+  },
+  "boots-red-fur": {
+    "width": 124,
+    "height": 110,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-red-fur.png"
+  },
+  "boots-red-sneaker": {
+    "width": 126,
+    "height": 100,
+    "removedPixels": 1,
+    "source": "art/pets/acc/boots-red-sneaker.png"
+  },
+  "boots-tan": {
+    "width": 125,
+    "height": 104,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-tan.png"
+  },
+  "boots-white": {
+    "width": 132,
+    "height": 98,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-white.png"
+  },
+  "boots-yellow-rain": {
+    "width": 126,
+    "height": 106,
+    "removedPixels": 0,
+    "source": "art/pets/acc/boots-yellow-rain.png"
+  },
+  "collar-black-bone": {
+    "width": 126,
+    "height": 98,
+    "removedPixels": 0,
+    "source": "art/pets/acc/collar-black-bone.png"
+  },
+  "collar-blue-bone": {
+    "width": 123,
+    "height": 97,
+    "removedPixels": 5,
+    "source": "art/pets/acc/collar-blue-bone.png"
+  },
+  "collar-blue-camera": {
+    "width": 128,
+    "height": 99,
+    "removedPixels": 0,
+    "source": "art/pets/acc/collar-blue-camera.png"
+  },
+  "collar-brown-paw": {
+    "width": 123,
+    "height": 105,
+    "removedPixels": 0,
+    "source": "art/pets/acc/collar-brown-paw.png"
+  },
+  "collar-gold-bell": {
+    "width": 128,
+    "height": 101,
+    "removedPixels": 0,
+    "source": "art/pets/acc/collar-gold-bell.png"
+  },
+  "collar-green-clover": {
+    "width": 118,
+    "height": 104,
+    "removedPixels": 1,
+    "source": "art/pets/acc/collar-green-clover.png"
+  },
+  "collar-purple-star": {
+    "width": 122,
+    "height": 100,
+    "removedPixels": 0,
+    "source": "art/pets/acc/collar-purple-star.png"
+  },
+  "collar-red-heart": {
+    "width": 125,
+    "height": 102,
+    "removedPixels": 0,
+    "source": "art/pets/acc/collar-red-heart.png"
+  },
+  "collar-red-paw": {
+    "width": 122,
+    "height": 101,
+    "removedPixels": 0,
+    "source": "art/pets/acc/collar-red-paw.png"
+  },
+  "collar-spike": {
+    "width": 131,
+    "height": 85,
+    "removedPixels": 0,
+    "source": "art/pets/acc/collar-spike.png"
+  },
+  "extra-backpack": {
+    "width": 120,
+    "height": 120,
+    "removedPixels": 0,
+    "source": "art/pets/acc/extra-backpack.png"
+  },
+  "extra-bat-wings": {
+    "width": 130,
+    "height": 66,
+    "removedPixels": 0,
+    "source": "art/pets/acc/extra-bat-wings.png"
+  },
+  "extra-camera": {
+    "width": 98,
+    "height": 116,
+    "removedPixels": 0,
+    "source": "art/pets/acc/extra-camera.png"
+  },
+  "extra-cape": {
+    "width": 110,
+    "height": 103,
+    "removedPixels": 0,
+    "source": "art/pets/acc/extra-cape.png"
+  },
+  "extra-goggles": {
+    "width": 111,
+    "height": 60,
+    "removedPixels": 0,
+    "source": "art/pets/acc/extra-goggles.png"
+  },
+  "extra-halo": {
+    "width": 104,
+    "height": 47,
+    "removedPixels": 570,
+    "source": "art/pets/acc/extra-halo.png"
+  },
+  "extra-headphones": {
+    "width": 107,
+    "height": 108,
+    "removedPixels": 0,
+    "source": "art/pets/acc/extra-headphones.png"
+  },
+  "extra-sunglasses": {
+    "width": 116,
+    "height": 50,
+    "removedPixels": 0,
+    "source": "art/pets/acc/extra-sunglasses.png"
+  },
+  "extra-wings": {
+    "width": 125,
+    "height": 69,
+    "removedPixels": 0,
+    "source": "art/pets/acc/extra-wings.png"
+  },
+  "hat-aviator": {
+    "width": 118,
+    "height": 112,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-aviator.png"
+  },
+  "hat-beanie-cream": {
+    "width": 128,
+    "height": 115,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-beanie-cream.png"
+  },
+  "hat-beanie-grey": {
+    "width": 128,
+    "height": 111,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-beanie-grey.png"
+  },
+  "hat-cap-black": {
+    "width": 136,
+    "height": 104,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-cap-black.png"
+  },
+  "hat-cap-red": {
+    "width": 134,
+    "height": 101,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-cap-red.png"
+  },
+  "hat-cowboy": {
+    "width": 136,
+    "height": 95,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-cowboy.png"
+  },
+  "hat-crown": {
+    "width": 114,
+    "height": 83,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-crown.png"
+  },
+  "hat-hardhat": {
+    "width": 128,
+    "height": 91,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-hardhat.png"
+  },
+  "hat-straw": {
+    "width": 131,
+    "height": 98,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-straw.png"
+  },
+  "hat-wizard": {
+    "width": 136,
+    "height": 99,
+    "removedPixels": 0,
+    "source": "art/pets/acc/hat-wizard.png"
+  },
+  "scarf-bandana-moon": {
+    "width": 118,
+    "height": 124,
+    "removedPixels": 1,
+    "source": "art/pets/acc/scarf-bandana-moon.png"
+  },
+  "scarf-bandana-plaid": {
+    "width": 129,
+    "height": 118,
+    "removedPixels": 0,
+    "source": "art/pets/acc/scarf-bandana-plaid.png"
+  },
+  "scarf-scarf-blue": {
+    "width": 131,
+    "height": 130,
+    "removedPixels": 0,
+    "source": "art/pets/acc/scarf-scarf-blue.png"
+  },
+  "scarf-scarf-checker": {
+    "width": 132,
+    "height": 126,
+    "removedPixels": 0,
+    "source": "art/pets/acc/scarf-scarf-checker.png"
+  },
+  "scarf-scarf-cream": {
+    "width": 131,
+    "height": 130,
+    "removedPixels": 0,
+    "source": "art/pets/acc/scarf-scarf-cream.png"
+  },
+  "scarf-scarf-green": {
+    "width": 118,
+    "height": 125,
+    "removedPixels": 0,
+    "source": "art/pets/acc/scarf-scarf-green.png"
+  },
+  "scarf-scarf-purple": {
+    "width": 131,
+    "height": 127,
+    "removedPixels": 1,
+    "source": "art/pets/acc/scarf-scarf-purple.png"
+  },
+  "scarf-scarf-red": {
+    "width": 132,
+    "height": 130,
+    "removedPixels": 0,
+    "source": "art/pets/acc/scarf-scarf-red.png"
+  },
+  "scarf-scarf-snow": {
+    "width": 123,
+    "height": 124,
+    "removedPixels": 0,
+    "source": "art/pets/acc/scarf-scarf-snow.png"
+  },
+  "scarf-scarf-yellow": {
+    "width": 131,
+    "height": 125,
+    "removedPixels": 0,
+    "source": "art/pets/acc/scarf-scarf-yellow.png"
+  }
+}

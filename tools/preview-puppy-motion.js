@@ -12,7 +12,7 @@ const {chromium}=require('playwright'),assert=require('assert');
  await p.screenshot({path:'/workspace/shared/downloads/puppy-idle-phone.png'});
  await p.evaluate(()=>window.__pup.act('play'));await p.waitForTimeout(4500);await p.screenshot({path:'/workspace/shared/downloads/puppy-play-phone.png'});
  await p.evaluate(()=>{const v=window.__pup.body;v.act='scoot';v.t0=performance.now();v.x0=v.x;v.tx=v.x+.07;v.until=v.t0+10000;});await p.waitForTimeout(250);
- assert((await p.locator('.puppy-motion').getAttribute('style')).includes('33.333'),'walking row selected');
+ assert((await p.locator('.puppy-motion>div').getAttribute('style')).includes('33.333'),'walking row selected');
  await p.screenshot({path:'/workspace/shared/downloads/puppy-walk-phone.png'});
  await p.setViewportSize({width:1440,height:900});await p.waitForTimeout(500);await p.screenshot({path:'/workspace/shared/downloads/puppy-desktop.png'});
  assert.deepEqual(errors,[]);await p.close();await p.video().saveAs('/workspace/shared/downloads/puppy-animation-preview.webm');await b.close();console.log('ok: puppy artwork, walking, play, no chatter, responsive layout');
