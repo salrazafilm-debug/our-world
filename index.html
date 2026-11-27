@@ -4906,7 +4906,7 @@ HOOKS.beforePins.push(function () {
     ctx.save(); ctx.globalAlpha = a;
     if (/^art:/.test(it[4])) {
       /* a painted picture, kept well under the castle's size: about 40% of a home's height, growing gently with zoom */
-      var ph = Math.max(34, Math.min(76, homeArtH(z) * 0.52));      /* a little bigger since it carries no name label */
+      var ph = homeArtH(z) * 0.82;                                   /* the same height as the post office */
       ctx.fillStyle = 'rgba(60,40,50,.2)'; ctx.beginPath(); ctx.ellipse(p.x, p.y - 2, ph * 0.5, ph * 0.1, 0, 0, 7); ctx.fill();
       b = drawArt(ctx, it[4].slice(4), p.x, p.y, ph, DPR);
     } else {
