@@ -103,8 +103,8 @@ function mailEnsure() {
     /* inside */
     '.m-room{position:absolute;inset:0;background:#3A2530}',
     /* a warm wooden room: planks, a shelf line and two lamp glows (no baked UI behind the controls) */
-    '.m-room .bg{position:absolute;inset:0;background:radial-gradient(circle at 12% 8%,rgba(255,190,110,.35),transparent 28%),radial-gradient(circle at 88% 8%,rgba(255,190,110,.35),transparent 28%),repeating-linear-gradient(90deg,#4A2C2E 0 46px,#432729 46px 48px);}',
-    '.m-room .bg:after{content:"";position:absolute;left:0;right:0;bottom:0;height:22%;background:#5A3424;border-top:6px solid #3B2018}',
+    '.m-room .bg{position:absolute;inset:0;background:#59302D url(art/mail/room-interior.webp) center/cover no-repeat}',
+    '.m-room .bg:after{content:"";position:absolute;inset:0;background:rgba(42,20,28,.12);pointer-events:none}',
     '.m-room.enter{animation:mIn .45s ease-out}@keyframes mIn{from{opacity:0;transform:scale(1.06)}}',
     '.m-body{position:absolute;left:0;right:0;top:calc(84px + env(safe-area-inset-top));bottom:0;display:flex;flex-direction:column;gap:12px;padding:0 14px calc(14px + env(safe-area-inset-bottom));max-width:980px;margin:0 auto}',
     '.m-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}',
@@ -112,9 +112,12 @@ function mailEnsure() {
     '.m-tab img{width:30px;height:24px;object-fit:contain;image-rendering:pixelated}',
     '.m-tab.on{background:var(--cream);color:var(--berry-dk);border-color:var(--berry);border-bottom-color:var(--berry-dk)}',
     '.m-tab:active{transform:translateY(4px);border-bottom-width:3px}.m-tab .m-dot{position:absolute;top:4px;right:6px}',
-    '.m-main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:6px}',
+    '.m-main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;align-items:center;padding:8px 0 20px;scrollbar-width:thin;scrollbar-color:#C99A84 transparent}',
+    '@media (max-width:859px){.m-body{top:calc(70px + env(safe-area-inset-top));flex-direction:column-reverse;gap:6px;padding:0 10px calc(8px + env(safe-area-inset-bottom))}.m-tabs{gap:4px}.m-tab{min-height:62px;padding:5px 2px 4px;font-size:12px;line-height:1.1}.m-tab img{width:24px;height:20px}.m-main{padding:0 0 6px}.m-sign span{font-size:22px;padding:5px 10px}.m-top{padding:calc(8px + env(safe-area-inset-top)) 10px 6px}}',
     '@media (min-width:860px){.m-body{flex-direction:row;align-items:flex-start}.m-tabs{grid-template-columns:1fr;width:230px;flex:none}.m-tab{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px 11px;font-size:17px}.m-tab .m-dot{position:static;margin-left:auto}.m-main{height:100%}}',
-    '.m-paper{width:min(100%,560px);min-height:360px;background:#F4DFC0 url(art/mail/vintage-paper.webp) center/100% 100% no-repeat;border:0;padding:clamp(30px,7vw,52px) clamp(32px,8vw,58px);color:#4A2A33;filter:drop-shadow(0 9px 6px rgba(29,15,14,.28))}',
+    '.m-paper{width:min(100%,560px);min-height:360px;background:transparent url(art/mail/vintage-paper.webp) center/100% 100% no-repeat;border:0;padding:clamp(30px,7vw,52px) clamp(32px,8vw,58px);color:#4A2A33;filter:drop-shadow(0 9px 6px rgba(29,15,14,.28))}',
+    '.m-compose{min-height:min(690px,100%);display:flex;flex-direction:column;padding-top:clamp(40px,9vw,62px);padding-bottom:clamp(40px,9vw,62px)}.m-compose .m-field.body{flex:1;min-height:170px}.m-compose #mBody{height:100%;min-height:170px;resize:none;background:transparent;line-height:1.7}.m-compose #mTitle{background:transparent}.m-compose .m-tools{margin-top:8px}',
+    '@media (max-width:859px){.m-compose{min-height:100%;padding:38px 36px 42px}.m-compose .m-field.body{min-height:110px}.m-compose #mBody{min-height:110px}}',
     '.m-paper h3{margin:0 0 10px;text-align:center;font-family:var(--fdisp);font-weight:600;font-size:20px;color:var(--berry-dk)}',
     '.m-paper .txt{font-size:17px;line-height:1.75;white-space:pre-wrap;word-wrap:break-word;user-select:text;-webkit-user-select:text}',
     '.m-paper .meta{margin-top:12px;font-family:var(--fdisp);font-size:14px;color:var(--rose);text-align:right}',
@@ -214,9 +217,9 @@ function mailTabHtml() {
   }
   if (t === 'compose') {
     var to = shortName(other(S.who));
-    return '<div class="m-paper" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
+    return '<div class="m-paper m-compose" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
       '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" maxlength="60" placeholder="Tonight ♥"></div>' +
-      '<div class="m-field"><label for="mBody">Your letter</label><textarea id="mBody" maxlength="4000" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
+      '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" maxlength="4000" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
       '<div class="m-tools"><button class="m-btn" type="button" data-m="heart" aria-label="Add a heart">♥</button><span class="grow"></span>' +
       '<button class="m-btn primary" type="button" data-m="send"><img alt="" src="art/mail/env-row.png">Send</button></div></div>';
   }
