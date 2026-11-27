@@ -2,7 +2,7 @@
    tune. Both are made on the fly (no audio files) and both start OFF. */
 
 var SND = { on: false, music: false, ctx: null, out: null, timer: null, step: 0 };
-try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; SND.songs = localStorage.getItem('ow.songsOn') === 'on'; } catch (e) {}
+try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; SND.songs = localStorage.getItem('ow.songsOn') === 'on'; SND.muted = localStorage.getItem('ow.muted') === 'on'; } catch (e) {}
 
 function audio() {
   if (SND.ctx) { if (SND.ctx.state === 'suspended') SND.ctx.resume(); return SND.ctx; }
@@ -26,7 +26,7 @@ function tone(freq, when, dur, vol, type) {
 }
 var NOTE = function (n) { return 440 * Math.pow(2, (n - 69) / 12); };
 function playSound(kind) {
-  if (!SND.on) return;
+  if (!SND.on || SND.muted) return;
   var a = audio(); if (!a) return;
   var t = a.currentTime + .01;
   if (kind === 'chime') { tone(NOTE(84), t, .5, .09); tone(NOTE(91), t + .09, .7, .07); }
@@ -41,7 +41,7 @@ sparkle = function () { sparkleQuiet(); playSound('chime'); };
 /* ---------- music box ---------- */
 var TUNE = [[72, 76, 79, 84], [69, 72, 76, 81], [65, 69, 72, 77], [67, 71, 74, 79]];   /* C – Am – F – G */
 function musicTick() {
-  if (!SND.music || !SND.ctx) return;
+  if (!SND.music || !SND.ctx || SND.muted) return;
   var a = SND.ctx, chord = TUNE[Math.floor(SND.step / 8) % TUNE.length], i = SND.step % 8;
   var seq = [0, 1, 2, 3, 2, 1, 2, 3];
   var t = a.currentTime + .02;
@@ -213,19 +213,21 @@ function songToggle(slot, id) {
 }
 
 /* --- one player: plays its slot's songs in order, crossfading, looping forever --- */
+var ALLA = [];                                      /* every song element ever started, so mute can silence them all */
 function Player(slot, vol) { this.slot = slot; this.vol = vol; this.i = 0; this.live = []; this.timer = null; this.closing = false; this.paused = false; }
-Player.prototype.urls = function () { return SEL[this.slot].map(songById).filter(Boolean); };
+Player.prototype.urls = function () { return (this.over ? [this.over] : SEL[this.slot]).map(songById).filter(Boolean); };
 Player.prototype.has = function () { return this.urls().length > 0; };
 Player.prototype.next = function () {
   var l = this.urls(); if (!l.length) return;
   var a = new Audio(l[this.i % l.length].url); a.volume = 0; a.preload = 'auto';
-  if (!this.paused) a.play().catch(function () {});
+  ALLA = ALLA.filter(function (x) { return !x.ended; }); ALLA.push(a);
+  if (!this.paused && !SND.muted) a.play().catch(function () {});
   this.live.push({ a: a, out: false });
 };
 Player.prototype.start = function () {
   if (!this.has()) return false;
   if (this.timer && !this.closing) { this.resume(); return true; }
-  this.stop(true); this.paused = false; this.i = 0; this.next();
+  this.stop(true); this.paused = !!SND.muted; this.i = 0; this.next();
   var me = this; this.timer = setInterval(function () { me.tick(); }, 200);
   return true;
 };
@@ -235,7 +237,7 @@ Player.prototype.stop = function (hard) {      /* soft: fade everything out, the
   this.closing = true; this.live.forEach(function (t) { t.out = true; });
 };
 Player.prototype.pause = function () { this.paused = true; this.live.forEach(function (t) { t.a.pause(); }); };
-Player.prototype.resume = function () { this.paused = false; this.live.forEach(function (t) { t.a.play().catch(function () {}); }); };
+Player.prototype.resume = function () { if (SND.muted) return; this.paused = false; this.live.forEach(function (t) { t.a.play().catch(function () {}); }); };
 Player.prototype.tick = function () {
   if (this.paused) return;
   var me = this, step = .2 / FADE * this.vol;
@@ -273,9 +275,14 @@ function songPreviewStop() {
 }
 
 /* envelope song: the background pauses while a letter is open, then comes back */
-function envSongStart() {
-  if (!envP.has()) return;
+/* songId: this letter's own song; 'none' = silence; empty = the default letter song (if any) */
+function envSongStart(songId) {
+  var over = songId && songId !== 'none' && songById(songId) ? songId : null;
+  var want = songId === 'none' ? [] : (over ? [over] : SEL.env);
+  if (!want.length) { envSongStop(); return; }
+  if (envP.timer && !envP.closing && (envP.over || null) === over) { envP.resume(); return; }
   preP.stop(true); PRE.on = null;
+  envP.stop(true); envP.over = over;
   bgP.pause(); envP.start();
 }
 function envSongStop() {
@@ -283,3 +290,26 @@ function envSongStop() {
   if (SND.songs && bgP.has()) bgP.resume();
 }
 if (!CLOUD()) songLoad(function () { startSongs(); });
+
+/* ---------- mute button (top right): silences everything, tap again to carry on ---------- */
+function setMuted(m) {
+  SND.muted = m;
+  try { localStorage.setItem('ow.muted', m ? 'on' : 'off'); } catch (e) {}
+  var b = document.getElementById('muteBtn');
+  if (b) { b.classList.toggle('muted', m); b.setAttribute('aria-pressed', m ? 'true' : 'false'); b.setAttribute('aria-label', m ? 'Sound off — tap to turn on' : 'Sound on — tap to mute'); }
+  if (m) {
+    bgP.pause(); envP.pause(); preP.pause();
+    ALLA.forEach(function (a) { a.pause(); });
+    if (SND.ctx) SND.ctx.suspend();
+  } else {
+    if (SND.ctx && (SND.on || SND.music)) SND.ctx.resume();
+    if (preP.timer) preP.resume();
+    else if (envP.timer && !envP.closing) envP.resume();
+    else if (SND.songs) { if (bgP.timer) bgP.resume(); else startSongs(); }
+  }
+}
+(function () {
+  var b = document.getElementById('muteBtn'); if (!b) return;
+  b.addEventListener('click', function () { setMuted(!SND.muted); });
+  setMuted(SND.muted);
+})();

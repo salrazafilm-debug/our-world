@@ -653,7 +653,8 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 #avatarDock button.online{background:#fff0d9;border-color:#a66f51}
 #avatarDock button.online img{filter:none;opacity:1}
 #brand{justify-content:center}#brand h1{font-size:20px}#brand .crown,#where,#mechip{display:none}
-#topright{margin:0;justify-self:end}#worldchip{width:34px;height:34px;min-width:34px;padding:0;justify-content:center;border:2px solid #86614a;background:#fff0d9}
+#topright{margin:0;justify-self:end}#muteBtn{width:34px;height:34px;min-width:34px;padding:0;justify-content:center;border:2px solid #86614a;background:#fff0d9;color:#634439}#muteBtn .slash{display:none}#muteBtn.muted .slash{display:block}#muteBtn.muted .note{opacity:.5}
+#worldchip{width:34px;height:34px;min-width:34px;padding:0;justify-content:center;border:2px solid #86614a;background:#fff0d9}
 #worldnam{display:none}#partnerchip{display:none!important}
 #views{left:50%;transform:translateX(-50%);top:12px;flex-direction:row;gap:0;padding:3px;background:#624538;max-width:calc(100% - 24px)}
 #views .pxbtn{min-width:65px;height:38px;text-align:center;border:0;border-bottom:3px solid #b98b69;clip-path:none;padding:8px 12px;font-size:13px}
@@ -705,6 +706,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
       <span id="where">Loading the map&hellip;</span>
     </div>
     <div id="topright">
+      <button class="chip" id="muteBtn" type="button" aria-label="Sound on" aria-pressed="false" title="Mute / unmute all sound"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g class="note"><path d="M9 17V5.5l10-2V15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><circle cx="6.4" cy="17.4" r="2.8" fill="currentColor"/><circle cx="16.4" cy="15.4" r="2.8" fill="currentColor"/></g><line class="slash" x1="3.5" y1="3.5" x2="20.5" y2="20.5" stroke="#9f3d6d" stroke-width="3" stroke-linecap="round"/></svg></button>
       <button class="chip" id="worldchip" type="button" title="Shared world status"><span class="dot"></span><span id="worldnam">Checking</span></button>
       <button class="chip" id="mechip" type="button" title="Switch explorer"><span class="dot"></span><span id="menam">&hellip;</span></button>
     </div>

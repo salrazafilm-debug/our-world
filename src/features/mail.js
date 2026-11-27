@@ -224,6 +224,7 @@ function mailTabHtml() {
     return '<div class="m-paper m-compose" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
       '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" maxlength="60" placeholder="Tonight ♥"></div>' +
       '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" maxlength="4000" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
+      '<div class="m-field"><label for="mSong">Song when it is opened</label><select id="mSong" style="font:inherit;font-size:16px;background:rgba(255,248,231,.38);border:0;border-bottom:2px solid #A87559;padding:8px 2px"><option value="">' + (typeof SEL !== 'undefined' && SEL.env.length ? 'My usual letter song' : 'No song') + '</option>' + (typeof LIB !== 'undefined' ? LIB.map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>'; }).join('') : '') + '<option value="none">Silence</option></select></div>' +
       '<div class="m-tools"><button class="m-btn" type="button" data-m="heart" aria-label="Add a heart">♥</button><span class="grow"></span>' +
       '<button class="m-btn primary" type="button" data-m="send"><img alt="" src="art/mail/env-row.png">Send</button></div></div>';
   }
@@ -255,7 +256,7 @@ function mailReadHtml() {
       : '<div class="m-nav"><button class="m-btn" type="button" data-m="tab" data-id="inbox">Back to inbox</button></div>') + '</div>';
 }
 function mailMarkOpened(m) {
-  if (typeof envSongStart === 'function') envSongStart();
+  if (typeof envSongStart === 'function') envSongStart(m.songId);
   if (m.to !== S.who || m.openedAt) return;
   m.openedAt = Date.now(); mailSave(m);
   if (typeof playSound === 'function') playSound('chime');
@@ -311,6 +312,7 @@ function mailSend() {
   if (!title) { toast('Give your letter a title first.', '✏️', 2600); document.getElementById('mTitle').focus(); return; }
   if (!body) { toast('Write your letter first.', '✏️', 2600); document.getElementById('mBody').focus(); return; }
   var m = { id: uid(), title: title, body: body, from: S.who, to: other(S.who), at: Date.now(), openedAt: null };
+  var sg = document.getElementById('mSong'); if (sg && sg.value) m.songId = sg.value;
   MAIL.busy = true;
   mailSave(m);                                          /* saved straight away: nothing is lost if the animation is cut short */
   if (window.earnHearts) earnHearts(1, 'letter');
