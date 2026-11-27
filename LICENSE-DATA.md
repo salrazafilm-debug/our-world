@@ -24,3 +24,6 @@ explicitly labelled as such in the UI:
 - ~58 county and city-area label positions.
 - ~130 town and landmark coordinates — approximate town centres by design.
   The app deliberately never stores or displays street-level addresses.
+
+## Streets
+The street data in `data/roads/` is derived from OpenStreetMap, (c) OpenStreetMap contributors, available under the Open Database Licence (ODbL, https://opendatacommons.org/licenses/odbl/). The raw exports are in `maps/`. The map shows the credit "Streets (c) OpenStreetMap contributors".

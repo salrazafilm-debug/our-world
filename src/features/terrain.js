@@ -98,6 +98,7 @@ HOOKS.terrain.push(function () {
       for (i = 0; i < avoid.length; i++) { var hb = avoid[i]; if (hb && p.x > hb.x - 18 && p.x < hb.x + hb.w + 18 && p.y > hb.y - 6 && p.y < hb.y + hb.h + 34) near = true; }
       if (near || !labelFree({ x: p.x - 12, y: p.y - 26, w: 24, h: 28 })) continue;
       for (i = 0; i < pois.length; i++) { var dx = p.x - pois[i].x, dy = (p.y - pois[i].y) * 1.3; if (dx * dx + dy * dy < clear * clear) { near = true; break; } }
+      if (!near && osmRoadNearXY(p.x, p.y, 9)) near = true;           /* real streets stay clear of trees */
       if (near) continue;
       /* deep in a grove: more pines and oaks; at its edges: blossoms and bushes */
       var g = grove(lat, lng), t = terHash(gx, gy, layer.seed + 4), type;

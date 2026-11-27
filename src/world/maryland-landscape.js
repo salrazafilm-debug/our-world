@@ -31,6 +31,7 @@ function marylandGrounds(g){
  });
  /* Physical tan paths live below trees and all interactive artwork. */
  drawStoryRoads(g);
+ drawOsmRoads(g);                    /* real streets, where we have them */
  g.save();g.lineCap='round';g.lineJoin='round';
  MD_PATHS=marylandPathPoints();MD_PATHS.forEach(function(a){g.beginPath();g.moveTo(a[0].x,a[0].y);g.quadraticCurveTo(a[1].x,a[1].y,a[2].x,a[2].y);g.strokeStyle='#b6a175';g.lineWidth=Math.max(6,u*.12);g.stroke();g.strokeStyle='#e4ca95';g.lineWidth=Math.max(4,u*.075);g.stroke();});g.restore();
  ['e','b','m'].forEach(function(id){var a=p[id],rx=u*(id==='m'?.86:1.02),ry=u*.29;if(a.x<-rx||a.x>W+rx||a.y<-u||a.y>H+u)return;
