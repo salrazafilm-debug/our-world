@@ -1821,10 +1821,11 @@ function drawMapOverlays() {
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
     if (!special && !planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
-    if(lm[0]==='dc')p=repairPoint('dc');
+    if(lm[0]==='dc'){p=repairPoint('dc');if(z>=POI_DC_DETAIL+.6)continue;}     /* zoomed right in, the real DC buildings take over */
+    var dcFade=lm[0]==='dc'?1-cloudEase(POI_DC_DETAIL,POI_DC_DETAIL+.6,z):1;
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
-    var lsc = Math.max(3, Math.round(1.26 * (z - 6.5) * (lm[6] || 1)));   /* grows smoothly with zoom, never smaller when you zoom in */
+    var lsc = Math.max(3, Math.min(10, Math.round(1.26 * (z - 6.5) * (lm[6] || 1))));   /* grows smoothly with zoom, never smaller when you zoom in */
     var gh2 = SP[lm[4]].length * lsc;
     if (planned) {
       /* still ahead of us: a dashed ring on the ground and the icon held back a little */
@@ -1879,11 +1880,13 @@ function drawMapOverlays() {
       ctx.fillStyle = 'rgba(165,225,229,' + (0.16 + shim * 0.16) + ')';
       ctx.beginPath(); ctx.arc(p.x, p.y - 8 * lsc, 11 * lsc, 0, 7); ctx.fill();
     }
+    ctx.save();ctx.globalAlpha*=dcFade;
     if(lm[0]==='dc'){
-      var monument=drawArt(ctx,'pack-monument',p.x-homeArtH(z)*.73,p.y-4,homeArtH(z)*1.25,DPR);
+      var monument=drawArt(ctx,'pack-monument',p.x-homeArtH(z)*.66,p.y-4,homeArtH(z)*1.08,DPR);
       if(monument)addHit(monument,{kind:'landmark',id:'dc'});
     }
-    var lb = (special&&drawArt(ctx,special.worldIcon,p.x,p.y,Math.min(120,58+(z-7)*13),DPR)) || (lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc));
+    var lb = (special&&drawArt(ctx,special.worldIcon,p.x,p.y,Math.min(102,(58+(z-7)*13)*(lm[0]==='dc'?.85:1)),DPR)) || (lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc));
+    ctx.restore();
     if(special&&z>9.2)tryLabel(p.x,lb.y-18,lm[1],{size:13});
     else if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 13, fg: C.deep, border: C.gold, force: 1 });
     labelBoxes.push({ x: lb.x - 4, y: lb.y - 4, w: lb.w + 8, h: lb.h + 8 });
@@ -2129,7 +2132,7 @@ function zoomBy(d, at) {
     draw(); return;
   }
   var before = at ? unproj(at.x, at.y) : null;
-  var nz = Math.max(2.8, Math.min(14.5, S.zoom + d * 3));
+  var nz = Math.max(2.8, Math.min(16.5, S.zoom + d * 3));      /* deeper zoom: room for many memories in one city */
   if (nz <= 2.82 && d < 0) { if (performance.now() - lastModeSwitch < 350) return; enterGlobe(); return; }
   S.zoom = nz;
   if (before && at) {
@@ -2167,6 +2170,8 @@ function flyTo(lat, lng, z) {
   S.mode = 'map'; S.center.lat = lat; S.center.lng = lng; S.zoom = z;
   baseDirty = true; setViewButtons(z >= 9.6 ? 'local' : 'dmv'); draw();
 }
+/* for local testing only: jump the camera (never defined on the live site) */
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owFly = function (la, ln, zz) { flyTo(la, ln, zz); };
 function enterMap(lat, lng, z) {
   lastModeSwitch = performance.now();
   S.mode = 'map'; S.center.lat = Math.max(5, Math.min(62, lat)); S.center.lng = lng;
@@ -2824,6 +2829,7 @@ function openItem(item) {
   S.selected = item;
   if(item.kind==='scene-point'){specialOpenPoint(item.id);return;}
   if (item.kind === 'mail') { mailOpen(); return; }
+  if (item.kind === 'poi') { poiOpen(item.id); return; }
   if (item.kind === 'avatar') { openAvatarInfo(item.who); return; }
   if (item.kind === 'beacon') { flyTo(item.lat, item.lng, 10.8); return; }
   if (item.kind === 'plan') { openPlan(item.id); return; }
@@ -3355,6 +3361,7 @@ function hydrateLocal() {
 //#include world/dc-gardens.js
 //#include world/story-roads.js
 //#include world/osm-roads.js
+//#include world/pois.js
 //#include world/maryland-landscape.js
 //#include features/scenic.js
 //#include features/homebase.js

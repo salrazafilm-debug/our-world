@@ -4,16 +4,17 @@
    edge. Bigger roads show first, small streets fade in as you zoom closer. Trees and flowers keep off them.
    Made by tools/osm-roads.js. Style rules: STYLE.md. */
 var OSMR = { index: null, indexLoading: false, areas: {}, loading: {}, segs: [], grid: new Map(), ready: false, failed: false };
-var OSM_CELL = 0.0025;                                   /* grid cell in degrees (about 280 m) for the "is a road near here" lookup */
+var OSM_CELL = 0.0025;
+var OSM_HOUSES = [];                                    /* where the tiny neighbourhood houses were drawn (screen px) */                                   /* grid cell in degrees (about 280 m) for the "is a road near here" lookup */
 /* class: 0 highway, 1 main road, 2 secondary, 3 street, 4 small street */
 var OSM_STYLE = [
-  { z0: 7.0, z1: 8.6, w: 5.4, edge: '#bdc5b8', fill: '#8195a0' },
-  { z0: 8.8, z1: 10.0, w: 4.4, edge: '#b6a175', fill: '#e4ca95' },
-  { z0: 9.4, z1: 10.6, w: 3.8, edge: '#b6a175', fill: '#e8d3a0' },
-  { z0: 10.0, z1: 11.2, w: 3.0, edge: '#bda980', fill: '#ecd9aa' },
-  { z0: 10.7, z1: 11.9, w: 2.3, edge: '#c2b08a', fill: '#efdeb4' }
+  { z0: 7.0, z1: 8.6, w: 7.6, edge: '#bdc5b8', fill: '#8195a0' },
+  { z0: 8.8, z1: 10.0, w: 6.4, edge: '#b6a175', fill: '#e4ca95' },
+  { z0: 9.4, z1: 10.6, w: 5.6, edge: '#b6a175', fill: '#e8d3a0' },
+  { z0: 10.0, z1: 11.2, w: 4.6, edge: '#bda980', fill: '#ecd9aa' },
+  { z0: 10.7, z1: 11.9, w: 3.6, edge: '#c2b08a', fill: '#efdeb4' }
 ];
-function osmWidthScale(z) { return Math.max(0.72, Math.min(1.9, 1 + (z - 12) * 0.2)); }
+function osmWidthScale(z) { return Math.max(0.6, Math.min(3.2, 1 + (z - 12) * 0.3)); }
 
 function osmFetchJson(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error(url); return r.json(); }); }
 function osmDecode(id, d) {
@@ -23,12 +24,19 @@ function osmDecode(id, d) {
     for (i = 0; i < f.length; i += 2) { la = i ? la + f[i] : f[i]; lg = i ? lg + f[i + 1] : f[i + 1]; pts[i] = la / q; pts[i + 1] = lg / q; }
     var bb = [90, 180, -90, -180];
     for (i = 0; i < pts.length; i += 2) { bb[0] = Math.min(bb[0], pts[i]); bb[1] = Math.min(bb[1], pts[i + 1]); bb[2] = Math.max(bb[2], pts[i]); bb[3] = Math.max(bb[3], pts[i + 1]); }
-    roads.push({ c: r[0], n: r[1], b: r[2], pts: pts, bb: bb });
+    roads.push({ c: r[0], n: r[1], b: r[2], pts: pts, bb: bb, fade: 1 });
     for (i = 2; i < pts.length; i += 2) {                /* every piece of road goes in a grid, for the keep-trees-off lookup */
       var s = { a: pts[i - 2], b: pts[i - 1], c2: pts[i], d: pts[i + 1], k: r[0] }, n = segs.length; segs.push(s);
       var x0 = Math.floor(Math.min(s.b, s.d) / OSM_CELL), x1 = Math.floor(Math.max(s.b, s.d) / OSM_CELL), y0 = Math.floor(Math.min(s.a, s.c2) / OSM_CELL), y1 = Math.floor(Math.max(s.a, s.c2) / OSM_CELL);
       for (var gy = y0; gy <= y1; gy++) for (var gx = x0; gx <= x1; gx++) { var key = gy * 400000 + gx, l = OSMR.grid.get(key); if (l) l.push(n); else OSMR.grid.set(key, [n]); }
     }
+  });
+  /* roads near the edge of the area fade out, so the streets blend into the map instead of stopping in a square */
+  var B = d.crop || d.bbox, mLat = (B[2] - B[0]) * 0.16, mLng = (B[3] - B[1]) * 0.16;
+  roads.forEach(function (r) {
+    var la = (r.bb[0] + r.bb[2]) / 2, lg = (r.bb[1] + r.bb[3]) / 2;
+    var e = Math.min((la - B[0]) / mLat, (B[2] - la) / mLat, (lg - B[1]) / mLng, (B[3] - lg) / mLng);
+    r.fade = Math.max(0, Math.min(1, e));
   });
   OSMR.areas[id] = { roads: roads, bbox: d.bbox };
   OSMR.ready = true;
@@ -67,6 +75,7 @@ function osmClipOutside(g) {
 /* ---------- keep trees, flowers and decor off the real streets ---------- */
 function osmRoadNearXY(x, y, rpx) {
   if (!OSMR.ready || S.zoom < 9.3) return false;
+  for (var hI = 0; hI < OSM_HOUSES.length; hI++) { var hh = OSM_HOUSES[hI]; if (Math.abs(x - hh.x) < hh.w * 0.6 + 2 && y > hh.y - hh.h - 2 && y < hh.y + 6) return true; }   /* nor on the little houses */
   var q = unproj(x, y), mpp = kmPerPx(q.lat, S.zoom) * 1000, sc = osmWidthScale(S.zoom), z = S.zoom;
   var cosL = Math.cos(q.lat * Math.PI / 180), gx = Math.floor(q.lng / OSM_CELL), gy = Math.floor(q.lat / OSM_CELL);
   for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
@@ -100,8 +109,10 @@ function drawOsmRoads(g) {
   for (var c = 4; c >= 0; c--) {                           /* small streets first, so bigger roads sit on top */
     var list = by[c]; if (!list.length) continue;
     var st = OSM_STYLE[c], alpha = cloudEase(st.z0, st.z1, z); if (alpha < 0.02) continue;
-    var w = st.w * sc, land = new Path2D(), span = new Path2D();
+    var w = st.w * sc, LV = [[new Path2D(), new Path2D()], [new Path2D(), new Path2D()], [new Path2D(), new Path2D()], [new Path2D(), new Path2D()]];
     list.forEach(function (rd) {
+      if (rd.fade <= 0.05) return;
+      var lv = LV[Math.min(3, Math.floor(rd.fade * 4))], land = lv[0], span = lv[1];
       var pts = rd.pts, last = null;
       for (var i = 0; i < pts.length; i += 2) {
         var p = proj(pts[i], pts[i + 1]), ok = rd.b || dry(p.x, p.y);
@@ -113,12 +124,49 @@ function drawOsmRoads(g) {
         last = ok ? p : null;
       }
     });
-    g.globalAlpha = alpha;
-    g.strokeStyle = st.edge; g.lineWidth = w + 2.2; g.stroke(land);
-    g.strokeStyle = '#8c8f97'; g.lineWidth = w + 2.6; g.stroke(span);          /* a bridge keeps a cool grey edge over water */
-    g.strokeStyle = st.fill; g.lineWidth = w; g.stroke(land);
-    g.strokeStyle = '#b4bcc2'; g.lineWidth = w; g.stroke(span);
-    if (c === 0 && w >= 4.2) { g.setLineDash([Math.max(4, w * 0.9), Math.max(7, w * 1.5)]); g.strokeStyle = '#fff0ce'; g.lineWidth = Math.max(0.8, w * 0.14); g.globalAlpha = alpha * 0.8; g.stroke(land); g.stroke(span); g.setLineDash([]); }
+    LV.forEach(function (lv, li) {
+      var land = lv[0], span = lv[1];
+      g.globalAlpha = alpha * (li + 1) / 4;
+      g.strokeStyle = st.edge; g.lineWidth = w + 2.2; g.stroke(land);
+      g.strokeStyle = '#8c8f97'; g.lineWidth = w + 2.6; g.stroke(span);          /* a bridge keeps a cool grey edge over water */
+      g.strokeStyle = st.fill; g.lineWidth = w; g.stroke(land);
+      g.strokeStyle = '#b4bcc2'; g.lineWidth = w; g.stroke(span);
+      if (c === 0 && w >= 4.2) { g.setLineDash([Math.max(4, w * 0.9), Math.max(7, w * 1.5)]); g.strokeStyle = '#fff0ce'; g.lineWidth = Math.max(0.8, w * 0.14); g.globalAlpha = alpha * 0.8 * (li + 1) / 4; g.stroke(land); g.stroke(span); g.setLineDash([]); }
+    });
   }
   g.restore();
+  osmHouses(g, by[4], sc);
+}
+
+/* ---------- a few tiny houses along residential streets: shows a neighbourhood, not every real house ---------- */
+var OSM_HOUSE = ['....r....', '...rrr...', '..rrrrr..', '.rrrrrrr.', 'rrrrrrrrr', '.wwwwwww.', '.wbwwwbw.', '.wwwdwww.', '.wwwdwww.'];
+var OSM_ROOFS = ['#C9606E', '#8E3A57', '#6B8FB5', '#B5553F', '#D9879F', '#7A6A9A'];
+function osmHouses(g, streets, sc) {
+  OSM_HOUSES = [];
+  var z = S.zoom; if (z < 11.4 || !streets.length) return;
+  var a = cloudEase(11.4, 12.0, z), px = z < 12.6 ? 2 : (z < 14 ? 3 : 4), hw = 9 * px, hh = 9 * px, cap = z < 12.6 ? 9 : (z < 14 ? 14 : 18);      /* just a few: a hint of a neighbourhood */
+  var picks = [];
+  streets.forEach(function (rd) {
+    var pts = rd.pts; if (pts.length < 4 || rd.fade < 0.8) return;
+    var h = terHash(Math.round(pts[0] * 1e4), Math.round(pts[1] * 1e4), 771); if (h > 0.2) return;
+    picks.push({ rd: rd, h: h });
+  });
+  picks.sort(function (x, y) { return x.h - y.h; });         /* the same houses every time, whatever the screen */
+  var placed = 0;
+  for (var i = 0; i < picks.length && placed < cap; i++) {
+    var pts = picks[i].rd.pts, h = picks[i].h, k = 2 * Math.floor((pts.length / 2 - 1) * (0.3 + h)) ;
+    var A = proj(pts[k], pts[k + 1]), B = proj(pts[k + 2], pts[k + 3]), dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy); if (L < 4) continue;
+    var side = h * 1e3 % 2 < 1 ? 1 : -1, off = OSM_STYLE[4].w * sc * 0.5 + hw * 0.55 + 2;
+    var x = (A.x + B.x) / 2 - dy / L * off * side, y = (A.y + B.y) / 2 + dx / L * off * side + hh * 0.4;
+    if (x < -hw || x > W + hw || y < 0 || y > H + hh) continue;
+    if (terrainAt(x, y) !== 'land' || terrainAt(x - hw / 2, y) !== 'land' || terrainAt(x + hw / 2, y) !== 'land') continue;
+    if (typeof scenicAvoid === 'function' && (nycAvoid(x, y, 8) || repairClear(x, y, hw))) continue;
+    var clash = OSM_HOUSES.some(function (o) { return Math.abs(o.x - x) < hw * 3.2 && Math.abs(o.y - y) < hh * 2.6; });     /* spread out, a few per neighbourhood */ if (clash) continue;
+    var roof = OSM_ROOFS[Math.floor(h * 997) % OSM_ROOFS.length];
+    g.save(); g.globalAlpha = a;
+    g.fillStyle = 'rgba(60,40,50,.2)'; g.beginPath(); g.ellipse(x, y, hw * 0.55, px * 1.4, 0, 0, 7); g.fill();
+    drawSprite(g, OSM_HOUSE, { r: roof, w: '#FFF2DF', b: '#7FC3DF', d: '#8A5638' }, x, y, px, '#5E3A3A');
+    g.restore();
+    OSM_HOUSES.push({ x: x, y: y, w: hw, h: hh }); placed++;
+  }
 }

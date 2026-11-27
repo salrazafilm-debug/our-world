@@ -128,7 +128,7 @@ function stream(onPiece, keep) {
     return [r.c, r.n, r.b, flat];
   });
   const names = {}; out.forEach((r) => { if (r[1]) names[r[1]] = 1; });
-  const data = { q: Q, bbox: box.map((v) => +v.toFixed(5)), roads: out };
+  const data = { crop: bbox || null, q: Q, bbox: box.map((v) => +v.toFixed(5)), roads: out };
   const dir = path.join(__dirname, '..', 'data', 'roads'); fs.mkdirSync(dir, { recursive: true });
   const dest = path.join(dir, area + '.json');
   fs.writeFileSync(dest, JSON.stringify(data));
