@@ -3433,7 +3433,7 @@ function startBehindGate() {
   function unlock() {
     gate.hidden = true;
     document.body.classList.remove('locked');
-    if (!booted) { booted = true; boot(); if (typeof songLoad === 'function') songLoad(function () { startSongs(); if (typeof musicPrompt === 'function') musicPrompt(); }); }
+    if (!booted) { booted = true; boot(); if (typeof songLoad === 'function') songLoad(function () { startSongs(); }); }
   }
   if (!window.OWCloud || !OWCloud.configured) { unlock(); return; }
   OWCloud.onSignedOut(function () {

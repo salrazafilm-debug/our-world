@@ -303,6 +303,7 @@ function mailClick(e) {
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;
     /* a new letter arrives as an envelope: the seal pops, the flap opens, the letter slides up, then it is read */
+    if (typeof envSongStart === 'function') envSongStart(m.songId);      /* asks first if this letter has music */
     MAIL.busy = true;
     return mailAnimOpen(m, function () { MAIL.busy = false; MAIL.read = m; MAIL.list = null; MAIL.calm = true; mailMarkOpened(m); mailRender(); MAIL.calm = false; }, b.querySelector('img') || b);
   }

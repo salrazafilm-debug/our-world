@@ -6765,7 +6765,7 @@ if (WALK.pts.length) setTimeout(function () { toast('You have an unfinished walk
    tune. Both are made on the fly (no audio files) and both start OFF. */
 
 var SND = { on: false, music: false, ctx: null, out: null, timer: null, step: 0 };
-try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; SND.songs = localStorage.getItem('ow.songsOn') === 'on'; SND.muted = localStorage.getItem('ow.muted') === 'on'; } catch (e) {}
+try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; SND.songs = localStorage.getItem('ow.songsOn') === 'on'; SND.muted = localStorage.getItem('ow.muted') === 'on'; SND.letters = localStorage.getItem('ow.lettersOn'); } catch (e) {}
 
 function audio() {
   if (SND.ctx) { if (SND.ctx.state === 'suspended') SND.ctx.resume(); return SND.ctx; }
@@ -7048,6 +7048,8 @@ function envSongStart(spec) {
   if (ids && !ids.length) ids = null;
   var want = ids || SEL.env;
   if (!want.length) { envSongStop(); return; }
+  if (SND.letters === 'off') { envSongStop(); return; }
+  if (SND.letters !== 'on') { letterAsk(function () { envSongStart(spec); }); return; }
   var key = ids ? ids.join(',') : '';
   if (envP.timer && !envP.closing && (envP.key || '') === key) { envP.resume(); return; }
   preP.stop(true); PRE.on = null;
@@ -7083,22 +7085,24 @@ function setMuted(m) {
   setMuted(SND.muted);
 })();
 
-/* ---------- "music will play — enable?" on opening ---------- */
-function musicPrompt() {
-  if (SND.asked || document.getElementById('musicAsk')) return; SND.asked = true;
+
+/* ---------- letters with music: ask first ("Music will play — enable?") ---------- */
+function setLetterMusic(on) {
+  SND.letters = on ? 'on' : 'off';
+  try { localStorage.setItem('ow.lettersOn', SND.letters); } catch (e) {}
+  if (!on) envSongStop();
+}
+function letterAsk(yes) {
+  if (SND.lettersNo || document.getElementById('musicAsk')) return;
   var w = document.createElement('div'); w.id = 'musicAsk';
   w.style.cssText = 'position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:rgba(60,28,40,.55);padding:20px';
   w.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Music" style="max-width:340px;width:100%;background:#FFF3E0;border:4px solid #7a4a3a;box-shadow:0 6px 0 #4b3540;padding:22px 20px;text-align:center;font-family:var(--fdisp,inherit);color:#8E3A57">' +
-    '<div style="font-size:34px;line-height:1">♪</div><p style="margin:10px 0 4px;font-size:19px">Music will play while you explore.</p>' +
+    '<div style="font-size:34px;line-height:1">♪</div><p style="margin:10px 0 4px;font-size:19px">Music will play with this letter.</p>' +
     '<p style="margin:0 0 16px;font-size:15px;color:#5a3a40">Enable it?</p>' +
     '<div style="display:flex;gap:10px;justify-content:center"><button type="button" class="pxbtn primary" id="musicYes">Enable music</button><button type="button" class="pxbtn" id="musicNo">Not now</button></div></div>';
   document.body.appendChild(w);
-  document.getElementById('musicYes').onclick = function () {
-    w.remove(); setMuted(false);
-    if (LIB.length) setSongs(true); else setMusic(true);
-    startSongs();
-  };
-  document.getElementById('musicNo').onclick = function () { w.remove(); setMuted(true); };
+  document.getElementById('musicYes').onclick = function () { w.remove(); setLetterMusic(true); setMuted(false); yes(); };
+  document.getElementById('musicNo').onclick = function () { w.remove(); SND.lettersNo = true; };
   document.getElementById('musicYes').focus();
 }
 
@@ -8539,6 +8543,7 @@ function mailClick(e) {
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;
     /* a new letter arrives as an envelope: the seal pops, the flap opens, the letter slides up, then it is read */
+    if (typeof envSongStart === 'function') envSongStart(m.songId);      /* asks first if this letter has music */
     MAIL.busy = true;
     return mailAnimOpen(m, function () { MAIL.busy = false; MAIL.read = m; MAIL.list = null; MAIL.calm = true; mailMarkOpened(m); mailRender(); MAIL.calm = false; }, b.querySelector('img') || b);
   }
@@ -9593,6 +9598,8 @@ function openSongs() {
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button>' + (LIB.length > 1 ? songBtn('song-bgall', 'on', 'All background on') + songBtn('song-bgall', 'off', 'All off') : '') + '</div>' +
     (rows ? sectionTitle('Library') + rows : '<p class="hint">No songs yet.</p>') +
     sectionTitle('Letter music') +
+    '<div class="sheet-actions">' + songBtn('letters-on', 'on', 'Plays in letters', SND.letters === 'on') + songBtn('letters-on', 'off', 'Off', SND.letters === 'off') + '</div>' +
+    (SND.letters !== 'on' && SND.letters !== 'off' ? '<p class="hint">Not chosen yet — you will be asked when you open a letter that has music.</p>' : '') +
     '<p class="hint">' + (envNames.length ? esc(envNames.join(' → ')) + (envNames.length === 1 ? ' (on loop)' : '') : 'None — letters open in silence.') + '</p>' +
     '<div class="sheet-actions">' + (envNames.length ? songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + songBtn('song-envnone', 'x', 'No song') : '') + (LIB.length > 1 ? songBtn('song-envall', 'x', 'All songs in letters') : '') + '</div>' +
     '<p class="hint">Turn background songs on under Atmosphere → Your own songs.</p>' +
@@ -9600,6 +9607,7 @@ function openSongs() {
 }
 ACTIONS['songs'] = function () { openSongs(); };
 ACTIONS['atmos'] = function () { songPreviewStop(); openAtmos(); };
+ACTIONS['letters-on'] = function (b) { songPreviewStop(); setLetterMusic(b.dataset.v === 'on'); SND.lettersNo = false; openSongs(); };
 ACTIONS['song-pick'] = function () {
   var inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'audio/mpeg,.mp3'; inp.multiple = true;
@@ -9882,7 +9890,7 @@ function startBehindGate() {
   function unlock() {
     gate.hidden = true;
     document.body.classList.remove('locked');
-    if (!booted) { booted = true; boot(); if (typeof songLoad === 'function') songLoad(function () { startSongs(); if (typeof musicPrompt === 'function') musicPrompt(); }); }
+    if (!booted) { booted = true; boot(); if (typeof songLoad === 'function') songLoad(function () { startSongs(); }); }
   }
   if (!window.OWCloud || !OWCloud.configured) { unlock(); return; }
   OWCloud.onSignedOut(function () {
