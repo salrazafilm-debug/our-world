@@ -7954,7 +7954,7 @@ ROWHOOKS.mail = function (rows) {
   if (MAIL.open) mailRender();
   draw();
 };
-var MAIL = { open: false, mode: 'ext', tab: 'compose', read: null, list: null, idx: 0, busy: false };
+var MAIL = { open: false, mode: 'ext', tab: 'compose', read: null, list: null, idx: 0, busy: false, noteReveal: false };
 
 /* the post office sits halfway between our two homes */
 var MAIL_POS = { lat: (HOMES.bruce.lat + HOMES.elena.lat) / 2, lng: (HOMES.bruce.lng + HOMES.elena.lng) / 2 };
@@ -8069,6 +8069,8 @@ function mailEnsure() {
     '.m-env img{width:100%;image-rendering:pixelated;filter:drop-shadow(0 0 10px rgba(255,214,140,.65));transition:transform .15s}',
     '.m-env:hover img{transform:translateY(-4px) rotate(-3deg)}.m-env span{display:block;margin-top:6px;font-family:var(--fdisp);font-size:13px;color:var(--cream);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.m-empty{color:var(--cream);text-align:center;font-size:15px;line-height:1.5;padding:12px}',
+    '.m-note-env{width:min(100%,340px);padding:18px 12px 14px;background:rgba(74,38,39,.72);border:3px solid var(--wood-dk);border-bottom-width:7px;color:var(--cream);font-family:var(--fdisp);text-align:center;cursor:pointer}.m-note-env img{display:block;width:min(76%,230px);margin:0 auto 8px;image-rendering:pixelated}.m-note-env b{display:block;font-size:18px}.m-note-env small{display:block;margin-top:4px;font-family:var(--fbody);font-size:14px}.m-note-env:focus-visible{outline:3px solid var(--gold);outline-offset:3px}',
+    '.m-empty-action{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:320px;margin:auto;text-align:center;color:var(--cream);font-size:16px;line-height:1.5}',
     /* reading */
     '.m-read{width:min(100%,560px);display:flex;flex-direction:column;align-items:center}',
     '.m-read .m-paper{animation:mUnfold .55s cubic-bezier(.2,.8,.2,1) both}',
@@ -8103,7 +8105,7 @@ function mailOpen(opts) {
   opts = opts || {};
   mailEnsure(); closeSheet();
   if (typeof dashClose === 'function') dashClose();
-  MAIL.open = true; MAIL.read = null;
+  MAIL.open = true; MAIL.read = null; MAIL.noteReveal = false;
   MAIL.mode = opts.room ? 'room' : 'ext';
   MAIL.tab = opts.tab || 'compose';
   if (!opts.room) flyTo(MAIL_POS.lat, MAIL_POS.lng, Math.max(S.zoom, 11.6));
@@ -8143,6 +8145,8 @@ function mailRender(anim) {
 
 function todayNoteHtml() {
   var them = other(S.who), n = S.notes && S.notes[them];
+  if (!MAIL.noteReveal) return '<button class="m-note-env" type="button" data-m="note-open" aria-label="Open today’s note from ' + esc(shortName(them)) + '">' +
+    '<img src="art/mail/env-gold.png" alt=""><b>Today’s Note</b><small>From ' + esc(shortName(them)) + ' · tap the envelope</small></button>';
   return '<div class="m-paper pinned"><h3>Today’s Note ♥</h3><div class="txt">' +
     (n && n.text ? esc(n.text) : 'No note from ' + esc(shortName(them)) + ' yet today.') + '</div>' +
     (n && n.text ? '<div class="meta">from ' + esc(shortName(them)) + '</div>' : '') + '</div>';
@@ -8166,7 +8170,7 @@ function mailTabHtml() {
   }
   if (t === 'letters') {
     var all = mailAll();
-    if (!all.length) return '<p class="m-empty">No letters yet. The first one is waiting to be written.</p>';
+    if (!all.length) return '<div class="m-empty-action"><img src="art/mail/env-row.png" alt="" width="110"><span>No letters here yet. Start your story with one.</span><button class="m-btn primary" type="button" data-m="tab" data-id="compose">Write a letter</button></div>';
     return '<div class="m-list">' + all.map(function (m, i) {
       var mine = m.from === S.who, isNew = !mine && !m.openedAt;
       return '<button class="m-row' + (isNew ? ' new' : '') + '" type="button" data-m="look" data-i="' + i + '"><img alt="" src="art/mail/env-row.png"><span><b>' + esc(m.title || 'A letter') + '</b><small>' +
@@ -8202,7 +8206,13 @@ function mailClick(e) {
   var a = b.dataset.m;
   if (a === 'back') return mailBack();
   if (a === 'enter') { MAIL.mode = 'room'; MAIL.tab = 'compose'; return mailRender(true); }
-  if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; return mailRender(); }
+  if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; MAIL.noteReveal = false; return mailRender(); }
+  if (a === 'note-open') {
+    var note = S.notes && S.notes[other(S.who)];
+    if (!note || !note.text) { MAIL.noteReveal = true; return mailRender(); }
+    MAIL.busy = true;
+    return mailAnimOpen({ title: 'Today’s Note', body: note.text }, function () { MAIL.busy = false; MAIL.noteReveal = true; mailRender(); }, b.querySelector('img') || b);
+  }
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;
     /* a new letter arrives as an envelope: the seal pops, the flap opens, the letter slides up, then it is read */
