@@ -234,7 +234,8 @@ function mailTabHtml() {
       '<div class="m-field"><label>Songs when it is opened <small>(leave empty for my usual)</small></label><div id="mSongs" style="display:flex;flex-direction:column;gap:4px;font-size:15px">' +
         '<label><input type="checkbox" value="all"> All songs</label>' +
         (typeof LIB !== 'undefined' ? LIB.map(function (s) { return '<label><input type="checkbox" value="' + esc(s.id) + '"> ' + esc(s.name) + '</label>'; }).join('') : '') +
-        '<label><input type="checkbox" value="none"> Silence</label></div></div>' +
+        '<label><input type="checkbox" value="none"> Silence</label></div>' +
+        '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px">Start the song on page <input id="mSongPage" type="number" min="1" placeholder="1" style="width:64px;font:inherit;background:rgba(255,248,231,.38);border:0;border-bottom:2px solid #A87559"></label></div>' +
       '<div class="m-tools"><button class="m-btn" type="button" data-m="heart" aria-label="Add a heart">♥</button><span class="grow"></span>' +
       '<button class="m-btn primary" type="button" data-m="send"><img alt="" src="art/mail/env-row.png">Send</button></div></div>';
   }
@@ -265,11 +266,19 @@ function mailPages(text) {
   }
   out.push(text); return out;
 }
+/* a letter may ask for its song to begin only on a certain page (m.songPage); once it has begun it keeps looping */
+function mailSongSync(m, pg, total) {
+  if (typeof envSongStart !== 'function') return;
+  var gated = m.songPage && (pg + 1) < Math.min(m.songPage, total);
+  if (!gated) { MAIL.songFor = m.id; envSongStart(m.songId); }
+  else if (MAIL.songFor !== m.id && typeof envSongStop === 'function') envSongStop();
+}
 function mailReadHtml() {
   var m = MAIL.read, list = MAIL.list, mine = m.from === S.who;
   var pages = mailPages(m.body);
   if (MAIL.pageFor !== m.id) { MAIL.pageFor = m.id; MAIL.page = 0; }
   var pg = Math.max(0, Math.min(pages.length - 1, MAIL.page || 0)), last = pg === pages.length - 1;
+  mailSongSync(m, pg, pages.length);
   return '<div class="m-read' + (MAIL.calm ? ' calm' : '') + (MAIL.turning ? ' turn-' + MAIL.turning : '') + '"><div class="m-paper' + (last ? '' : ' more') + '">' +
     (pg === 0 ? '<h3>' + esc(m.title || 'A letter') + ' ♥</h3>' : '<div class="run">' + esc(m.title || 'A letter') + ' · page ' + (pg + 1) + '</div>') +
     '<div class="txt">' + esc(pages[pg]) + '</div>' +
@@ -282,7 +291,7 @@ function mailReadHtml() {
       : '<div class="m-nav"><button class="m-btn" type="button" data-m="tab" data-id="inbox">Back to inbox</button></div>') + '</div>';
 }
 function mailMarkOpened(m) {
-  if (typeof envSongStart === 'function') envSongStart(m.songId);
+  if (typeof envSongStart === 'function' && !m.songPage) envSongStart(m.songId);
   if (m.to !== S.who || m.openedAt) return;
   m.openedAt = Date.now(); mailSave(m);
   if (typeof playSound === 'function') playSound('chime');
@@ -303,9 +312,9 @@ function mailClick(e) {
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;
     /* a new letter arrives as an envelope: the seal pops, the flap opens, the letter slides up, then it is read */
-    if (typeof envSongStart === 'function') envSongStart(m.songId);      /* asks first if this letter has music */
+    if (typeof envSongStart === 'function' && !m.songPage) envSongStart(m.songId);      /* asks first if this letter has music */
     MAIL.busy = true;
-    return mailAnimOpen(m, function () { MAIL.busy = false; MAIL.read = m; MAIL.list = null; MAIL.calm = true; mailMarkOpened(m); mailRender(); MAIL.calm = false; }, b.querySelector('img') || b);
+    return mailAnimOpen(m, function () { MAIL.busy = false; MAIL.read = m; MAIL.songFor = null; MAIL.list = null; MAIL.calm = true; mailMarkOpened(m); mailRender(); MAIL.calm = false; }, b.querySelector('img') || b);
   }
   if (a === 'look') {
     MAIL.list = mailAll(); MAIL.idx = parseInt(b.dataset.i, 10) || 0; MAIL.read = MAIL.list[MAIL.idx];
@@ -342,6 +351,7 @@ function mailSend() {
   var m = { id: uid(), title: title, body: body, from: S.who, to: other(S.who), at: Date.now(), openedAt: null };
   var picked = [].slice.call(document.querySelectorAll('#mSongs input:checked')).map(function (x) { return x.value; });
   if (picked.indexOf('none') >= 0) m.songId = 'none'; else if (picked.indexOf('all') >= 0) m.songId = 'all'; else if (picked.length) m.songId = picked;
+  var sp = parseInt((document.getElementById('mSongPage') || {}).value, 10); if (sp > 1 && m.songId) m.songPage = sp;
   MAIL.busy = true;
   mailSave(m);                                          /* saved straight away: nothing is lost if the animation is cut short */
   if (window.earnHearts) earnHearts(1, 'letter');
