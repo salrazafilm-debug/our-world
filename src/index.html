@@ -2682,10 +2682,10 @@ function memoryForm(ll, starterId, prefillTitle) {
   openSheet(
     head('New memory', nt.name) +
     '<div class="field"><label for="m-title">Title</label>' +
-      '<input id="m-title" type="text" maxlength="80" placeholder="title your memory &lt;3" value="' + esc(prefillTitle || '') + '"></div>' +
+      '<input id="m-title" type="text" placeholder="title your memory &lt;3" value="' + esc(prefillTitle || '') + '"></div>' +
     '<div class="field"><label for="m-date">Date</label><input id="m-date" type="date" value="' + todayISO() + '"></div>' +
     memPhotosHtml() +
-    '<div class="field"><label for="m-note">Note</label><textarea id="m-note" maxlength="900" placeholder="What you want to remember about it."></textarea></div>' +
+    '<div class="field"><label for="m-note">Note</label><textarea id="m-note" placeholder="What you want to remember about it."></textarea></div>' +
     memPreviewField() +
     memPlaceHtml(ll) +
     '<div class="sheet-actions">' +
@@ -2784,8 +2784,8 @@ function surpriseForm(ll) {
     head('Leave a surprise', nt.name) +
     '<p class="note">Sealed until ' + esc(whoName(them)) + ' is standing near this spot with the map open \u2014 or, if you pick a date, it opens that day wherever they are.</p>' +
     '<div class="field"><label for="s-title">What they see on the envelope</label>' +
-      '<input id="s-title" type="text" maxlength="70" placeholder="Open me when you get here"></div>' +
-    '<div class="field"><label for="s-note">The letter</label><textarea id="s-note" maxlength="1200" placeholder="Say it here."></textarea></div>' +
+      '<input id="s-title" type="text" placeholder="Open me when you get here"></div>' +
+    '<div class="field"><label for="s-note">The letter</label><textarea id="s-note" placeholder="Say it here."></textarea></div>' +
     '<div class="rowfields">' +
       '<div class="field"><label for="s-km">Unlocks within</label><select id="s-km"><option value="1">1 km</option><option value="3" selected>3 km</option><option value="8">8 km</option></select></div>' +
       '<div class="field"><label for="s-date">Or opens on (optional)</label><input id="s-date" type="date" min="' + todayISO() + '"></div>' +
@@ -2969,9 +2969,9 @@ function editMemory(id) {
     '<div class="field"><label for="e-date">Date it happened</label>' +
       '<input id="e-date" type="date" value="' + esc(m.date || todayISO()) + '"></div>' +
     '<div class="field"><label for="e-title">Title</label>' +
-      '<input id="e-title" type="text" maxlength="80" value="' + esc(m.title || '') + '"></div>' +
+      '<input id="e-title" type="text" value="' + esc(m.title || '') + '"></div>' +
     '<div class="field"><label for="e-note">Note</label>' +
-      '<textarea id="e-note" maxlength="900">' + esc(m.note || '') + '</textarea></div>' +
+      '<textarea id="e-note">' + esc(m.note || '') + '</textarea></div>' +
     '<p class="hint">The photo and the spot on the map stay as they are. Changing the date moves it in the calendar.</p>' +
     '<div class="sheet-actions">' +
       '<button class="pxbtn primary" type="button" data-act="save-edit" data-id="' + esc(m.id) + '">Save changes</button>' +

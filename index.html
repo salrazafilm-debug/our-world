@@ -3184,10 +3184,10 @@ function memoryForm(ll, starterId, prefillTitle) {
   openSheet(
     head('New memory', nt.name) +
     '<div class="field"><label for="m-title">Title</label>' +
-      '<input id="m-title" type="text" maxlength="80" placeholder="title your memory &lt;3" value="' + esc(prefillTitle || '') + '"></div>' +
+      '<input id="m-title" type="text" placeholder="title your memory &lt;3" value="' + esc(prefillTitle || '') + '"></div>' +
     '<div class="field"><label for="m-date">Date</label><input id="m-date" type="date" value="' + todayISO() + '"></div>' +
     memPhotosHtml() +
-    '<div class="field"><label for="m-note">Note</label><textarea id="m-note" maxlength="900" placeholder="What you want to remember about it."></textarea></div>' +
+    '<div class="field"><label for="m-note">Note</label><textarea id="m-note" placeholder="What you want to remember about it."></textarea></div>' +
     memPreviewField() +
     memPlaceHtml(ll) +
     '<div class="sheet-actions">' +
@@ -3286,8 +3286,8 @@ function surpriseForm(ll) {
     head('Leave a surprise', nt.name) +
     '<p class="note">Sealed until ' + esc(whoName(them)) + ' is standing near this spot with the map open \u2014 or, if you pick a date, it opens that day wherever they are.</p>' +
     '<div class="field"><label for="s-title">What they see on the envelope</label>' +
-      '<input id="s-title" type="text" maxlength="70" placeholder="Open me when you get here"></div>' +
-    '<div class="field"><label for="s-note">The letter</label><textarea id="s-note" maxlength="1200" placeholder="Say it here."></textarea></div>' +
+      '<input id="s-title" type="text" placeholder="Open me when you get here"></div>' +
+    '<div class="field"><label for="s-note">The letter</label><textarea id="s-note" placeholder="Say it here."></textarea></div>' +
     '<div class="rowfields">' +
       '<div class="field"><label for="s-km">Unlocks within</label><select id="s-km"><option value="1">1 km</option><option value="3" selected>3 km</option><option value="8">8 km</option></select></div>' +
       '<div class="field"><label for="s-date">Or opens on (optional)</label><input id="s-date" type="date" min="' + todayISO() + '"></div>' +
@@ -3471,9 +3471,9 @@ function editMemory(id) {
     '<div class="field"><label for="e-date">Date it happened</label>' +
       '<input id="e-date" type="date" value="' + esc(m.date || todayISO()) + '"></div>' +
     '<div class="field"><label for="e-title">Title</label>' +
-      '<input id="e-title" type="text" maxlength="80" value="' + esc(m.title || '') + '"></div>' +
+      '<input id="e-title" type="text" value="' + esc(m.title || '') + '"></div>' +
     '<div class="field"><label for="e-note">Note</label>' +
-      '<textarea id="e-note" maxlength="900">' + esc(m.note || '') + '</textarea></div>' +
+      '<textarea id="e-note">' + esc(m.note || '') + '</textarea></div>' +
     '<p class="hint">The photo and the spot on the map stay as they are. Changing the date moves it in the calendar.</p>' +
     '<div class="sheet-actions">' +
       '<button class="pxbtn primary" type="button" data-act="save-edit" data-id="' + esc(m.id) + '">Save changes</button>' +
@@ -6363,7 +6363,7 @@ ACTIONS['note-edit'] = function () {
   var mine = S.notes[S.who] || {};
   openSheet(head('My daily note', 'for ' + whoName(other(S.who)).replace('Princess ', '')) +
     '<p class="note">Write something sweet. It shows up for them every time they open Our World, until you change it.</p>' +
-    '<div class="field"><label for="n-text">Your note</label><textarea id="n-text" maxlength="280" placeholder="Good morning, I’m thinking about you…">' + esc(mine.text || '') + '</textarea></div>' +
+    '<div class="field"><label for="n-text">Your note</label><textarea id="n-text" placeholder="Good morning, I’m thinking about you…">' + esc(mine.text || '') + '</textarea></div>' +
     '<p class="hint">' + (mine.at ? 'Currently showing: ' + noteWhen(mine.at) + '.' : 'You have not written one yet.') + '</p>' +
     '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="note-save">Send it</button>' +
     '<button class="pxbtn" type="button" data-act="more">Back</button></div>');
@@ -6458,7 +6458,7 @@ function jrForm(entry) {
       return '<button type="button" class="chipb' + (m[0] === JR.form.mood ? ' on' : '') + '" data-act="jr-mood" data-v="' + m[0] + '">' + m[1] + ' ' + m[2] + '</button>'; }).join('') + '</div></div>' +
     '<div class="field"><label>Do you miss ' + esc(them) + '?</label><div class="chips" id="j-miss">' + JR_MISS.map(function (t, i) {
       return '<button type="button" class="chipb' + (i === JR.form.miss ? ' on' : '') + '" data-act="jr-miss" data-v="' + i + '">' + jrHearts(i) + ' ' + t + '</button>'; }).join('') + '</div></div>' +
-    '<div class="field"><label for="j-body">Your day</label><textarea id="j-body" maxlength="4000" placeholder="What happened, how it felt, what you want them to know…" style="min-height:130px">' + esc(entry ? entry.body : '') + '</textarea></div>' +
+    '<div class="field"><label for="j-body">Your day</label><textarea id="j-body" placeholder="What happened, how it felt, what you want them to know…" style="min-height:130px">' + esc(entry ? entry.body : '') + '</textarea></div>' +
     (entry ? '' : '<div class="field"><label for="j-photos">Photos from your day (optional)</label><input id="j-photos" type="file" accept="image/*" multiple></div>') +
     '<p class="hint">' + esc(them) + ' can read this. Only you can change or delete it.</p>' +
     '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="jr-save">' + (entry ? 'Save changes' : 'Share entry') + '</button><button class="pxbtn" type="button" data-act="journal">Cancel</button></div>');
@@ -6926,7 +6926,7 @@ function songAdd(files, done) {
   var named = [];
   ok.forEach(function (f) {
     var def = f.name.replace(/.mp3$/i, ''), nm = prompt('Name this song:', def);
-    if (nm !== null) named.push({ f: f, name: (nm.trim() || def).slice(0, 60) });
+    if (nm !== null) named.push({ f: f, name: (nm.trim() || def) });
   });
   if (!named.length) return;
   if (CLOUD()) {
@@ -7113,7 +7113,7 @@ ACTIONS['bucket'] = function () {
       '<button class="bk-x" type="button" data-act="bk-del" data-id="' + esc(b.id) + '" aria-label="Remove">✕</button></div>';
   }
   openSheet(head('Our bucket list', 'things we want to do together') +
-    '<div class="bk-add"><input id="bk-title" type="text" maxlength="80" placeholder="Add something we should do…"><button class="pxbtn primary" type="button" data-act="bk-add">Add</button></div>' +
+    '<div class="bk-add"><input id="bk-title" type="text" placeholder="Add something we should do…"><button class="pxbtn primary" type="button" data-act="bk-add">Add</button></div>' +
     '<div class="chips" id="bk-icons">' + BUCKET_ICONS.map(function (ic, i) { return '<button type="button" class="chipb' + (i === 0 ? ' on' : '') + '" data-act="bk-icon" data-ic="' + ic + '">' + ic + '</button>'; }).join('') + '</div>' +
     (open.length ? '<div class="bk-list">' + open.map(row).join('') + '</div>' : '<p class="hint" style="margin-top:12px">Nothing on the list yet — add the first thing. Tap B or E to say who wants it; things you both want rise to the top.</p>') +
     (done.length ? sectionTitle('Done together 🎉') + '<div class="bk-list">' + done.map(row).join('') + '</div>' : '') +
@@ -7938,7 +7938,7 @@ function memPlaceHtml(ll) {
   var nt = nearestTown(ll.lat, ll.lng);
   return '<div class="field" id="m-place"><label>Where was this?</label>' +
     '<div class="pl-now"><img alt="" src="art/pin.png"><span class="pl-name" id="plName">Near ' + esc(nt.name) + '</span><button class="pxbtn" type="button" data-pl="open">Change place</button></div>' +
-    '<div class="pl-search" id="plSearch" hidden><input id="plQ" type="text" maxlength="80" autocomplete="off" placeholder="City, state or area, for example Lusby, MD">' +
+    '<div class="pl-search" id="plSearch" hidden><input id="plQ" type="text" autocomplete="off" placeholder="City, state or area, for example Lusby, MD">' +
     '<div class="pl-res" id="plRes"></div>' +
     '<p class="hint">Pick a result and the pin moves there. Places outside our small built-in list are looked up on OpenStreetMap, which only sees the words you type.</p></div>' +
     '<div id="plPhoto"></div>' +
@@ -8436,8 +8436,8 @@ function mailTabHtml() {
   if (t === 'compose') {
     var to = shortName(other(S.who));
     return '<div class="m-paper m-compose" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
-      '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" maxlength="60" placeholder="Tonight ♥"></div>' +
-      '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" maxlength="4000" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
+      '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" placeholder="Tonight ♥"></div>' +
+      '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
       '<div class="m-field"><label>Songs when it is opened <small>(leave empty for my usual)</small></label><div id="mSongs" style="display:flex;flex-direction:column;gap:4px;font-size:15px">' +
         '<label><input type="checkbox" value="all"> All songs</label>' +
         (typeof LIB !== 'undefined' ? LIB.map(function (s) { return '<label><input type="checkbox" value="' + esc(s.id) + '"> ' + esc(s.name) + '</label>'; }).join('') : '') +
@@ -8459,7 +8459,7 @@ function mailTabHtml() {
   var mineN = S.notes && S.notes[S.who];
   return todayNoteHtml() +
     '<div class="m-paper"><h3>Your note for ' + esc(shortName(other(S.who))) + '</h3>' +
-    '<div class="m-field"><textarea id="mNote" maxlength="280" style="min-height:96px" placeholder="Good morning, I’m thinking about you…">' + esc(mineN && mineN.text || '') + '</textarea></div>' +
+    '<div class="m-field"><textarea id="mNote" style="min-height:96px" placeholder="Good morning, I’m thinking about you…">' + esc(mineN && mineN.text || '') + '</textarea></div>' +
     '<div class="m-tools"><span class="grow"></span><button class="m-btn primary" type="button" data-m="note">Pin it</button></div></div>';
 }
 function mailReadHtml() {
@@ -9265,8 +9265,8 @@ function dayPanel(iso, memBy, evBy) {
     (mems.length ? '<div class="cal-list" style="margin-top:8px">' + mems.map(memRowHtml).join('') + '</div>' : '') +
     (!evs.length && !mems.length ? '<p class="hint" style="margin:10px 0 0">Nothing on this day yet.</p>' : '') +
     '<div class="dp-form"><b>Add to our calendar</b>' +
-      '<input id="ev-title" type="text" maxlength="70" placeholder="Work, date night, appointment…">' +
-      '<div class="dp-row"><input id="ev-time" type="time"><input id="ev-note" type="text" maxlength="120" placeholder="Note (optional)"></div>' +
+      '<input id="ev-title" type="text" placeholder="Work, date night, appointment…">' +
+      '<div class="dp-row"><input id="ev-time" type="time"><input id="ev-note" type="text" placeholder="Note (optional)"></div>' +
       '<button class="pxbtn primary" type="button" data-evadd="' + iso + '">Add for both of us</button></div></div>';
 }
 calEl.addEventListener('click', function (e) {
@@ -9565,7 +9565,7 @@ ACTIONS['song-env'] = function (b) { songPreviewStop(); var i = SEL.env.indexOf(
 ACTIONS['song-envall'] = function () { songPreviewStop(); SEL.env = LIB.map(function (x) { return x.id; }); selSave(); openSongs(); };
 ACTIONS['song-bgall'] = function (b) { SEL.bg = b.dataset.v === 'on' ? LIB.map(function (x) { return x.id; }) : []; selSave(); bgP.stop(true); startSongs(); openSongs(); };
 ACTIONS['song-envnone'] = function () { songPreviewStop(); SEL.env = []; selSave(); openSongs(); };
-ACTIONS['song-ren'] = function (b) { var sg = songById(b.dataset.v); if (!sg) return; var nm = prompt('Rename song:', sg.name); if (nm && nm.trim()) songRename(b.dataset.v, nm.trim().slice(0, 60), openSongs); };
+ACTIONS['song-ren'] = function (b) { var sg = songById(b.dataset.v); if (!sg) return; var nm = prompt('Rename song:', sg.name); if (nm && nm.trim()) songRename(b.dataset.v, nm.trim(), openSongs); };
 ACTIONS['song-prev'] = function (b) { songPreview(b.dataset.v); openSongs(); };
 ACTIONS['song-del'] = function (b) { songPreviewStop(); songRemove(b.dataset.v, openSongs); };
 ACTIONS['tod'] = function (b) { AMB.tod = b.dataset.v; try { localStorage.setItem('ow.tod', AMB.tod); } catch (e) {} openAtmos(); draw(); };
@@ -9655,7 +9655,7 @@ ACTIONS['trip-new'] = function () {
     return;
   }
   openSheet(head('New trip', 'pick the stops, in any order') +
-    '<div class="field"><label for="t-name">Name</label><input id="t-name" type="text" maxlength="60" placeholder="our September weekend"></div>' +
+    '<div class="field"><label for="t-name">Name</label><input id="t-name" type="text" placeholder="our September weekend"></div>' +
     '<div class="field"><label>Stops (we order them by date)</label><div class="chks">' +
     mems.map(function (m) {
       return '<label class="chk"><input type="checkbox" value="' + esc(m.id) + '"><span><b>' + esc(m.title) + '</b><br><i>' + esc(fmtDate(m.date)) + '</i></span></label>';
@@ -9753,9 +9753,9 @@ ACTIONS['plan-new'] = function () { startPlacing('plan'); };
 function planForm(ll) {
   var nt = nearestTown(ll.lat, ll.lng);
   openSheet(head('New plan', nt.name) +
-    '<div class="field"><label for="p-title">Where / what</label><input id="p-title" type="text" maxlength="80" placeholder="e.g. Chicago weekend"></div>' +
+    '<div class="field"><label for="p-title">Where / what</label><input id="p-title" type="text" placeholder="e.g. Chicago weekend"></div>' +
     '<div class="field"><label for="p-date">Date (optional)</label><input id="p-date" type="date"></div>' +
-    '<div class="field"><label for="p-note">Note</label><textarea id="p-note" maxlength="600" placeholder="Why we want to go."></textarea></div>' +
+    '<div class="field"><label for="p-note">Note</label><textarea id="p-note" placeholder="Why we want to go."></textarea></div>' +
     '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="plan-save" data-lat="' + ll.lat + '" data-lng="' + ll.lng + '">Save plan</button>' +
     '<button class="pxbtn" type="button" data-act="close">Cancel</button></div>');
   setTimeout(function () { var e = document.getElementById('p-title'); if (e) e.focus(); }, 120);

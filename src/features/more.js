@@ -260,7 +260,7 @@ ACTIONS['song-env'] = function (b) { songPreviewStop(); var i = SEL.env.indexOf(
 ACTIONS['song-envall'] = function () { songPreviewStop(); SEL.env = LIB.map(function (x) { return x.id; }); selSave(); openSongs(); };
 ACTIONS['song-bgall'] = function (b) { SEL.bg = b.dataset.v === 'on' ? LIB.map(function (x) { return x.id; }) : []; selSave(); bgP.stop(true); startSongs(); openSongs(); };
 ACTIONS['song-envnone'] = function () { songPreviewStop(); SEL.env = []; selSave(); openSongs(); };
-ACTIONS['song-ren'] = function (b) { var sg = songById(b.dataset.v); if (!sg) return; var nm = prompt('Rename song:', sg.name); if (nm && nm.trim()) songRename(b.dataset.v, nm.trim().slice(0, 60), openSongs); };
+ACTIONS['song-ren'] = function (b) { var sg = songById(b.dataset.v); if (!sg) return; var nm = prompt('Rename song:', sg.name); if (nm && nm.trim()) songRename(b.dataset.v, nm.trim(), openSongs); };
 ACTIONS['song-prev'] = function (b) { songPreview(b.dataset.v); openSongs(); };
 ACTIONS['song-del'] = function (b) { songPreviewStop(); songRemove(b.dataset.v, openSongs); };
 ACTIONS['tod'] = function (b) { AMB.tod = b.dataset.v; try { localStorage.setItem('ow.tod', AMB.tod); } catch (e) {} openAtmos(); draw(); };
@@ -350,7 +350,7 @@ ACTIONS['trip-new'] = function () {
     return;
   }
   openSheet(head('New trip', 'pick the stops, in any order') +
-    '<div class="field"><label for="t-name">Name</label><input id="t-name" type="text" maxlength="60" placeholder="our September weekend"></div>' +
+    '<div class="field"><label for="t-name">Name</label><input id="t-name" type="text" placeholder="our September weekend"></div>' +
     '<div class="field"><label>Stops (we order them by date)</label><div class="chks">' +
     mems.map(function (m) {
       return '<label class="chk"><input type="checkbox" value="' + esc(m.id) + '"><span><b>' + esc(m.title) + '</b><br><i>' + esc(fmtDate(m.date)) + '</i></span></label>';
@@ -448,9 +448,9 @@ ACTIONS['plan-new'] = function () { startPlacing('plan'); };
 function planForm(ll) {
   var nt = nearestTown(ll.lat, ll.lng);
   openSheet(head('New plan', nt.name) +
-    '<div class="field"><label for="p-title">Where / what</label><input id="p-title" type="text" maxlength="80" placeholder="e.g. Chicago weekend"></div>' +
+    '<div class="field"><label for="p-title">Where / what</label><input id="p-title" type="text" placeholder="e.g. Chicago weekend"></div>' +
     '<div class="field"><label for="p-date">Date (optional)</label><input id="p-date" type="date"></div>' +
-    '<div class="field"><label for="p-note">Note</label><textarea id="p-note" maxlength="600" placeholder="Why we want to go."></textarea></div>' +
+    '<div class="field"><label for="p-note">Note</label><textarea id="p-note" placeholder="Why we want to go."></textarea></div>' +
     '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="plan-save" data-lat="' + ll.lat + '" data-lng="' + ll.lng + '">Save plan</button>' +
     '<button class="pxbtn" type="button" data-act="close">Cancel</button></div>');
   setTimeout(function () { var e = document.getElementById('p-title'); if (e) e.focus(); }, 120);

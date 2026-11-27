@@ -222,8 +222,8 @@ function mailTabHtml() {
   if (t === 'compose') {
     var to = shortName(other(S.who));
     return '<div class="m-paper m-compose" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
-      '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" maxlength="60" placeholder="Tonight ♥"></div>' +
-      '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" maxlength="4000" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
+      '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" placeholder="Tonight ♥"></div>' +
+      '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
       '<div class="m-field"><label>Songs when it is opened <small>(leave empty for my usual)</small></label><div id="mSongs" style="display:flex;flex-direction:column;gap:4px;font-size:15px">' +
         '<label><input type="checkbox" value="all"> All songs</label>' +
         (typeof LIB !== 'undefined' ? LIB.map(function (s) { return '<label><input type="checkbox" value="' + esc(s.id) + '"> ' + esc(s.name) + '</label>'; }).join('') : '') +
@@ -245,7 +245,7 @@ function mailTabHtml() {
   var mineN = S.notes && S.notes[S.who];
   return todayNoteHtml() +
     '<div class="m-paper"><h3>Your note for ' + esc(shortName(other(S.who))) + '</h3>' +
-    '<div class="m-field"><textarea id="mNote" maxlength="280" style="min-height:96px" placeholder="Good morning, I’m thinking about you…">' + esc(mineN && mineN.text || '') + '</textarea></div>' +
+    '<div class="m-field"><textarea id="mNote" style="min-height:96px" placeholder="Good morning, I’m thinking about you…">' + esc(mineN && mineN.text || '') + '</textarea></div>' +
     '<div class="m-tools"><span class="grow"></span><button class="m-btn primary" type="button" data-m="note">Pin it</button></div></div>';
 }
 function mailReadHtml() {

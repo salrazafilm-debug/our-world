@@ -64,8 +64,8 @@ function dayPanel(iso, memBy, evBy) {
     (mems.length ? '<div class="cal-list" style="margin-top:8px">' + mems.map(memRowHtml).join('') + '</div>' : '') +
     (!evs.length && !mems.length ? '<p class="hint" style="margin:10px 0 0">Nothing on this day yet.</p>' : '') +
     '<div class="dp-form"><b>Add to our calendar</b>' +
-      '<input id="ev-title" type="text" maxlength="70" placeholder="Work, date night, appointment…">' +
-      '<div class="dp-row"><input id="ev-time" type="time"><input id="ev-note" type="text" maxlength="120" placeholder="Note (optional)"></div>' +
+      '<input id="ev-title" type="text" placeholder="Work, date night, appointment…">' +
+      '<div class="dp-row"><input id="ev-time" type="time"><input id="ev-note" type="text" placeholder="Note (optional)"></div>' +
       '<button class="pxbtn primary" type="button" data-evadd="' + iso + '">Add for both of us</button></div></div>';
 }
 calEl.addEventListener('click', function (e) {

@@ -75,7 +75,7 @@ function memPlaceHtml(ll) {
   var nt = nearestTown(ll.lat, ll.lng);
   return '<div class="field" id="m-place"><label>Where was this?</label>' +
     '<div class="pl-now"><img alt="" src="art/pin.png"><span class="pl-name" id="plName">Near ' + esc(nt.name) + '</span><button class="pxbtn" type="button" data-pl="open">Change place</button></div>' +
-    '<div class="pl-search" id="plSearch" hidden><input id="plQ" type="text" maxlength="80" autocomplete="off" placeholder="City, state or area, for example Lusby, MD">' +
+    '<div class="pl-search" id="plSearch" hidden><input id="plQ" type="text" autocomplete="off" placeholder="City, state or area, for example Lusby, MD">' +
     '<div class="pl-res" id="plRes"></div>' +
     '<p class="hint">Pick a result and the pin moves there. Places outside our small built-in list are looked up on OpenStreetMap, which only sees the words you type.</p></div>' +
     '<div id="plPhoto"></div>' +

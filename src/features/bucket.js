@@ -27,7 +27,7 @@ ACTIONS['bucket'] = function () {
       '<button class="bk-x" type="button" data-act="bk-del" data-id="' + esc(b.id) + '" aria-label="Remove">✕</button></div>';
   }
   openSheet(head('Our bucket list', 'things we want to do together') +
-    '<div class="bk-add"><input id="bk-title" type="text" maxlength="80" placeholder="Add something we should do…"><button class="pxbtn primary" type="button" data-act="bk-add">Add</button></div>' +
+    '<div class="bk-add"><input id="bk-title" type="text" placeholder="Add something we should do…"><button class="pxbtn primary" type="button" data-act="bk-add">Add</button></div>' +
     '<div class="chips" id="bk-icons">' + BUCKET_ICONS.map(function (ic, i) { return '<button type="button" class="chipb' + (i === 0 ? ' on' : '') + '" data-act="bk-icon" data-ic="' + ic + '">' + ic + '</button>'; }).join('') + '</div>' +
     (open.length ? '<div class="bk-list">' + open.map(row).join('') + '</div>' : '<p class="hint" style="margin-top:12px">Nothing on the list yet — add the first thing. Tap B or E to say who wants it; things you both want rise to the top.</p>') +
     (done.length ? sectionTitle('Done together 🎉') + '<div class="bk-list">' + done.map(row).join('') + '</div>' : '') +

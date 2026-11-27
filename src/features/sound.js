@@ -163,7 +163,7 @@ function songAdd(files, done) {
   var named = [];
   ok.forEach(function (f) {
     var def = f.name.replace(/.mp3$/i, ''), nm = prompt('Name this song:', def);
-    if (nm !== null) named.push({ f: f, name: (nm.trim() || def).slice(0, 60) });
+    if (nm !== null) named.push({ f: f, name: (nm.trim() || def) });
   });
   if (!named.length) return;
   if (CLOUD()) {

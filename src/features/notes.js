@@ -46,7 +46,7 @@ ACTIONS['note-edit'] = function () {
   var mine = S.notes[S.who] || {};
   openSheet(head('My daily note', 'for ' + whoName(other(S.who)).replace('Princess ', '')) +
     '<p class="note">Write something sweet. It shows up for them every time they open Our World, until you change it.</p>' +
-    '<div class="field"><label for="n-text">Your note</label><textarea id="n-text" maxlength="280" placeholder="Good morning, I’m thinking about you…">' + esc(mine.text || '') + '</textarea></div>' +
+    '<div class="field"><label for="n-text">Your note</label><textarea id="n-text" placeholder="Good morning, I’m thinking about you…">' + esc(mine.text || '') + '</textarea></div>' +
     '<p class="hint">' + (mine.at ? 'Currently showing: ' + noteWhen(mine.at) + '.' : 'You have not written one yet.') + '</p>' +
     '<div class="sheet-actions"><button class="pxbtn primary" type="button" data-act="note-save">Send it</button>' +
     '<button class="pxbtn" type="button" data-act="more">Back</button></div>');
