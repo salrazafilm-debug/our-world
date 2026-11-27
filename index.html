@@ -2660,8 +2660,9 @@ function flyTo(lat, lng, z) {
 }
 /* for local testing only: jump the camera (never defined on the live site) */
 if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owFly = function (la, ln, zz) { flyTo(la, ln, zz); };
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owBoot = function () { var g = document.getElementById('gate'); if (g) g.hidden = true; document.body.classList.remove('locked'); boot(); };
 if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owDebug = function () {
-  return { houses: OSM_HOUSES.map(function (o) { var q = unproj(o.x, o.y); return [q.lat, q.lng]; }), bruce: (function () { var q = homeDisplayPos('bruce', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), elena: (function () { var q = homeDisplayPos('elena', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), z: S.zoom };
+  return { memories: S.memories.length, bookPages: BOOK.pages.length, houses: OSM_HOUSES.map(function (o) { var q = unproj(o.x, o.y); return [q.lat, q.lng]; }), bruce: (function () { var q = homeDisplayPos('bruce', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), elena: (function () { var q = homeDisplayPos('elena', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), z: S.zoom };
 };
 function enterMap(lat, lng, z) {
   lastModeSwitch = performance.now();
@@ -7046,6 +7047,7 @@ function bkCam(box, padTop, padBot) {
   return { s: s, left: left, top: top };
 }
 function bkTarget() {
+  if (GF.book && BOOK.stage === 'open' && bkMode() !== 'spread') return bkCam(BK.pages[1], 70, 84);
   if (BOOK.stage === 'closed') return bkCam(BK.closed, 70, 120);
   if (bkMode() === 'spread') return bkCam(BK.spread, 70, 84);
   return bkCam(BK.pages[BOOK.idx % 2], 70, 84);
@@ -7119,6 +7121,8 @@ function bkStyle() {
     /* the small page shown while writing a memory */
     '.bk-prev{position:relative;width:min(100%,320px);margin:0 auto;box-shadow:0 4px 0 rgba(90,52,36,.35);border:3px solid var(--wood-dk);background-repeat:no-repeat;overflow:hidden;color:var(--ink);font-family:var(--fbody)}',
     '.bk-prev .bk-pg{opacity:1;transition:none}',
+    '.bk-gf{position:absolute;opacity:0;transition:opacity .45s ease;--grabfold-paper:#F4E3CC;--grabfold-lift:#FFF6EA}.bk-gf.on{opacity:1}',
+    '.bk-gf .grabfold-content{background-repeat:no-repeat}.bk-gf .gf-pg{opacity:1;transition:none}',
     '@media (prefers-reduced-motion:reduce){#bookScene *{transition:none!important;animation:none!important}}'
   ].join('');
   document.head.appendChild(st);
@@ -7130,14 +7134,14 @@ function bookEnsure() {
   document.body.appendChild(bookEl);
   bookEl.addEventListener('click', bookClick);
   var sx = null;
-  bookEl.addEventListener('pointerdown', function (e) { sx = BOOK.stage === 'open' && !e.target.closest('button') ? e.clientX : null; });
+  bookEl.addEventListener('pointerdown', function (e) { sx = BOOK.stage === 'open' && !GF.book && !e.target.closest('button') ? e.clientX : null; });
   bookEl.addEventListener('pointerup', function (e) { if (sx == null) return; var dx = e.clientX - sx; sx = null; if (Math.abs(dx) > 60) bookTurn(dx < 0 ? 1 : -1); });
   window.addEventListener('keydown', function (e) {
     if (!BOOK.open) return;
     if (e.key === 'Escape') { if (document.getElementById('lightbox') && document.getElementById('lightbox').classList.contains('on')) return; bookClose(); }
     else if (BOOK.stage === 'open') { if (e.key === 'ArrowRight') bookTurn(1); else if (e.key === 'ArrowLeft') bookTurn(-1); }
     else if (BOOK.stage === 'closed' && e.key === 'Enter') bookEnter();
-  });
+  }, true);              /* capture: runs before the photo viewer's own Escape, so closing a photo never closes the book */
   window.addEventListener('resize', function () {
     if (!BOOK.open) return;
     if (BK !== (bkMode() === 'spread' ? BKS.land : BKS.port)) { BOOK.busy = false; return bkRender(); }   /* phone turned sideways: swap to the other pictures */
@@ -7151,7 +7155,7 @@ function bookOpen() {
   bookEnsure(); closeSheet();
   if (typeof dashClose === 'function') dashClose();
   BOOK.open = true; BOOK.stage = 'closed'; BOOK.idx = 0; BOOK.busy = false;
-  bkRender();
+  bkRender(); gfLoad();
 }
 /* draws the scene with the pictures that fit this screen (portrait for phones, widescreen otherwise) */
 function bkRender() {
@@ -7169,26 +7173,30 @@ function bkRender() {
     '<button class="bk-enter" type="button" data-b="enter"><img alt="" src="art/heart.png">Open our book<img alt="" src="art/heart.png"></button>' +
     '<div class="bk-nav"><button class="b-btn" type="button" data-b="prev" aria-label="Previous page">\u2039</button><span class="cnt" id="bkCnt"></span>' +
       '<button class="b-btn" type="button" data-b="next" aria-label="Next page">\u203a</button></div>';
+  GF.book = null; GF.el = null;
   bookEl.className = 'on ' + (isOpen ? 'st-open' : 'st-closed');
   bkPlace(false);
-  if (isOpen) bkFill();
+  if (isOpen) { bkFill(); if (GF.mod && gfMount()) bkPlace(false); }
 }
-function bookClose() { BOOK.open = false; if (bookEl) { bookEl.classList.remove('on'); bookEl.innerHTML = ''; } }
+function bookClose() { gfUnmount(); BOOK.open = false; if (bookEl) { bookEl.classList.remove('on'); bookEl.innerHTML = ''; } }
 window.bookOpen = bookOpen;
 
 /* ---------------- opening and closing ---------------- */
 function bookEnter() {
   if (BOOK.stage !== 'closed' || BOOK.busy) return;
+  gfLoad();
   BOOK.busy = true; BOOK.idx = 0; bkBuild(); bkFill();
   bookEl.className = 'on st-opening';
   if (typeof playSound === 'function') playSound('chime');
   var q = reduceMotion ? 0 : 1;
   setTimeout(function () { BOOK.stage = 'open'; bkPlace(true); }, 250 * q);
   setTimeout(bkSparkle, 1000 * q);
-  setTimeout(function () { bookEl.className = 'on st-open'; BOOK.busy = false; bkFitAll(); }, 1200 * q);
+  setTimeout(function () { bookEl.className = 'on st-open'; BOOK.busy = false; bkFitAll(); gfLoad().then(function () { if (BOOK.stage === 'open' && gfMount()) bkPlace(true); }); }, 1200 * q);
 }
 function bookShut() {
   if (BOOK.stage !== 'open' || BOOK.busy) return;
+  gfUnmount();
+  ['bkL', 'bkR'].forEach(function (id) { var e = document.getElementById(id); if (e) e.style.display = ''; });
   BOOK.busy = true; BOOK.stage = 'closed';
   bookEl.className = 'on st-opening';
   setTimeout(function () { bookEl.className = 'on st-closed'; bkPlace(true); }, reduceMotion ? 0 : 300);
@@ -7254,7 +7262,7 @@ function bkFitPage(pg, u) {
       pol.style.width = (Math.max(40 * u, Math.min(maxW, maxH * ratio)) + chrome).toFixed(1) + 'px';
     });
   }
-  for (var ps = 1; ps >= 0.5; ps -= 0.07) { layout(ps); if (pg.scrollHeight <= pg.clientHeight + 1) break; }
+  for (var ps = 1; ps >= 0.32; ps -= 0.06) { layout(ps); if (pg.scrollHeight <= pg.clientHeight + 1) break; }
 }
 function bkFitAll() {
   var w = document.getElementById('bkWorld'); if (!w) return;
@@ -7264,6 +7272,88 @@ function bkFitAll() {
     bkFitPage(pg, u);
     [].forEach.call(pg.querySelectorAll('.bk-pol img'), function (im) { if (!im.complete) im.addEventListener('load', function () { bkFitPage(pg, parseFloat(w.style.getPropertyValue('--u')) || 1); }); });
   });
+}
+/* ---------------- pages you turn by hand: grabfold (MIT, vendor/grabfold) ----------------
+   The book sits exactly over the painted pages, and each page IS the painted paper. Grab a page anywhere and it
+   folds from where you hold it; a flick turns it; a corner peeks up under the mouse. Desktop shows the spread,
+   front and back like a real book; a phone shows the right-hand page and each turn swings over the spine. */
+var GF = { mod: null, p: null, book: null, el: null };
+function gfLoad() {
+  if (!GF.p) GF.p = import(new URL('vendor/grabfold/index.js', document.baseURI).href).then(function (m) { GF.mod = m; return m; }).catch(function () { GF.mod = null; return null; });
+  return GF.p;
+}
+function gfSpread() { return bkMode() === 'spread'; }
+function gfRect() {
+  if (!gfSpread()) return BK.pages[1];
+  var a = BK.pages[0], b = BK.pages[1], top = Math.min(a.y, b.y), bot = Math.max(a.y + a.h, b.y + b.h);
+  return { x: a.x, y: top, w: b.x + b.w - a.x, h: bot - top };
+}
+function gfIdx(page) {                                     /* which memory page a grabfold page shows (-1: plain paper) */
+  if (page.kind !== 'front' && page.kind !== 'back') return -1;
+  if (!gfSpread()) return page.kind === 'front' ? page.sheet : -1;
+  return page.sheet * 2 + (page.kind === 'back' ? 1 : 0);
+}
+function gfPaper(slot, side) {                             /* the painted paper of that side, cut from the open-book picture */
+  var lp = BK.pages[side === 'left' ? 0 : 1];
+  slot.style.backgroundImage = 'url(' + BK.openSrc + ')';
+  slot.style.backgroundSize = (BK.W / lp.w * 100) + '% ' + (BK.H / lp.h * 100) + '%';
+  slot.style.backgroundPosition = (lp.x / (BK.W - lp.w) * 100) + '% ' + (lp.y / (BK.H - lp.h) * 100) + '%';
+  return lp;
+}
+function gfMount() {
+  gfUnmount();
+  var w = document.getElementById('bkWorld'); if (!w || !GF.mod || BOOK.stage !== 'open') return false;
+  var spread = gfSpread(), n = BOOK.pages.length, r = gfRect();
+  var el = document.createElement('div'); el.className = 'bk-gf'; el.id = 'bkGF'; el.style.cssText = bkPct(r);
+  w.insertBefore(el, document.getElementById('bkFx'));
+  ['bkL', 'bkR'].forEach(function (id) { var e = document.getElementById(id); if (e) e.style.display = 'none'; });
+  var pageW = spread ? r.w / 2 : r.w, idx = Math.max(0, Math.min(n - 1, BOOK.idx));
+  var pos = spread ? (idx % 2 ? (idx - 1) / 2 : idx / 2 - 1) : idx - 1;
+  GF.el = el;
+  GF.book = new GF.mod.Grabfold(el, {
+    sheets: spread ? Math.max(1, Math.ceil(n / 2)) : Math.max(1, n), covers: 'none', layout: spread ? 'spread' : 'single',
+    pageRatio: pageW / r.h, fit: 'contain', thickness: 0, center: false, gutter: 0.18, shadow: 0.34, lift: 28,
+    duration: 760, peek: true, flick: true, grabBlock: false, keyboard: false, label: 'Our Memories Book', position: pos,
+    render: function (slot, page) {
+      var i = gfIdx(page), side = page.kind === 'back' ? 'left' : 'right', lp = gfPaper(slot, spread ? side : 'right');
+      if (i < 0 || i >= n) return;
+      var tr = BK.text[spread && side === 'left' ? 0 : 1];
+      var inner = document.createElement('div'); inner.className = 'bk-pg gf-pg';
+      inner.style.cssText = 'left:' + ((tr.x - lp.x) / lp.w * 100) + '%;top:' + ((tr.y - lp.y) / lp.h * 100) + '%;width:' + (tr.w / lp.w * 100) + '%;height:' + (tr.h / lp.h * 100) + '%';
+      inner.innerHTML = BOOK.pages[i];
+      slot.appendChild(inner);
+      var fit = function () { var u = parseFloat(w.style.getPropertyValue('--u')) || 1; bkFitPage(inner, u); };
+      requestAnimationFrame(fit);
+      [].forEach.call(inner.querySelectorAll('img'), function (im) { if (!im.complete) im.addEventListener('load', fit); });
+    },
+    onTurnStart: function () { if (typeof playSound === 'function') playSound('save'); }
+  });
+  GF.book.on && GF.book.on('change', gfSync);
+  /* whenever the book changes size (the camera gliding in, a window resize) every page is fitted again */
+  GF.book.on && GF.book.on('resize', function () { var u = parseFloat(w.style.getPropertyValue('--u')) || 1; [].forEach.call(el.querySelectorAll('.gf-pg'), function (pg) { bkFitPage(pg, u); }); });
+  gfSync();
+  requestAnimationFrame(function () { el.classList.add('on'); });
+  setTimeout(function () { if (GF.el !== el) return; var u = parseFloat(w.style.getPropertyValue('--u')) || 1; [].forEach.call(el.querySelectorAll('.gf-pg'), function (pg) { bkFitPage(pg, u); }); }, 1150);   /* once the camera has settled */
+  return true;
+}
+function gfUnmount() {
+  if (GF.book) { try { GF.book.destroy(); } catch (e) {} }
+  if (GF.el && GF.el.parentNode) GF.el.parentNode.removeChild(GF.el);
+  GF.book = null; GF.el = null;
+}
+function gfSync() {                                       /* the page counter and arrows follow the book */
+  if (!GF.book) return;
+  var n = BOOK.pages.length, pos = GF.book.position, spread = gfSpread(), cnt = document.getElementById('bkCnt');
+  if (spread) {
+    var a = 2 * pos + 1, b = 2 * (pos + 1), lo = Math.max(0, a), hi = Math.min(n - 1, b);
+    BOOK.idx = Math.max(0, Math.min(n - 1, a >= 0 ? a : b));
+    if (cnt) cnt.textContent = lo === hi ? 'Page ' + (lo + 1) + ' of ' + n : 'Pages ' + (lo + 1) + '–' + (hi + 1) + ' of ' + n;
+  } else {
+    BOOK.idx = Math.max(0, Math.min(n - 1, pos + 1));
+    if (cnt) cnt.textContent = 'Page ' + (BOOK.idx + 1) + ' of ' + n;
+  }
+  var pv = bookEl.querySelector('[data-b="prev"]'), nx = bookEl.querySelector('[data-b="next"]');
+  if (pv) pv.disabled = !GF.book.canPrev(); if (nx) nx.disabled = !GF.book.canNext();
 }
 function bkFill() {
   var L = document.getElementById('bkL'), R = document.getElementById('bkR'); if (!L) return;
@@ -7284,6 +7374,7 @@ function bkFill() {
    pages of the same spread is a camera pan */
 function bookTurn(dir) {
   if (BOOK.stage !== 'open' || BOOK.busy) return;
+  if (GF.book) { var pr = dir > 0 ? GF.book.next() : GF.book.prev(); if (pr && pr.then) pr.then(gfSync); return; }
   var n = BOOK.pages.length, spread = bkMode() === 'spread', side = BOOK.idx % 2;
   if (!spread && ((dir > 0 && side === 0) || (dir < 0 && side === 1))) {
     var to = BOOK.idx + dir; if (to < 0 || to >= n) return;
@@ -7676,6 +7767,177 @@ function memPlaceName(lat, lng) {
     }).catch(function () {});
 }
 
+/* ---- features/mail-anim.js ---- */
+/* Letter animations for the post office. Our own code, in our style; the ideas (a sheet folding in thirds into an
+   envelope that is sealed and flies off, and a wax seal popping before the flap flips and the letter slides up)
+   were inspired by examples on animorio.com and animacious.com, but none of their code is used.
+   Built on the browser's Web Animations API, so it is smooth and needs no library. Reduced motion gets a quick fade.
+
+   mailAnimSend(paperEl, onDone)  the letter folds in three, drops into an envelope, is sealed with a heart, stamped,
+                                  and flies off toward the other person's home
+   mailAnimOpen(letter, onDone)   an envelope arrives, the seal pops, the flap flips open, the letter slides up */
+(function () {
+  var st = document.createElement('style');
+  st.textContent = [
+    '.ma-layer{position:fixed;inset:0;z-index:70;pointer-events:none}',
+    '.ma-env{position:absolute;transform-style:preserve-3d}',
+    '.ma-back{position:absolute;inset:0;background:#F3DDC2;border:3px solid #8E3A57;box-shadow:0 10px 0 rgba(60,25,35,.18)}',
+    '.ma-front{position:absolute;inset:0;background:#FFF2DF;clip-path:polygon(0 0,50% 52%,100% 0,100% 100%,0 100%);border:3px solid #8E3A57;z-index:3}',
+    '.ma-front:after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,transparent 48%,rgba(142,58,87,.18) 49%,transparent 51%),linear-gradient(200deg,transparent 48%,rgba(142,58,87,.18) 49%,transparent 51%)}',
+    '.ma-flap{position:absolute;left:0;right:0;top:0;height:58%;transform-origin:50% 0;z-index:4}',
+    '.ma-flap>i{position:absolute;inset:0;clip-path:polygon(0 0,100% 0,50% 100%)}',
+    '.ma-flap>i.o{background:#F7E6CF;box-shadow:inset 0 3px 0 #8E3A57}',
+    '.ma-flap>i.o:after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom right,transparent 49%,#8E3A57 49.5%,#8E3A57 51.5%,transparent 52%),linear-gradient(to bottom left,transparent 49%,#8E3A57 49.5%,#8E3A57 51.5%,transparent 52%)}',
+    '.ma-flap>i.b{background:#EFD3B4;opacity:0}.ma-flap.in>i.b{opacity:1}.ma-flap.in>i.o{opacity:0}',
+    '.ma-seal{position:absolute;left:50%;top:58%;width:34px;height:34px;margin:-20px 0 0 -17px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#E0607E,#B03158 60%,#7E1E3E);border:2px solid #5E2238;box-shadow:0 2px 0 rgba(60,20,30,.35);z-index:6;display:grid;place-items:center}',
+    '.ma-seal img{width:18px;image-rendering:pixelated;filter:brightness(1.6) saturate(.3)}',
+    '.ma-stamp{position:absolute;right:9%;top:46%;width:30px;height:36px;background:#FFF;border:2px dashed #D9879F;outline:2px solid #FFF;display:grid;place-items:center;z-index:5}',
+    '.ma-stamp img{width:18px;image-rendering:pixelated}',
+    '.ma-letter{position:absolute;left:7%;right:7%;top:6%;height:90%;background:#FFFBF4;border:2px solid #E2C2AE;z-index:2;padding:10px 12px;overflow:hidden;font-family:var(--fbody);color:#4A2A33;box-shadow:0 2px 0 rgba(120,70,60,.15)}',
+    '.ma-letter b{display:block;font-family:var(--fdisp);color:#8E3A57;font-size:15px;margin-bottom:6px}',
+    '.ma-letter p{margin:0;font-size:12px;line-height:1.5;white-space:pre-wrap}',
+    '.ma-sheet{position:absolute;transform-style:preserve-3d}',
+    '.ma-panel{position:absolute;left:0;right:0;transform-style:preserve-3d}',
+    '.ma-panel>i{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#FFFBF4;border:2px solid #E2C2AE}',
+    '.ma-panel>i.b{transform:rotateX(180deg);background:#F6EADB}',
+    '.ma-panel>i>div{position:absolute;left:0;right:0;padding:18px 20px;font-family:var(--fbody);color:#4A2A33}',
+    '.ma-panel>i>div b{display:block;font-family:var(--fdisp);color:#8E3A57;font-size:18px;margin-bottom:8px}',
+    '.ma-panel>i>div p{margin:0;font-size:15px;line-height:1.6;white-space:pre-wrap}',
+    '.ma-shade{position:absolute;inset:0;background:#5E2238;opacity:0;pointer-events:none}',
+    '.ma-spark{position:absolute;width:16px;height:16px;background:url(art/heart.png) center/contain no-repeat;image-rendering:pixelated}'
+  ].join('');
+  document.head.appendChild(st);
+})();
+
+function maLayer() { var l = document.createElement('div'); l.className = 'ma-layer'; document.body.appendChild(l); return l; }
+function maWait(anims) { return Promise.all(anims.map(function (a) { return a.finished.catch(function () {}); })); }
+function maAnim(el, frames, opt) { return el.animate(frames, Object.assign({ fill: 'forwards' }, opt)); }
+function maEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+/* an envelope of size w x h at (x, y) (top-left, px). Optional letter inside. */
+function maEnvelope(layer, x, y, w, h, letter) {
+  var e = document.createElement('div'); e.className = 'ma-env';
+  e.style.cssText = 'left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;perspective:' + (w * 4) + 'px';
+  e.innerHTML = '<div class="ma-back"></div>' +
+    (letter ? '<div class="ma-letter"><b>' + maEsc(letter.title || 'A letter') + ' ♥</b><p>' + maEsc((letter.body || '').slice(0, 220)) + '</p></div>' : '') +
+    '<div class="ma-front"></div><div class="ma-flap"><i class="o"></i><i class="b"></i></div>' +
+    '<div class="ma-seal"><img alt="" src="art/heart.png"></div>';
+  layer.appendChild(e);
+  return { el: e, flap: e.querySelector('.ma-flap'), seal: e.querySelector('.ma-seal'), letter: e.querySelector('.ma-letter'), front: e.querySelector('.ma-front') };
+}
+function maSparkle(layer, x, y, n) {
+  for (var i = 0; i < n; i++) {
+    var s = document.createElement('div'); s.className = 'ma-spark'; s.style.left = (x - 8) + 'px'; s.style.top = (y - 8) + 'px'; layer.appendChild(s);
+    var a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.55, d = 46 + (i % 2) * 18;
+    maAnim(s, [{ transform: 'translate(0,0) scale(.3)', opacity: 0 }, { opacity: 1, offset: 0.25 }, { transform: 'translate(' + Math.cos(a) * d + 'px,' + Math.sin(a) * d + 'px) scale(1)', opacity: 0 }], { duration: 900, delay: i * 50, easing: 'cubic-bezier(.2,.8,.3,1)' });
+  }
+}
+
+/* ---------------- sending: fold in three, into the envelope, seal, stamp, fly ---------------- */
+function mailAnimSend(paperEl, letter, onDone) {
+  var r = paperEl.getBoundingClientRect(), layer = maLayer();
+  var finish = function () { layer.remove(); onDone && onDone(); };
+  if (reduceMotion) {
+    paperEl.style.transition = 'opacity .25s'; paperEl.style.opacity = '0';
+    setTimeout(function () { paperEl.style.opacity = ''; paperEl.style.transition = ''; finish(); }, 260); return;
+  }
+  /* the sheet: three panels showing slices of the same letter, so the words fold with the paper */
+  var W = r.width, H = r.height, third = H / 3;
+  var sheet = document.createElement('div'); sheet.className = 'ma-sheet';
+  sheet.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + W + 'px;height:' + H + 'px;perspective:' + (W * 3) + 'px';
+  var content = '<b>' + maEsc(letter.title) + ' ♥</b><p>' + maEsc(letter.body) + '</p>';
+  function panel(i) {
+    var p = document.createElement('div'); p.className = 'ma-panel';
+    p.style.cssText = 'top:' + (third * i) + 'px;height:' + third + 'px;transform-origin:50% ' + (i === 2 ? '0%' : i === 0 ? '100%' : '50%');
+    p.innerHTML = '<i class="f"><div style="top:' + (-third * i) + 'px">' + content + '</div><span class="ma-shade"></span></i><i class="b"></i>';
+    sheet.appendChild(p); return p;
+  }
+  var top = panel(0), mid = panel(1), bot = panel(2);
+  layer.appendChild(sheet);
+  paperEl.style.visibility = 'hidden';
+  var shade = function (p) { return p.querySelector('.ma-shade'); };
+  var ease = 'cubic-bezier(.45,0,.25,1)';
+  var t0 = 0, FOLD = 520;
+  var A = [];
+  A.push(maAnim(sheet, [{ transform: 'rotateX(0)' }, { transform: 'rotateX(14deg)' }], { duration: 260, easing: 'ease-out' }));
+  /* bottom third folds up over the middle, springs back a touch, settles */
+  A.push(maAnim(bot, [{ transform: 'rotateX(0)' }, { transform: 'rotateX(172deg) translateZ(1px)', offset: 0.8 }, { transform: 'rotateX(166deg) translateZ(1px)', offset: 0.9 }, { transform: 'rotateX(179deg) translateZ(1px)' }], { duration: FOLD, delay: 220, easing: ease }));
+  A.push(maAnim(shade(bot), [{ opacity: 0 }, { opacity: 0.28, offset: 0.5 }, { opacity: 0 }], { duration: FOLD, delay: 220 }));
+  /* then the top third comes down and presses it flat */
+  A.push(maAnim(top, [{ transform: 'rotateX(0)' }, { transform: 'rotateX(-179deg) translateZ(2px)' }], { duration: FOLD, delay: 220 + FOLD - 60, easing: ease }));
+  A.push(maAnim(shade(top), [{ opacity: 0 }, { opacity: 0.3, offset: 0.5 }, { opacity: 0 }], { duration: FOLD, delay: 220 + FOLD - 60 }));
+  var folded = 220 + FOLD * 2 - 60;
+  /* the folded strip (the middle third) shrinks to letter size and drops into the envelope */
+  var ew = Math.min(240, innerWidth * 0.62), eh = ew * 0.62, ex = innerWidth / 2 - ew / 2, ey = Math.min(innerHeight * 0.62, r.top + H * 0.55);
+  var env = maEnvelope(layer, ex, ey + 90, ew, eh, null);
+  layer.appendChild(sheet);                           /* keep the letter in front of the open envelope while it comes down */
+  env.el.style.opacity = '0';
+  env.flap.style.transform = 'scaleY(-1)'; env.flap.style.zIndex = '1'; env.flap.classList.add('in');
+  env.seal.style.transform = 'scale(0)';
+  var stamp = document.createElement('div'); stamp.className = 'ma-stamp'; stamp.innerHTML = '<img alt="" src="art/heart.png">'; stamp.style.opacity = '0'; env.el.appendChild(stamp);
+  maAnim(env.el, [{ transform: 'translateY(60px)', opacity: 0 }, { transform: 'translateY(-90px)', opacity: 1 }], { duration: 480, delay: folded - 200, easing: 'cubic-bezier(.2,.9,.3,1.15)' });
+  var midTop = r.top + third, cx = r.left + W / 2, cy = midTop + third / 2;
+  var targetW = ew * 0.82, k = targetW / W, tx = (ex + ew / 2) - cx, ty = (ey - 90 + eh * 0.36) - cy;
+  A.push(maAnim(sheet, [
+    { transform: 'rotateX(14deg) translate(0,0) scale(1)', transformOrigin: (W / 2) + 'px ' + (third * 1.5) + 'px' },
+    { transform: 'rotateX(0) translate(' + tx + 'px,' + (ty - eh * 0.6) + 'px) scale(' + k + ')', transformOrigin: (W / 2) + 'px ' + (third * 1.5) + 'px', offset: 0.6 },
+    { transform: 'rotateX(0) translate(' + tx + 'px,' + ty + 'px) scale(' + k + ')', transformOrigin: (W / 2) + 'px ' + (third * 1.5) + 'px' }
+  ], { duration: 700, delay: folded + 60, easing: 'cubic-bezier(.4,0,.2,1)' }));
+  var inside = folded + 60 + 700;
+  setTimeout(function () {
+    /* the letter is in: swap the flying sheet for a letter tucked behind the front pocket (same place, no blink) */
+    sheet.style.opacity = '0';
+    var l = document.createElement('div'); l.className = 'ma-letter'; l.style.cssText = 'top:' + (36 - third * k / eh * 50) + '%;height:' + (third * k / eh * 100) + '%;min-height:30%'; l.innerHTML = '<b>' + maEsc(letter.title) + '</b>';
+    env.el.insertBefore(l, env.front);
+    /* flap closes, seal pops on with a squash and bounce, a stamp drops in */
+    var close = maAnim(env.flap, [{ transform: 'scaleY(-1)', zIndex: 1 }, { transform: 'scaleY(-0.02)', zIndex: 1, offset: 0.5 }, { transform: 'scaleY(0.02)', zIndex: 4, offset: 0.51 }, { transform: 'scaleY(1.06)', zIndex: 4, offset: 0.85 }, { transform: 'scaleY(1)', zIndex: 4 }], { duration: 440, easing: 'cubic-bezier(.45,0,.25,1)' });
+    setTimeout(function () { env.flap.classList.remove('in'); }, 220);
+    maAnim(env.seal, [{ transform: 'scale(0)' }, { transform: 'scale(1.35,0.8)', offset: 0.55 }, { transform: 'scale(0.9,1.1)', offset: 0.75 }, { transform: 'scale(1)' }], { duration: 420, delay: 400, easing: 'ease-out' });
+    maAnim(stamp, [{ transform: 'translateY(-40px) rotate(-12deg)', opacity: 0 }, { transform: 'translateY(4px) rotate(4deg)', opacity: 1, offset: 0.7 }, { transform: 'translateY(0) rotate(3deg)', opacity: 1 }], { duration: 380, delay: 700, easing: 'cubic-bezier(.3,1.4,.6,1)' });
+    setTimeout(function () { maSparkle(layer, ex + ew / 2, ey - 90 + eh * 0.58, 5); if (typeof playSound === 'function') playSound('heart'); }, 520);
+    /* a short hold, then off it flies on a curve, up and to the right, turning and shrinking */
+    var fly = maAnim(env.el, [
+      { transform: 'translate(0,-90px) rotate(0) scale(1)', opacity: 1 },
+      { transform: 'translate(-12px,-80px) rotate(-4deg) scale(1)', opacity: 1, offset: 0.12 },
+      { transform: 'translate(' + innerWidth * 0.18 + 'px,' + (-innerHeight * 0.28) + 'px) rotate(-12deg) scale(.7)', opacity: 1, offset: 0.55 },
+      { transform: 'translate(' + innerWidth * 0.42 + 'px,' + (-innerHeight * 0.72) + 'px) rotate(-22deg) scale(.25)', opacity: 0 }
+    ], { duration: 950, delay: 1450, easing: 'cubic-bezier(.45,0,.6,1)' });
+    fly.finished.then(function () { paperEl.style.visibility = ''; finish(); }, finish);
+  }, inside);
+}
+
+/* ---------------- opening: seal pops, flap flips open, letter slides up ---------------- */
+function mailAnimOpen(letter, onDone, fromEl) {
+  if (reduceMotion) { onDone && onDone(); return; }
+  var layer = maLayer(), ew = Math.min(280, innerWidth * 0.72), eh = ew * 0.62, ex = innerWidth / 2 - ew / 2, ey = innerHeight * 0.52 - eh / 2;
+  var env = maEnvelope(layer, ex, ey, ew, eh, letter);
+  layer.style.background = 'rgba(40,15,20,0)';
+  maAnim(layer, [{ background: 'rgba(40,15,20,0)' }, { background: 'rgba(40,15,20,.35)' }], { duration: 300 });
+  var from = fromEl && fromEl.getBoundingClientRect(), start = 'translateY(40px) scale(.85)';
+  if (from && from.width) {                          /* it grows out of the envelope you tapped */
+    var k0 = from.width / ew, dx = from.left + from.width / 2 - (ex + ew / 2), dy = from.top + from.height / 2 - (ey + eh / 2);
+    start = 'translate(' + dx + 'px,' + dy + 'px) scale(' + k0 + ')';
+    fromEl.style.visibility = 'hidden';
+  }
+  maAnim(env.el, [{ transform: start, opacity: 1 }, { transform: 'translate(0,0) scale(1)', opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.2,.9,.3,1.1)' });
+  var T = 440;
+  /* the wax seal pops */
+  maAnim(env.seal, [{ transform: 'scale(1)' }, { transform: 'scale(1.3)', offset: 0.4 }, { transform: 'scale(0)', opacity: 0 }], { duration: 340, delay: T, easing: 'ease-in' });
+  setTimeout(function () { maSparkle(layer, ex + ew / 2, ey + eh * 0.58, 4); if (typeof playSound === 'function') playSound('chime'); }, T + 160);
+  /* the flap flips open with a little overshoot, then sits behind the letter */
+  maAnim(env.flap, [{ transform: 'scaleY(1)', zIndex: 4 }, { transform: 'scaleY(0.02)', zIndex: 4, offset: 0.45 }, { transform: 'scaleY(-0.02)', zIndex: 1, offset: 0.46 }, { transform: 'scaleY(-1.12)', zIndex: 1, offset: 0.8 }, { transform: 'scaleY(-1)', zIndex: 1 }], { duration: 520, delay: T + 280, easing: 'cubic-bezier(.4,0,.2,1)' });
+  setTimeout(function () { env.flap.classList.add('in'); }, T + 280 + 240);
+  /* the letter slides up and out, the envelope gives a small squash */
+  var up = maAnim(env.letter, [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (-eh * 0.82) + 'px)', offset: 0.8 }, { transform: 'translateY(' + (-eh * 0.74) + 'px)' }], { duration: 760, delay: T + 640, easing: 'cubic-bezier(.3,1.3,.5,1)' });
+  maAnim(env.el, [{ transform: 'scale(1,1)' }, { transform: 'scale(1.02,.95)', offset: 0.4 }, { transform: 'scale(1,1)' }], { duration: 360, delay: T + 640, easing: 'ease-out' });
+  up.finished.then(function () {
+    /* hand over to the reading page: the scene fades as the letter page appears beneath */
+    onDone && onDone();
+    var out = maAnim(layer, [{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out' });
+    out.finished.then(function () { layer.remove(); }, function () { layer.remove(); });
+  }, function () { layer.remove(); onDone && onDone(); });
+}
+
 /* ---- features/mail.js ---- */
 /* Mail: the post office between our homes (design: docs/MAIL.md, style: STYLE.md).
    On the map it is a little island; with mail waiting it glows and an envelope
@@ -7807,6 +8069,7 @@ function mailEnsure() {
     /* reading */
     '.m-read{width:min(100%,560px);display:flex;flex-direction:column;align-items:center}',
     '.m-read .m-paper{animation:mUnfold .55s cubic-bezier(.2,.8,.2,1) both}',
+    '.m-read.calm .m-paper{animation:mCalm .35s ease-out both}.m-read.calm .under{display:none}@keyframes mCalm{from{opacity:0;transform:translateY(-14px)}}',
     '@keyframes mUnfold{0%{transform:translateY(60px) scaleY(.15);opacity:0}60%{opacity:1}100%{transform:none}}',
     '.m-read .under{width:150px;margin-top:-6px;image-rendering:pixelated;animation:mFlap .4s ease-out both}@keyframes mFlap{from{transform:translateY(-30px);opacity:0}}',
     '.m-nav{display:flex;align-items:center;gap:12px;margin-top:12px;color:var(--cream);font-family:var(--fdisp)}',
@@ -7917,7 +8180,7 @@ function mailTabHtml() {
 }
 function mailReadHtml() {
   var m = MAIL.read, list = MAIL.list, mine = m.from === S.who;
-  return '<div class="m-read"><div class="m-paper"><h3>' + esc(m.title || 'A letter') + ' ♥</h3><div class="txt">' + esc(m.body || '') + '</div>' +
+  return '<div class="m-read' + (MAIL.calm ? ' calm' : '') + '"><div class="m-paper"><h3>' + esc(m.title || 'A letter') + ' ♥</h3><div class="txt">' + esc(m.body || '') + '</div>' +
     '<div class="meta">' + (mine ? 'to ' + esc(shortName(m.to)) : 'from ' + esc(shortName(m.from))) + ' · ' + mailDate(m.at) + '</div></div>' +
     '<img class="under" alt="" src="art/mail/env-gold.png">' +
     (list ? '<div class="m-nav"><button class="m-btn" type="button" data-m="prev"' + (MAIL.idx <= 0 ? ' disabled' : '') + ' aria-label="Newer letter">‹</button>' +
@@ -7939,7 +8202,9 @@ function mailClick(e) {
   if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; return mailRender(); }
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;
-    MAIL.read = m; MAIL.list = null; mailMarkOpened(m); return mailRender();
+    /* a new letter arrives as an envelope: the seal pops, the flap opens, the letter slides up, then it is read */
+    MAIL.busy = true;
+    return mailAnimOpen(m, function () { MAIL.busy = false; MAIL.read = m; MAIL.list = null; MAIL.calm = true; mailMarkOpened(m); mailRender(); MAIL.calm = false; }, b.querySelector('img') || b);
   }
   if (a === 'look') {
     MAIL.list = mailAll(); MAIL.idx = parseInt(b.dataset.i, 10) || 0; MAIL.read = MAIL.list[MAIL.idx];
@@ -7974,20 +8239,12 @@ function mailSend() {
   if (!body) { toast('Write your letter first.', '✏️', 2600); document.getElementById('mBody').focus(); return; }
   var m = { id: uid(), title: title, body: body, from: S.who, to: other(S.who), at: Date.now(), openedAt: null };
   MAIL.busy = true;
-  var paper = document.getElementById('mPaper'), r = paper.getBoundingClientRect();
-  if (!reduceMotion) paper.classList.add('m-fold');
-  setTimeout(function () {
-    if (!reduceMotion) {
-      var f = document.createElement('img'); f.className = 'm-fly'; f.alt = ''; f.src = 'art/mail/env-gold.png';
-      f.style.left = (r.left + r.width / 2 - 55) + 'px'; f.style.top = (r.top + r.height / 2 - 40) + 'px';
-      document.body.appendChild(f); setTimeout(function () { f.remove(); }, 1200);
-    }
-    mailSave(m);
-    if (typeof playSound === 'function') playSound('heart');
-    if (window.earnHearts) earnHearts(1, 'letter');
-    toast('Sent to ' + shortName(m.to) + ' ♥', '✉️', 3000);
+  mailSave(m);                                          /* saved straight away: nothing is lost if the animation is cut short */
+  if (window.earnHearts) earnHearts(1, 'letter');
+  mailAnimSend(document.getElementById('mPaper'), m, function () {
+    toast('Sent to ' + shortName(m.to) + ' \u2665', '\u2709\ufe0f', 3000);
     MAIL.busy = false; MAIL.tab = 'letters'; mailRender();
-  }, reduceMotion ? 0 : 420);
+  });
 }
 
 /* a little nudge on the map when something new arrives */

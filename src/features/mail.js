@@ -128,6 +128,7 @@ function mailEnsure() {
     /* reading */
     '.m-read{width:min(100%,560px);display:flex;flex-direction:column;align-items:center}',
     '.m-read .m-paper{animation:mUnfold .55s cubic-bezier(.2,.8,.2,1) both}',
+    '.m-read.calm .m-paper{animation:mCalm .35s ease-out both}.m-read.calm .under{display:none}@keyframes mCalm{from{opacity:0;transform:translateY(-14px)}}',
     '@keyframes mUnfold{0%{transform:translateY(60px) scaleY(.15);opacity:0}60%{opacity:1}100%{transform:none}}',
     '.m-read .under{width:150px;margin-top:-6px;image-rendering:pixelated;animation:mFlap .4s ease-out both}@keyframes mFlap{from{transform:translateY(-30px);opacity:0}}',
     '.m-nav{display:flex;align-items:center;gap:12px;margin-top:12px;color:var(--cream);font-family:var(--fdisp)}',
@@ -238,7 +239,7 @@ function mailTabHtml() {
 }
 function mailReadHtml() {
   var m = MAIL.read, list = MAIL.list, mine = m.from === S.who;
-  return '<div class="m-read"><div class="m-paper"><h3>' + esc(m.title || 'A letter') + ' ♥</h3><div class="txt">' + esc(m.body || '') + '</div>' +
+  return '<div class="m-read' + (MAIL.calm ? ' calm' : '') + '"><div class="m-paper"><h3>' + esc(m.title || 'A letter') + ' ♥</h3><div class="txt">' + esc(m.body || '') + '</div>' +
     '<div class="meta">' + (mine ? 'to ' + esc(shortName(m.to)) : 'from ' + esc(shortName(m.from))) + ' · ' + mailDate(m.at) + '</div></div>' +
     '<img class="under" alt="" src="art/mail/env-gold.png">' +
     (list ? '<div class="m-nav"><button class="m-btn" type="button" data-m="prev"' + (MAIL.idx <= 0 ? ' disabled' : '') + ' aria-label="Newer letter">‹</button>' +
@@ -260,7 +261,9 @@ function mailClick(e) {
   if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; return mailRender(); }
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;
-    MAIL.read = m; MAIL.list = null; mailMarkOpened(m); return mailRender();
+    /* a new letter arrives as an envelope: the seal pops, the flap opens, the letter slides up, then it is read */
+    MAIL.busy = true;
+    return mailAnimOpen(m, function () { MAIL.busy = false; MAIL.read = m; MAIL.list = null; MAIL.calm = true; mailMarkOpened(m); mailRender(); MAIL.calm = false; }, b.querySelector('img') || b);
   }
   if (a === 'look') {
     MAIL.list = mailAll(); MAIL.idx = parseInt(b.dataset.i, 10) || 0; MAIL.read = MAIL.list[MAIL.idx];
@@ -295,20 +298,12 @@ function mailSend() {
   if (!body) { toast('Write your letter first.', '✏️', 2600); document.getElementById('mBody').focus(); return; }
   var m = { id: uid(), title: title, body: body, from: S.who, to: other(S.who), at: Date.now(), openedAt: null };
   MAIL.busy = true;
-  var paper = document.getElementById('mPaper'), r = paper.getBoundingClientRect();
-  if (!reduceMotion) paper.classList.add('m-fold');
-  setTimeout(function () {
-    if (!reduceMotion) {
-      var f = document.createElement('img'); f.className = 'm-fly'; f.alt = ''; f.src = 'art/mail/env-gold.png';
-      f.style.left = (r.left + r.width / 2 - 55) + 'px'; f.style.top = (r.top + r.height / 2 - 40) + 'px';
-      document.body.appendChild(f); setTimeout(function () { f.remove(); }, 1200);
-    }
-    mailSave(m);
-    if (typeof playSound === 'function') playSound('heart');
-    if (window.earnHearts) earnHearts(1, 'letter');
-    toast('Sent to ' + shortName(m.to) + ' ♥', '✉️', 3000);
+  mailSave(m);                                          /* saved straight away: nothing is lost if the animation is cut short */
+  if (window.earnHearts) earnHearts(1, 'letter');
+  mailAnimSend(document.getElementById('mPaper'), m, function () {
+    toast('Sent to ' + shortName(m.to) + ' \u2665', '\u2709\ufe0f', 3000);
     MAIL.busy = false; MAIL.tab = 'letters'; mailRender();
-  }, reduceMotion ? 0 : 420);
+  });
 }
 
 /* a little nudge on the map when something new arrives */
