@@ -229,21 +229,21 @@ function songBtn(act, v, label, on) {
 }
 function openSongs() {
   var rows = LIB.map(function (s) {
-    var b = SEL.bg.indexOf(s.id) >= 0, e = SEL.env[0] === s.id;
+    var b = SEL.bg.indexOf(s.id) >= 0, e = SEL.env.indexOf(s.id) >= 0;
     return '<div style="margin:10px 0"><div class="sheet-actions" style="align-items:center"><span class="grow"><b>' + esc(s.name) + '</b></span>' +
       songBtn('song-ren', s.id, '✎') + songBtn('song-del', s.id, '✕') + '</div>' +
       '<div class="sheet-actions" style="align-items:center">' + songBtn('song-prev', s.id, PRE.on === s.id ? '■ Stop' : '▶ Play') +
       songBtn('song-bg', s.id, 'Background ' + (b ? 'on' : 'off'), b) +
       songBtn('song-env', s.id, e ? 'In letters ✓' : 'Use in letters', e) + '</div></div>';
   }).join('');
-  var env = songById(SEL.env[0]);
+  var envNames = SEL.env.map(function (i) { return (songById(i) || {}).name; }).filter(Boolean);
   openSheet(head('Your songs', 'MP3s for the map and for letters') +
-    '<p class="note">Upload MP3s and name them. <b>Background</b> on/off decides which songs play behind the map (several play in order, fading into each other). Pick one song for letters, or none, and it loops while a letter is open.</p>' +
-    '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button></div>' +
+    '<p class="note">Upload MP3s and name them. <b>Background</b> on/off decides which songs play behind the map (several play in order, fading into each other). Choose one, several or all songs for letters (or none); they play while a letter is open, and a single song loops. Each letter can also pick its own when you write it.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button>' + (LIB.length > 1 ? songBtn('song-bgall', 'on', 'All background on') + songBtn('song-bgall', 'off', 'All off') : '') + '</div>' +
     (rows ? sectionTitle('Library') + rows : '<p class="hint">No songs yet.</p>') +
     sectionTitle('Letter music') +
-    '<p class="hint">' + (env ? esc(env.name) + ' (on loop)' : 'None — letters open in silence.') + '</p>' +
-    (env ? '<div class="sheet-actions">' + songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + songBtn('song-envnone', 'x', 'No song') + '</div>' : '') +
+    '<p class="hint">' + (envNames.length ? esc(envNames.join(' → ')) + (envNames.length === 1 ? ' (on loop)' : '') : 'None — letters open in silence.') + '</p>' +
+    '<div class="sheet-actions">' + (envNames.length ? songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + songBtn('song-envnone', 'x', 'No song') : '') + (LIB.length > 1 ? songBtn('song-envall', 'x', 'All songs in letters') : '') + '</div>' +
     '<p class="hint">Turn background songs on under Atmosphere → Your own songs.</p>' +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="atmos">Back</button></div>');
 }
@@ -256,7 +256,9 @@ ACTIONS['song-pick'] = function () {
   inp.click();
 };
 ACTIONS['song-bg'] = function (b) { songToggle('bg', b.dataset.v); openSongs(); };
-ACTIONS['song-env'] = function (b) { songPreviewStop(); SEL.env = SEL.env[0] === b.dataset.v ? [] : [b.dataset.v]; selSave(); openSongs(); };
+ACTIONS['song-env'] = function (b) { songPreviewStop(); var i = SEL.env.indexOf(b.dataset.v); if (i < 0) SEL.env.push(b.dataset.v); else SEL.env.splice(i, 1); selSave(); openSongs(); };
+ACTIONS['song-envall'] = function () { songPreviewStop(); SEL.env = LIB.map(function (x) { return x.id; }); selSave(); openSongs(); };
+ACTIONS['song-bgall'] = function (b) { SEL.bg = b.dataset.v === 'on' ? LIB.map(function (x) { return x.id; }) : []; selSave(); bgP.stop(true); startSongs(); openSongs(); };
 ACTIONS['song-envnone'] = function () { songPreviewStop(); SEL.env = []; selSave(); openSongs(); };
 ACTIONS['song-ren'] = function (b) { var sg = songById(b.dataset.v); if (!sg) return; var nm = prompt('Rename song:', sg.name); if (nm && nm.trim()) songRename(b.dataset.v, nm.trim().slice(0, 60), openSongs); };
 ACTIONS['song-prev'] = function (b) { songPreview(b.dataset.v); openSongs(); };

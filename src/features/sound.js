@@ -215,7 +215,7 @@ function songToggle(slot, id) {
 /* --- one player: plays its slot's songs in order, crossfading, looping forever --- */
 var ALLA = [];                                      /* every song element ever started, so mute can silence them all */
 function Player(slot, vol) { this.slot = slot; this.vol = vol; this.i = 0; this.live = []; this.timer = null; this.closing = false; this.paused = false; }
-Player.prototype.urls = function () { return (this.over ? [this.over] : SEL[this.slot]).map(songById).filter(Boolean); };
+Player.prototype.urls = function () { return (this.over || SEL[this.slot]).map(songById).filter(Boolean); };
 Player.prototype.has = function () { return this.urls().length > 0; };
 Player.prototype.next = function () {
   var l = this.urls(); if (!l.length) return;
@@ -275,14 +275,20 @@ function songPreviewStop() {
 }
 
 /* envelope song: the background pauses while a letter is open, then comes back */
-/* songId: this letter's own song; 'none' = silence; empty = the default letter song (if any) */
-function envSongStart(songId) {
-  var over = songId && songId !== 'none' && songById(songId) ? songId : null;
-  var want = songId === 'none' ? [] : (over ? [over] : SEL.env);
+/* spec: a song id, a list of ids, 'all', 'none' (silence), or empty = the usual letter songs */
+function envSongStart(spec) {
+  if (spec === 'none') { envSongStop(); return; }
+  var ids = null;
+  if (spec === 'all') ids = LIB.map(function (x) { return x.id; });
+  else if (Array.isArray(spec)) ids = spec.filter(songById);
+  else if (spec && songById(spec)) ids = [spec];
+  if (ids && !ids.length) ids = null;
+  var want = ids || SEL.env;
   if (!want.length) { envSongStop(); return; }
-  if (envP.timer && !envP.closing && (envP.over || null) === over) { envP.resume(); return; }
+  var key = ids ? ids.join(',') : '';
+  if (envP.timer && !envP.closing && (envP.key || '') === key) { envP.resume(); return; }
   preP.stop(true); PRE.on = null;
-  envP.stop(true); envP.over = over;
+  envP.stop(true); envP.over = ids; envP.key = key;
   bgP.pause(); envP.start();
 }
 function envSongStop() {

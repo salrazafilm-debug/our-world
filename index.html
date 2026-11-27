@@ -6978,7 +6978,7 @@ function songToggle(slot, id) {
 /* --- one player: plays its slot's songs in order, crossfading, looping forever --- */
 var ALLA = [];                                      /* every song element ever started, so mute can silence them all */
 function Player(slot, vol) { this.slot = slot; this.vol = vol; this.i = 0; this.live = []; this.timer = null; this.closing = false; this.paused = false; }
-Player.prototype.urls = function () { return (this.over ? [this.over] : SEL[this.slot]).map(songById).filter(Boolean); };
+Player.prototype.urls = function () { return (this.over || SEL[this.slot]).map(songById).filter(Boolean); };
 Player.prototype.has = function () { return this.urls().length > 0; };
 Player.prototype.next = function () {
   var l = this.urls(); if (!l.length) return;
@@ -7038,14 +7038,20 @@ function songPreviewStop() {
 }
 
 /* envelope song: the background pauses while a letter is open, then comes back */
-/* songId: this letter's own song; 'none' = silence; empty = the default letter song (if any) */
-function envSongStart(songId) {
-  var over = songId && songId !== 'none' && songById(songId) ? songId : null;
-  var want = songId === 'none' ? [] : (over ? [over] : SEL.env);
+/* spec: a song id, a list of ids, 'all', 'none' (silence), or empty = the usual letter songs */
+function envSongStart(spec) {
+  if (spec === 'none') { envSongStop(); return; }
+  var ids = null;
+  if (spec === 'all') ids = LIB.map(function (x) { return x.id; });
+  else if (Array.isArray(spec)) ids = spec.filter(songById);
+  else if (spec && songById(spec)) ids = [spec];
+  if (ids && !ids.length) ids = null;
+  var want = ids || SEL.env;
   if (!want.length) { envSongStop(); return; }
-  if (envP.timer && !envP.closing && (envP.over || null) === over) { envP.resume(); return; }
+  var key = ids ? ids.join(',') : '';
+  if (envP.timer && !envP.closing && (envP.key || '') === key) { envP.resume(); return; }
   preP.stop(true); PRE.on = null;
-  envP.stop(true); envP.over = over;
+  envP.stop(true); envP.over = ids; envP.key = key;
   bgP.pause(); envP.start();
 }
 function envSongStop() {
@@ -8432,7 +8438,10 @@ function mailTabHtml() {
     return '<div class="m-paper m-compose" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
       '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" maxlength="60" placeholder="Tonight ♥"></div>' +
       '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" maxlength="4000" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
-      '<div class="m-field"><label for="mSong">Song when it is opened</label><select id="mSong" style="font:inherit;font-size:16px;background:rgba(255,248,231,.38);border:0;border-bottom:2px solid #A87559;padding:8px 2px"><option value="">' + (typeof SEL !== 'undefined' && SEL.env.length ? 'My usual letter song' : 'No song') + '</option>' + (typeof LIB !== 'undefined' ? LIB.map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>'; }).join('') : '') + '<option value="none">Silence</option></select></div>' +
+      '<div class="m-field"><label>Songs when it is opened <small>(leave empty for my usual)</small></label><div id="mSongs" style="display:flex;flex-direction:column;gap:4px;font-size:15px">' +
+        '<label><input type="checkbox" value="all"> All songs</label>' +
+        (typeof LIB !== 'undefined' ? LIB.map(function (s) { return '<label><input type="checkbox" value="' + esc(s.id) + '"> ' + esc(s.name) + '</label>'; }).join('') : '') +
+        '<label><input type="checkbox" value="none"> Silence</label></div></div>' +
       '<div class="m-tools"><button class="m-btn" type="button" data-m="heart" aria-label="Add a heart">♥</button><span class="grow"></span>' +
       '<button class="m-btn primary" type="button" data-m="send"><img alt="" src="art/mail/env-row.png">Send</button></div></div>';
   }
@@ -8520,7 +8529,8 @@ function mailSend() {
   if (!title) { toast('Give your letter a title first.', '✏️', 2600); document.getElementById('mTitle').focus(); return; }
   if (!body) { toast('Write your letter first.', '✏️', 2600); document.getElementById('mBody').focus(); return; }
   var m = { id: uid(), title: title, body: body, from: S.who, to: other(S.who), at: Date.now(), openedAt: null };
-  var sg = document.getElementById('mSong'); if (sg && sg.value) m.songId = sg.value;
+  var picked = [].slice.call(document.querySelectorAll('#mSongs input:checked')).map(function (x) { return x.value; });
+  if (picked.indexOf('none') >= 0) m.songId = 'none'; else if (picked.indexOf('all') >= 0) m.songId = 'all'; else if (picked.length) m.songId = picked;
   MAIL.busy = true;
   mailSave(m);                                          /* saved straight away: nothing is lost if the animation is cut short */
   if (window.earnHearts) earnHearts(1, 'letter');
@@ -9524,21 +9534,21 @@ function songBtn(act, v, label, on) {
 }
 function openSongs() {
   var rows = LIB.map(function (s) {
-    var b = SEL.bg.indexOf(s.id) >= 0, e = SEL.env[0] === s.id;
+    var b = SEL.bg.indexOf(s.id) >= 0, e = SEL.env.indexOf(s.id) >= 0;
     return '<div style="margin:10px 0"><div class="sheet-actions" style="align-items:center"><span class="grow"><b>' + esc(s.name) + '</b></span>' +
       songBtn('song-ren', s.id, '✎') + songBtn('song-del', s.id, '✕') + '</div>' +
       '<div class="sheet-actions" style="align-items:center">' + songBtn('song-prev', s.id, PRE.on === s.id ? '■ Stop' : '▶ Play') +
       songBtn('song-bg', s.id, 'Background ' + (b ? 'on' : 'off'), b) +
       songBtn('song-env', s.id, e ? 'In letters ✓' : 'Use in letters', e) + '</div></div>';
   }).join('');
-  var env = songById(SEL.env[0]);
+  var envNames = SEL.env.map(function (i) { return (songById(i) || {}).name; }).filter(Boolean);
   openSheet(head('Your songs', 'MP3s for the map and for letters') +
-    '<p class="note">Upload MP3s and name them. <b>Background</b> on/off decides which songs play behind the map (several play in order, fading into each other). Pick one song for letters, or none, and it loops while a letter is open.</p>' +
-    '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button></div>' +
+    '<p class="note">Upload MP3s and name them. <b>Background</b> on/off decides which songs play behind the map (several play in order, fading into each other). Choose one, several or all songs for letters (or none); they play while a letter is open, and a single song loops. Each letter can also pick its own when you write it.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button>' + (LIB.length > 1 ? songBtn('song-bgall', 'on', 'All background on') + songBtn('song-bgall', 'off', 'All off') : '') + '</div>' +
     (rows ? sectionTitle('Library') + rows : '<p class="hint">No songs yet.</p>') +
     sectionTitle('Letter music') +
-    '<p class="hint">' + (env ? esc(env.name) + ' (on loop)' : 'None — letters open in silence.') + '</p>' +
-    (env ? '<div class="sheet-actions">' + songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + songBtn('song-envnone', 'x', 'No song') + '</div>' : '') +
+    '<p class="hint">' + (envNames.length ? esc(envNames.join(' → ')) + (envNames.length === 1 ? ' (on loop)' : '') : 'None — letters open in silence.') + '</p>' +
+    '<div class="sheet-actions">' + (envNames.length ? songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + songBtn('song-envnone', 'x', 'No song') : '') + (LIB.length > 1 ? songBtn('song-envall', 'x', 'All songs in letters') : '') + '</div>' +
     '<p class="hint">Turn background songs on under Atmosphere → Your own songs.</p>' +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="atmos">Back</button></div>');
 }
@@ -9551,7 +9561,9 @@ ACTIONS['song-pick'] = function () {
   inp.click();
 };
 ACTIONS['song-bg'] = function (b) { songToggle('bg', b.dataset.v); openSongs(); };
-ACTIONS['song-env'] = function (b) { songPreviewStop(); SEL.env = SEL.env[0] === b.dataset.v ? [] : [b.dataset.v]; selSave(); openSongs(); };
+ACTIONS['song-env'] = function (b) { songPreviewStop(); var i = SEL.env.indexOf(b.dataset.v); if (i < 0) SEL.env.push(b.dataset.v); else SEL.env.splice(i, 1); selSave(); openSongs(); };
+ACTIONS['song-envall'] = function () { songPreviewStop(); SEL.env = LIB.map(function (x) { return x.id; }); selSave(); openSongs(); };
+ACTIONS['song-bgall'] = function (b) { SEL.bg = b.dataset.v === 'on' ? LIB.map(function (x) { return x.id; }) : []; selSave(); bgP.stop(true); startSongs(); openSongs(); };
 ACTIONS['song-envnone'] = function () { songPreviewStop(); SEL.env = []; selSave(); openSongs(); };
 ACTIONS['song-ren'] = function (b) { var sg = songById(b.dataset.v); if (!sg) return; var nm = prompt('Rename song:', sg.name); if (nm && nm.trim()) songRename(b.dataset.v, nm.trim().slice(0, 60), openSongs); };
 ACTIONS['song-prev'] = function (b) { songPreview(b.dataset.v); openSongs(); };
