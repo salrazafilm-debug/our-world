@@ -4561,19 +4561,20 @@ function drawStoryRoadsRaw(g){
 /* ---- world/osm-roads.js ---- */
 /* Real streets from OpenStreetMap (c) OpenStreetMap contributors, ODbL.
    data/roads/index.json lists the areas we have; an area's file is fetched only when you look at it.
-   Roads are drawn into the cached scenery layer (below trees and every place), as sandy paths with a darker
-   edge. Bigger roads show first, small streets fade in as you zoom closer. Trees and flowers keep off them.
+   Roads are drawn into the cached scenery layer (below trees and every place), as grey streets with a darker
+   kerb. tools/simplify-roads.js keeps the set small so they stay clear. Bigger roads show first, small streets fade in as you zoom closer. Trees and flowers keep off them.
    Made by tools/osm-roads.js. Style rules: STYLE.md. */
 var OSMR = { index: null, indexLoading: false, areas: {}, loading: {}, segs: [], grid: new Map(), ready: false, failed: false };
 var OSM_CELL = 0.0025;
 var OSM_HOUSES = [];                                    /* where the tiny neighbourhood houses were drawn (screen px) */                                   /* grid cell in degrees (about 280 m) for the "is a road near here" lookup */
 /* class: 0 highway, 1 main road, 2 secondary, 3 street, 4 small street */
-var OSM_STYLE = [
-  { z0: 7.0, z1: 8.6, w: 7.6, edge: '#bdc5b8', fill: '#8195a0' },
-  { z0: 8.8, z1: 10.0, w: 6.4, edge: '#b6a175', fill: '#e4ca95' },
-  { z0: 9.4, z1: 10.6, w: 5.6, edge: '#b6a175', fill: '#e8d3a0' },
-  { z0: 10.0, z1: 11.2, w: 4.6, edge: '#bda980', fill: '#ecd9aa' },
-  { z0: 10.7, z1: 11.9, w: 3.6, edge: '#c2b08a', fill: '#efdeb4' }
+var OSM_STYLE = [                                       /* street greys: soft asphalt with a darker kerb, lighter for smaller streets;
+                                                           side streets wait until you are close, so a zoomed-out city stays calm */
+  { z0: 7.0, z1: 8.6, w: 7.6, edge: '#6f7882', fill: '#9aa3ab' },
+  { z0: 9.6, z1: 10.6, w: 6.4, edge: '#848a92', fill: '#b3b8bd' },
+  { z0: 10.6, z1: 11.6, w: 5.6, edge: '#8f959c', fill: '#bcc0c4' },
+  { z0: 12.0, z1: 12.8, w: 4.6, edge: '#9ea3a9', fill: '#c6c9cc' },
+  { z0: 12.8, z1: 13.5, w: 3.6, edge: '#a9adb2', fill: '#cfd1d3' }
 ];
 function osmWidthScale(z) { return Math.max(0.6, Math.min(3.2, 1 + (z - 12) * 0.3)); }
 
