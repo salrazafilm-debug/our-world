@@ -1821,8 +1821,8 @@ function drawMapOverlays() {
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
     if (!special && !planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
-    if(lm[0]==='dc'){p=repairPoint('dc');if(z>=POI_DC_DETAIL+.6)continue;}     /* zoomed right in, the real DC buildings take over */
-    var dcFade=lm[0]==='dc'?1-cloudEase(POI_DC_DETAIL,POI_DC_DETAIL+.6,z):1;
+    if(lm[0]==='dc')p=repairPoint('dc');               /* the big DC picture stays at every zoom; smaller buildings join it up close */
+    var dcFade=1;
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
     var lsc = Math.max(3, Math.min(10, Math.round(1.26 * (z - 6.5) * (lm[6] || 1))));   /* grows smoothly with zoom, never smaller when you zoom in */

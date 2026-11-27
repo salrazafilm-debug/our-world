@@ -1,7 +1,7 @@
 /* An authored civic garden around the existing DC display anchor.
    Decorative only: all map coordinates, memories and city actions are intact. */
 function drawDCGardens(g){
- var p=repairPoint('dc'),u=homeArtH(S.zoom);if(S.zoom>=POI_DC_DETAIL+.6)return;
+ var p=repairPoint('dc'),u=homeArtH(S.zoom);if(S.zoom>=10.4)return;          /* up close the real streets show around the monument, no lawn over them */
  if(!p||p.x<-u*2||p.x>W+u*2||p.y<-u*2||p.y>H+u)return;
  g.save();g.beginPath();
  for(var y=p.y-u*1.5;y<p.y+u*.36;y+=5)for(var x=p.x-u*1.4;x<p.x+u*1.2;x+=5)if(terrainAt(x,y)==='land')g.rect(x,y,5,5);

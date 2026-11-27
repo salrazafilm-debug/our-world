@@ -54,6 +54,7 @@ function osmEnsure() {
     var bb = ar.bbox; if (bb[2] < lo || bb[0] > hi || bb[3] < l || bb[1] > r) return;
     OSMR.loading[ar.id] = true;
     osmFetchJson('data/roads/' + ar.id + '.json').then(function (d) { osmDecode(ar.id, d); baseDirty = true; if (typeof requestMapDraw === 'function') requestMapDraw(); }).catch(function () { OSMR.loading[ar.id] = false; OSMR.failed = true; });
+    if (ar.water) osmFetchJson('data/roads/' + ar.water + '.json').then(function (d) { osmDecodeWater(d); baseDirty = true; if (typeof requestMapDraw === 'function') requestMapDraw(); }).catch(function () {});
   });
 }
 function osmCovered(lat, lng) {
@@ -139,12 +140,20 @@ function drawOsmRoads(g) {
 }
 
 /* ---------- a few tiny houses along residential streets: shows a neighbourhood, not every real house ---------- */
-var OSM_HOUSE = ['....r....', '...rrr...', '..rrrrr..', '.rrrrrrr.', 'rrrrrrrrr', '.wwwwwww.', '.wbwwwbw.', '.wwwdwww.', '.wwwdwww.'];
-var OSM_ROOFS = ['#C9606E', '#8E3A57', '#6B8FB5', '#B5553F', '#D9879F', '#7A6A9A'];
+/* a small set of house designs, each a different shape, with varied roof and wall colours */
+var OSM_HOUSES_SP = [
+  ['.....rr.....', '....rrrr....', '...rrrrrr.c.', '..rrrrrrrrcc', '.rrrrrrrrrrr', 'rrrrrrrrrrrr', '.wwwwwwwwww.', '.wbbwwwwbbw.', '.wbbwwwwbbw.', '.wwwwddwwww.', '.wwwwddwwww.'],
+  ['....rrrr....', '..rrrrrrrr..', 'rrrrrrrrrrrr', '.wwwwwwwwww.', '.wbbwwwwbbw.', '.wwwwwwwwww.', 'rrrrrrrrrrrr', '.wwwwwwwwww.', '.wbbwddwbbw.', '.wwwwddwwww.'],
+  ['......rrr.......', '....rrrrrrr.....', '..rrrrrrrrrrr...', 'rrrrrrrrrrrrrrr.', '.wwwwwwwwwwwwww.', '.wbbwwwbbwwwbbw.', '.wwwwwwwwwwwwww.', 'ppppppppppppppp.', '.wwwwwddwwwwwww.', '.wwwwwddwwwwwww.'],
+  ['rrrrrrrrrrrrrrrr', 'rrrrrrrrrrrrrrrr', '.wwwwwwo.wwwwww.', '.wbbwwwo.wbbwww.', '.wwwwwwo.wwwwww.', '.wbbwwwo.wbbwww.', '.wwddwwo.wwddww.', '.wwddwwo.wwddww.'],
+  ['....rr....', '...rrrr...', '..rrrrrr..', '.rrrrrrrr.', 'rrrrrrrrrr', '.wwwwwwww.', '.wbwddwbw.', '.wwwddwww.']
+];
+var OSM_ROOFS = ['#C9606E', '#8E3A57', '#6B8FB5', '#B5553F', '#D9879F', '#7A6A9A', '#5F8B6A', '#A0704C'];
+var OSM_WALLS = ['#FFF2DF', '#F6E2C8', '#FBE7EC', '#E9EEF2', '#F3E6D3'];
 function osmHouses(g, streets, sc) {
   OSM_HOUSES = [];
   var z = S.zoom; if (z < 11.4 || !streets.length) return;
-  var a = cloudEase(11.4, 12.0, z), px = z < 12.6 ? 2 : (z < 14 ? 3 : 4), hw = 9 * px, hh = 9 * px, cap = z < 12.6 ? 9 : (z < 14 ? 14 : 18);      /* just a few: a hint of a neighbourhood */
+  var a = cloudEase(11.4, 12.0, z), px = z < 12.6 ? 2 : (z < 14 ? 3 : 4), hw = 13 * px, hh = 11 * px, cap = z < 12.6 ? 9 : (z < 14 ? 14 : 18);      /* just a few: a hint of a neighbourhood */
   var picks = [];
   streets.forEach(function (rd) {
     var pts = rd.pts; if (pts.length < 4 || rd.fade < 0.8) return;
@@ -162,11 +171,64 @@ function osmHouses(g, streets, sc) {
     if (terrainAt(x, y) !== 'land' || terrainAt(x - hw / 2, y) !== 'land' || terrainAt(x + hw / 2, y) !== 'land') continue;
     if (typeof scenicAvoid === 'function' && (nycAvoid(x, y, 8) || repairClear(x, y, hw))) continue;
     var clash = OSM_HOUSES.some(function (o) { return Math.abs(o.x - x) < hw * 3.2 && Math.abs(o.y - y) < hh * 2.6; });     /* spread out, a few per neighbourhood */ if (clash) continue;
-    var roof = OSM_ROOFS[Math.floor(h * 997) % OSM_ROOFS.length];
+    var roof = OSM_ROOFS[Math.floor(h * 997) % OSM_ROOFS.length], wall = OSM_WALLS[Math.floor(h * 4271) % OSM_WALLS.length], design = OSM_HOUSES_SP[Math.floor(h * 1873) % OSM_HOUSES_SP.length];
     g.save(); g.globalAlpha = a;
     g.fillStyle = 'rgba(60,40,50,.2)'; g.beginPath(); g.ellipse(x, y, hw * 0.55, px * 1.4, 0, 0, 7); g.fill();
-    drawSprite(g, OSM_HOUSE, { r: roof, w: '#FFF2DF', b: '#7FC3DF', d: '#8A5638' }, x, y, px, '#5E3A3A');
+    drawSprite(g, design, { r: roof, w: wall, b: '#7FC3DF', d: '#8A5638', c: '#8C6A5A', p: '#D7C2A3', o: '#C9B49A' }, x, y, px, '#5E3A3A');
     g.restore();
     OSM_HOUSES.push({ x: x, y: y, w: hw, h: hh }); placed++;
   }
 }
+
+/* ---------- real rivers and basins (the Potomac at DC): painted into the base map itself, so every check
+   for land or water (roads, trees, houses, avatars) treats them as water ---------- */
+var OSM_WATER = [];
+function osmDecodeWater(d) {
+  d.polys.forEach(function (pl) {
+    var rings = pl.map(function (f) { var out = new Float64Array(f.length), la = 0, lg = 0; for (var i = 0; i < f.length; i += 2) { la = i ? la + f[i] : f[i]; lg = i ? lg + f[i + 1] : f[i + 1]; out[i] = la / d.q; out[i + 1] = lg / d.q; } return out; });
+    var bb = [90, 180, -90, -180], r0 = rings[0];
+    for (var i = 0; i < r0.length; i += 2) { bb[0] = Math.min(bb[0], r0[i]); bb[1] = Math.min(bb[1], r0[i + 1]); bb[2] = Math.max(bb[2], r0[i]); bb[3] = Math.max(bb[3], r0[i + 1]); }
+    OSM_WATER.push({ rings: rings, bb: bb });
+  });
+}
+function osmPaintWater(g, k) {
+  if (!OSM_WATER.length || S.mode !== 'map' || S.zoom < 8.4) return;
+  var a = unproj(-20, -20), b = unproj(W + 20, H + 20), lo = Math.min(a.lat, b.lat), hi = Math.max(a.lat, b.lat), l = Math.min(a.lng, b.lng), r = Math.max(a.lng, b.lng);
+  var path = new Path2D(), any = false;
+  OSM_WATER.forEach(function (w) {
+    var bb = w.bb; if (bb[2] < lo || bb[0] > hi || bb[3] < l || bb[1] > r) return;
+    w.rings.forEach(function (ring) { for (var i = 0; i < ring.length; i += 2) { var p = proj(ring[i], ring[i + 1]); if (i) path.lineTo(p.x * k, p.y * k); else path.moveTo(p.x * k, p.y * k); } path.closePath(); });
+    any = true;
+  });
+  if (!any) return;
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+  g.fillStyle = '#9fd9c0'; g.lineWidth = Math.max(1, 2.2 * k); g.strokeStyle = '#9fd9c0'; g.stroke(path);       /* a pale shore line */
+  g.fillStyle = C.water; g.fill(path, 'evenodd');
+  g.restore();
+}
+HOOKS.afterBase.unshift(function () { osmPaintWater(baseCtx, baseCv.width / W); });
+
+/* ---------- soft clouds along the edges of each street area: the streets seem to carry on under them ---------- */
+HOOKS.afterOverlays.push(function () {
+  if (!OSMR.ready || S.mode !== 'map' || S.zoom < 11.0 || typeof CARTOON_CLOUDS === 'undefined') return;
+  var z = S.zoom, alpha = cloudEase(11.0, 11.8, z), size = Math.min(190, 100 + (z - 11) * 28);
+  if (alpha < 0.02) return;
+  for (var id in OSMR.areas) {
+    var A = OSMR.areas[id], B = A.crop || A.bbox; if (!B) continue;
+    var p0 = proj(B[2], B[1]), p1 = proj(B[0], B[3]);
+    if (p1.x < -size || p0.x > W + size || p1.y < -size || p0.y > H + size) continue;
+    var step = size * 0.95, out = size * 0.42;           /* sit just outside the area, never over it */
+    [[p0.x, p0.y - out, p1.x, p0.y - out], [p0.x, p1.y + out, p1.x, p1.y + out], [p0.x - out, p0.y, p0.x - out, p1.y], [p1.x + out, p0.y, p1.x + out, p1.y]].forEach(function (e, side) {
+      var len = Math.hypot(e[2] - e[0], e[3] - e[1]), n = Math.ceil(len / step);
+      for (var i = 0; i <= n; i++) {
+        var t = i / n, x = e[0] + (e[2] - e[0]) * t, y = e[1] + (e[3] - e[1]) * t;
+        if (x < -size || x > W + size || y < -size || y > H + size) continue;
+        if (terrainAt(Math.max(1, Math.min(W - 1, x)), Math.max(1, Math.min(H - 1, y))) === 'water') continue;      /* the open bay needs no cover */
+        var h = terHash(Math.round(x / step + i), side, 913), c = CARTOON_CLOUDS[Math.floor(h * CARTOON_CLOUDS.length) % CARTOON_CLOUDS.length];
+        ctx.save(); ctx.globalAlpha = alpha * (0.82 + h * 0.18);
+        var ch = size * (0.6 + h * 0.4); drawArt(ctx, c, x + (h - 0.5) * step * 0.3, y + ch * 0.5, ch, DPR, true);
+        ctx.restore();
+      }
+    });
+  }
+});

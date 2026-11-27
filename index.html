@@ -2297,8 +2297,8 @@ function drawMapOverlays() {
     var planned = lm[8] && !isRevealed(lm[2], lm[3], 1.06);
     if (!special && !planned && !isRevealed(lm[2], lm[3], 1.06)) continue;
     p = proj(lm[2], lm[3]);
-    if(lm[0]==='dc'){p=repairPoint('dc');if(z>=POI_DC_DETAIL+.6)continue;}     /* zoomed right in, the real DC buildings take over */
-    var dcFade=lm[0]==='dc'?1-cloudEase(POI_DC_DETAIL,POI_DC_DETAIL+.6,z):1;
+    if(lm[0]==='dc')p=repairPoint('dc');               /* the big DC picture stays at every zoom; smaller buildings join it up close */
+    var dcFade=1;
     if (p.x < -50 || p.y < -60 || p.x > W + 50 || p.y > H + 30) continue;
     if (!special && z < 9.4 && Object.keys(HBBOX).some(function (k) { var hb = HBBOX[k]; return p.x > hb.x - 24 && p.x < hb.x + hb.w + 24 && p.y > hb.y - 10 && p.y < hb.y + hb.h + 40; })) continue;
     var lsc = Math.max(3, Math.min(10, Math.round(1.26 * (z - 6.5) * (lm[6] || 1))));   /* grows smoothly with zoom, never smaller when you zoom in */
@@ -4144,7 +4144,9 @@ function repairPrepare(){
  var e=proj(HOMES.elena.lat,HOMES.elena.lng),b=proj(HOMES.bruce.lat,HOMES.bruce.lng);
  var m=proj((HOMES.elena.lat+HOMES.bruce.lat)/2,(HOMES.elena.lng+HOMES.bruce.lng)/2);
  var gap=Math.max(0,homeArtH(S.zoom)*1.45-(b.y-e.y)/2);
- e.y-=gap;b.y+=gap;b.x-=homeArtH(S.zoom)*.5;
+ /* zoomed out the homes are spaced apart to stay readable; close in they sit at their real spots among the streets */
+ var spread=1-cloudEase(10.4,11.2,S.zoom);
+ e.y-=gap*spread;b.y+=gap*spread;b.x-=homeArtH(S.zoom)*.5*spread;
  var dc=proj(38.8895,-77.0353),n=proj(38.79,-77.40);
  dc.x=Math.min(dc.x,m.x-homeArtH(S.zoom)*2.65);
  n.x=Math.min(n.x,m.x-homeArtH(S.zoom)*2.15);n.y=Math.max(n.y,m.y+homeArtH(S.zoom)*1.65);
@@ -4159,7 +4161,7 @@ function repairBox(id){
  if(id==='elena'){h*=1.12;w=h*.8;}
  else if(id==='bruce'){h*=.86;w=h*1.6;}
  else if(id==='mail'){h*=.82;w=h*1.35;}
- else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.35,y:p.y-homeArtH(S.zoom)*1.5,w:homeArtH(S.zoom)*2.5,h:homeArtH(S.zoom)*1.85,id:id};}
+ else if(id==='dc'){var dk=S.zoom>=10.4?.62:1;return{x:p.x-homeArtH(S.zoom)*1.35*dk,y:p.y-homeArtH(S.zoom)*1.5*dk,w:homeArtH(S.zoom)*2.5*dk,h:homeArtH(S.zoom)*1.85*dk,id:id};}     /* a tighter clearing up close */
  else {h*=1.05;w=homeArtH(S.zoom)*1.55;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }
@@ -4411,7 +4413,7 @@ function nycWorldLandmark(lm){
 /* An authored civic garden around the existing DC display anchor.
    Decorative only: all map coordinates, memories and city actions are intact. */
 function drawDCGardens(g){
- var p=repairPoint('dc'),u=homeArtH(S.zoom);if(S.zoom>=POI_DC_DETAIL+.6)return;
+ var p=repairPoint('dc'),u=homeArtH(S.zoom);if(S.zoom>=10.4)return;          /* up close the real streets show around the monument, no lawn over them */
  if(!p||p.x<-u*2||p.x>W+u*2||p.y<-u*2||p.y>H+u)return;
  g.save();g.beginPath();
  for(var y=p.y-u*1.5;y<p.y+u*.36;y+=5)for(var x=p.x-u*1.4;x<p.x+u*1.2;x+=5)if(terrainAt(x,y)==='land')g.rect(x,y,5,5);
@@ -4560,6 +4562,7 @@ function osmEnsure() {
     var bb = ar.bbox; if (bb[2] < lo || bb[0] > hi || bb[3] < l || bb[1] > r) return;
     OSMR.loading[ar.id] = true;
     osmFetchJson('data/roads/' + ar.id + '.json').then(function (d) { osmDecode(ar.id, d); baseDirty = true; if (typeof requestMapDraw === 'function') requestMapDraw(); }).catch(function () { OSMR.loading[ar.id] = false; OSMR.failed = true; });
+    if (ar.water) osmFetchJson('data/roads/' + ar.water + '.json').then(function (d) { osmDecodeWater(d); baseDirty = true; if (typeof requestMapDraw === 'function') requestMapDraw(); }).catch(function () {});
   });
 }
 function osmCovered(lat, lng) {
@@ -4645,12 +4648,20 @@ function drawOsmRoads(g) {
 }
 
 /* ---------- a few tiny houses along residential streets: shows a neighbourhood, not every real house ---------- */
-var OSM_HOUSE = ['....r....', '...rrr...', '..rrrrr..', '.rrrrrrr.', 'rrrrrrrrr', '.wwwwwww.', '.wbwwwbw.', '.wwwdwww.', '.wwwdwww.'];
-var OSM_ROOFS = ['#C9606E', '#8E3A57', '#6B8FB5', '#B5553F', '#D9879F', '#7A6A9A'];
+/* a small set of house designs, each a different shape, with varied roof and wall colours */
+var OSM_HOUSES_SP = [
+  ['.....rr.....', '....rrrr....', '...rrrrrr.c.', '..rrrrrrrrcc', '.rrrrrrrrrrr', 'rrrrrrrrrrrr', '.wwwwwwwwww.', '.wbbwwwwbbw.', '.wbbwwwwbbw.', '.wwwwddwwww.', '.wwwwddwwww.'],
+  ['....rrrr....', '..rrrrrrrr..', 'rrrrrrrrrrrr', '.wwwwwwwwww.', '.wbbwwwwbbw.', '.wwwwwwwwww.', 'rrrrrrrrrrrr', '.wwwwwwwwww.', '.wbbwddwbbw.', '.wwwwddwwww.'],
+  ['......rrr.......', '....rrrrrrr.....', '..rrrrrrrrrrr...', 'rrrrrrrrrrrrrrr.', '.wwwwwwwwwwwwww.', '.wbbwwwbbwwwbbw.', '.wwwwwwwwwwwwww.', 'ppppppppppppppp.', '.wwwwwddwwwwwww.', '.wwwwwddwwwwwww.'],
+  ['rrrrrrrrrrrrrrrr', 'rrrrrrrrrrrrrrrr', '.wwwwwwo.wwwwww.', '.wbbwwwo.wbbwww.', '.wwwwwwo.wwwwww.', '.wbbwwwo.wbbwww.', '.wwddwwo.wwddww.', '.wwddwwo.wwddww.'],
+  ['....rr....', '...rrrr...', '..rrrrrr..', '.rrrrrrrr.', 'rrrrrrrrrr', '.wwwwwwww.', '.wbwddwbw.', '.wwwddwww.']
+];
+var OSM_ROOFS = ['#C9606E', '#8E3A57', '#6B8FB5', '#B5553F', '#D9879F', '#7A6A9A', '#5F8B6A', '#A0704C'];
+var OSM_WALLS = ['#FFF2DF', '#F6E2C8', '#FBE7EC', '#E9EEF2', '#F3E6D3'];
 function osmHouses(g, streets, sc) {
   OSM_HOUSES = [];
   var z = S.zoom; if (z < 11.4 || !streets.length) return;
-  var a = cloudEase(11.4, 12.0, z), px = z < 12.6 ? 2 : (z < 14 ? 3 : 4), hw = 9 * px, hh = 9 * px, cap = z < 12.6 ? 9 : (z < 14 ? 14 : 18);      /* just a few: a hint of a neighbourhood */
+  var a = cloudEase(11.4, 12.0, z), px = z < 12.6 ? 2 : (z < 14 ? 3 : 4), hw = 13 * px, hh = 11 * px, cap = z < 12.6 ? 9 : (z < 14 ? 14 : 18);      /* just a few: a hint of a neighbourhood */
   var picks = [];
   streets.forEach(function (rd) {
     var pts = rd.pts; if (pts.length < 4 || rd.fade < 0.8) return;
@@ -4668,14 +4679,67 @@ function osmHouses(g, streets, sc) {
     if (terrainAt(x, y) !== 'land' || terrainAt(x - hw / 2, y) !== 'land' || terrainAt(x + hw / 2, y) !== 'land') continue;
     if (typeof scenicAvoid === 'function' && (nycAvoid(x, y, 8) || repairClear(x, y, hw))) continue;
     var clash = OSM_HOUSES.some(function (o) { return Math.abs(o.x - x) < hw * 3.2 && Math.abs(o.y - y) < hh * 2.6; });     /* spread out, a few per neighbourhood */ if (clash) continue;
-    var roof = OSM_ROOFS[Math.floor(h * 997) % OSM_ROOFS.length];
+    var roof = OSM_ROOFS[Math.floor(h * 997) % OSM_ROOFS.length], wall = OSM_WALLS[Math.floor(h * 4271) % OSM_WALLS.length], design = OSM_HOUSES_SP[Math.floor(h * 1873) % OSM_HOUSES_SP.length];
     g.save(); g.globalAlpha = a;
     g.fillStyle = 'rgba(60,40,50,.2)'; g.beginPath(); g.ellipse(x, y, hw * 0.55, px * 1.4, 0, 0, 7); g.fill();
-    drawSprite(g, OSM_HOUSE, { r: roof, w: '#FFF2DF', b: '#7FC3DF', d: '#8A5638' }, x, y, px, '#5E3A3A');
+    drawSprite(g, design, { r: roof, w: wall, b: '#7FC3DF', d: '#8A5638', c: '#8C6A5A', p: '#D7C2A3', o: '#C9B49A' }, x, y, px, '#5E3A3A');
     g.restore();
     OSM_HOUSES.push({ x: x, y: y, w: hw, h: hh }); placed++;
   }
 }
+
+/* ---------- real rivers and basins (the Potomac at DC): painted into the base map itself, so every check
+   for land or water (roads, trees, houses, avatars) treats them as water ---------- */
+var OSM_WATER = [];
+function osmDecodeWater(d) {
+  d.polys.forEach(function (pl) {
+    var rings = pl.map(function (f) { var out = new Float64Array(f.length), la = 0, lg = 0; for (var i = 0; i < f.length; i += 2) { la = i ? la + f[i] : f[i]; lg = i ? lg + f[i + 1] : f[i + 1]; out[i] = la / d.q; out[i + 1] = lg / d.q; } return out; });
+    var bb = [90, 180, -90, -180], r0 = rings[0];
+    for (var i = 0; i < r0.length; i += 2) { bb[0] = Math.min(bb[0], r0[i]); bb[1] = Math.min(bb[1], r0[i + 1]); bb[2] = Math.max(bb[2], r0[i]); bb[3] = Math.max(bb[3], r0[i + 1]); }
+    OSM_WATER.push({ rings: rings, bb: bb });
+  });
+}
+function osmPaintWater(g, k) {
+  if (!OSM_WATER.length || S.mode !== 'map' || S.zoom < 8.4) return;
+  var a = unproj(-20, -20), b = unproj(W + 20, H + 20), lo = Math.min(a.lat, b.lat), hi = Math.max(a.lat, b.lat), l = Math.min(a.lng, b.lng), r = Math.max(a.lng, b.lng);
+  var path = new Path2D(), any = false;
+  OSM_WATER.forEach(function (w) {
+    var bb = w.bb; if (bb[2] < lo || bb[0] > hi || bb[3] < l || bb[1] > r) return;
+    w.rings.forEach(function (ring) { for (var i = 0; i < ring.length; i += 2) { var p = proj(ring[i], ring[i + 1]); if (i) path.lineTo(p.x * k, p.y * k); else path.moveTo(p.x * k, p.y * k); } path.closePath(); });
+    any = true;
+  });
+  if (!any) return;
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
+  g.fillStyle = '#9fd9c0'; g.lineWidth = Math.max(1, 2.2 * k); g.strokeStyle = '#9fd9c0'; g.stroke(path);       /* a pale shore line */
+  g.fillStyle = C.water; g.fill(path, 'evenodd');
+  g.restore();
+}
+HOOKS.afterBase.unshift(function () { osmPaintWater(baseCtx, baseCv.width / W); });
+
+/* ---------- soft clouds along the edges of each street area: the streets seem to carry on under them ---------- */
+HOOKS.afterOverlays.push(function () {
+  if (!OSMR.ready || S.mode !== 'map' || S.zoom < 11.0 || typeof CARTOON_CLOUDS === 'undefined') return;
+  var z = S.zoom, alpha = cloudEase(11.0, 11.8, z), size = Math.min(190, 100 + (z - 11) * 28);
+  if (alpha < 0.02) return;
+  for (var id in OSMR.areas) {
+    var A = OSMR.areas[id], B = A.crop || A.bbox; if (!B) continue;
+    var p0 = proj(B[2], B[1]), p1 = proj(B[0], B[3]);
+    if (p1.x < -size || p0.x > W + size || p1.y < -size || p0.y > H + size) continue;
+    var step = size * 0.95, out = size * 0.42;           /* sit just outside the area, never over it */
+    [[p0.x, p0.y - out, p1.x, p0.y - out], [p0.x, p1.y + out, p1.x, p1.y + out], [p0.x - out, p0.y, p0.x - out, p1.y], [p1.x + out, p0.y, p1.x + out, p1.y]].forEach(function (e, side) {
+      var len = Math.hypot(e[2] - e[0], e[3] - e[1]), n = Math.ceil(len / step);
+      for (var i = 0; i <= n; i++) {
+        var t = i / n, x = e[0] + (e[2] - e[0]) * t, y = e[1] + (e[3] - e[1]) * t;
+        if (x < -size || x > W + size || y < -size || y > H + size) continue;
+        if (terrainAt(Math.max(1, Math.min(W - 1, x)), Math.max(1, Math.min(H - 1, y))) === 'water') continue;      /* the open bay needs no cover */
+        var h = terHash(Math.round(x / step + i), side, 913), c = CARTOON_CLOUDS[Math.floor(h * CARTOON_CLOUDS.length) % CARTOON_CLOUDS.length];
+        ctx.save(); ctx.globalAlpha = alpha * (0.82 + h * 0.18);
+        var ch = size * (0.6 + h * 0.4); drawArt(ctx, c, x + (h - 0.5) * step * 0.3, y + ch * 0.5, ch, DPR, true);
+        ctx.restore();
+      }
+    });
+  }
+});
 
 /* ---- world/pois.js ---- */
 /* Places with their own little pixel icons: Annapolis Mall, the airports, and the DC buildings that appear as
@@ -4684,18 +4748,41 @@ function osmHouses(g, streets, sc) {
    Tap one for its name. Style rules: STYLE.md. */
 var POI_SP = {
   mall: [
-    '..oooooooooooo..',
-    '.oppPppPppPppPo.',
-    'oppPppPppPppPppo',
-    'oooooooooooooooo',
-    'owwwwwwwwwwwwwwo',
-    'owbbwwbbwwbbwwwo',
-    'owbbwwbbwwbbwwwo',
-    'owwwwwwwwwwwwwwo',
-    'owwwwwddddwwwwwo',
-    'owbbwwddddwwbbwo',
-    'owwwwwddddwwwwwo',
-    'oooooooooooooooo'],
+    '..........oooooo..........',
+    '.........obbwbbbo.........',
+    '........obwbbwbbbo........',
+    '.......obbbbbbwbbbo.......',
+    'oooooooooooooooooooooooooo',
+    'oPPPPPPPPPPPPPPPPPPPPPPPPo',
+    'oPppSSSSSSSSSSSSSSSSSSppPo',
+    'oPppSPPPPPPPPPPPPPPPPSppPo',
+    'oPppSSSSSSSSSSSSSSSSSSppPo',
+    'oooooooooooooooooooooooooo',
+    'opwpwpwpwpwpwpwpwpwpwpwpwo',
+    'oooooooooooooooooooooooooo',
+    'owwwwwwwwwwwwwwwwwwwwwwwwo',
+    'owbbwwbbwwbbbbbbwwbbwwbbwo',
+    'owbbwwbbwwbwwwwbwwbbwwbbwo',
+    'owwwwwwwwwbwwwwbwwwwwwwwwo',
+    'owbbwwbbwwbbbbbbwwbbwwbbwo',
+    'owbbwwbbwwddddddwwbbwwbbwo',
+    'owwwwwwwwwddddddwwwwwwwwwo',
+    'oooooooooooooooooooooooooo'],
+  gym: [
+    'oooooooooooooooooooooo',
+    'oYYYYYYYYYYYYYYYYYYYYo',
+    'oYvvvvvvvvvvvvvvvvvvYo',
+    'oYvYYvYYYYYYYYYYvYYvYo',
+    'oYvvvvvvvvvvvvvvvvvvYo',
+    'oYYYYYYYYYYYYYYYYYYYYo',
+    'oooooooooooooooooooooo',
+    'ovvvvvvvvvvvvvvvvvvvvo',
+    'ovbbvvbbvvbbbbvvbbvbbo',
+    'ovbbvvbbvvbbbbvvbbvbbo',
+    'ovvvvvvvvvddddvvvvvvvo',
+    'ovbbvvbbvvddddvvbbvbbo',
+    'ovvvvvvvvvddddvvvvvvvo',
+    'oooooooooooooooooooooo'],
   airport: [
     '.......oo.......',
     '......owwo......',
@@ -4757,7 +4844,8 @@ var POI_SP = {
     'oooooooooooooooo']
 };
 var POI_PAL = {
-  mall: { o: '#5E2238', p: '#D9879F', P: '#FFF2DF', w: '#FFF2DF', b: '#7FC3DF', d: '#8A5638' },
+  mall: { o: '#5E2238', p: '#D9879F', P: '#8E3A57', S: '#FFE2A1', w: '#FFF2DF', b: '#7FC3DF', d: '#8A5638' },
+  gym: { o: '#2E1F4A', Y: '#F5C518', v: '#5B2D8E', b: '#C9B6F2', d: '#2E1F4A' },
   airport: { o: '#3D4B5C', w: '#EEF2F5', b: '#7FC3DF' },
   whitehouse: { o: '#6B6F7A', w: '#FFFFFF', c: '#D7DBE0', b: '#7FC3DF', d: '#8A5638' },
   temple: { o: '#7A7064', w: '#F4EFE6', c: '#D2C8B8' },
@@ -4766,14 +4854,14 @@ var POI_PAL = {
 };
 /* id, name, lat, lng, icon, shows from zoom, note */
 var POIS = [
-  ['annapolis-mall', 'Westfield Annapolis Mall', 38.9875, -76.5446, 'mall', 10.2, 'The big mall off Jennifer Road, by the US-50 and Route 2 junction.'],
+  ['annapolis-mall', 'Westfield Annapolis Mall', 38.9875, -76.5446, 'mall', 9.8, 'The big mall off Jennifer Road, by the US-50 and Route 2 junction.', 1],
+  ['planet-fitness', 'Planet Fitness', 39.1246, -76.5836, 'gym', 10.4, 'Planet Fitness on Ritchie Highway, Severna Park and Pasadena.'],
   ['dca', 'Reagan National Airport', 38.8512, -77.0402, 'airport', 8.6, 'Ronald Reagan Washington National (DCA), right on the Potomac.'],
   ['bwi', 'BWI Airport', 39.1774, -76.6684, 'airport', 8.6, 'Baltimore/Washington International Thurgood Marshall (BWI).'],
   ['iad', 'Dulles Airport', 38.9531, -77.4565, 'airport', 8.6, 'Washington Dulles International (IAD).'],
   ['whitehouse', 'The White House', 38.8977, -77.0365, 'whitehouse', 12.2, '1600 Pennsylvania Avenue.'],
   ['lincoln', 'Lincoln Memorial', 38.8893, -77.0502, 'temple', 12.2, 'At the west end of the National Mall, facing the Reflecting Pool.'],
   ['jefferson', 'Jefferson Memorial', 38.8814, -77.0365, 'dome', 12.2, 'On the Tidal Basin, ringed by cherry trees.'],
-  ['capitol', 'US Capitol', 38.8899, -77.0091, 'dome', 12.2, 'At the east end of the National Mall.'],
   ['smithsonian', 'Smithsonian Castle', 38.8888, -77.0260, 'castle', 12.6, 'The red sandstone castle on the Mall.']
 ];
 var POI_DC_DETAIL = 12.2;               /* from this zoom the single DC picture gives way to the real buildings */
@@ -4784,9 +4872,9 @@ HOOKS.beforePins.push(function () {
   POIS.forEach(function (it) {
     if (z < it[5]) return;
     var p = proj(it[2], it[3]); if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) return;
-    var s = poiScale(z, it[5]), a = Math.min(1, (z - it[5]) / 0.5 + 0.35);
+    var s = poiScale(z, it[5]) + (it[7] || 0), a = Math.min(1, (z - it[5]) / 0.5 + 0.35);
     ctx.save(); ctx.globalAlpha = a;
-    ctx.fillStyle = 'rgba(60,40,50,.22)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, s * 7, s * 2, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(60,40,50,.22)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, s * POI_SP[it[4]][0].length * 0.46, s * 2, 0, 0, 7); ctx.fill();
     var b = drawSprite(ctx, POI_SP[it[4]], POI_PAL[it[4]], p.x, p.y, s, '#FFFFFF');
     ctx.restore();
     addHit({ x: b.x - 6, y: b.y - 6, w: b.w + 12, h: b.h + 12 }, { kind: 'poi', id: it[0] });
@@ -4836,8 +4924,9 @@ function marylandGrounds(g){
  drawStoryRoads(g);
  drawOsmRoads(g);                    /* real streets, where we have them */
  g.save();g.lineCap='round';g.lineJoin='round';
- MD_PATHS=marylandPathPoints();MD_PATHS.forEach(function(a){g.beginPath();g.moveTo(a[0].x,a[0].y);g.quadraticCurveTo(a[1].x,a[1].y,a[2].x,a[2].y);g.strokeStyle='#b6a175';g.lineWidth=Math.max(6,u*.12);g.stroke();g.strokeStyle='#e4ca95';g.lineWidth=Math.max(4,u*.075);g.stroke();});g.restore();
+ MD_PATHS=S.zoom>=11?[]:marylandPathPoints();MD_PATHS.forEach(function(a){       /* up close the real streets replace the drawn paths */g.beginPath();g.moveTo(a[0].x,a[0].y);g.quadraticCurveTo(a[1].x,a[1].y,a[2].x,a[2].y);g.strokeStyle='#b6a175';g.lineWidth=Math.max(6,u*.12);g.stroke();g.strokeStyle='#e4ca95';g.lineWidth=Math.max(4,u*.075);g.stroke();});g.restore();
  ['e','b','m'].forEach(function(id){var a=p[id],rx=u*(id==='m'?.86:1.02),ry=u*.29;if(a.x<-rx||a.x>W+rx||a.y<-u||a.y>H+u)return;
+  if(id==='b'&&S.zoom>=10.6)return;             /* Bruce's house stands straight on the ground among the streets, no forecourt */
   g.save();marylandLandClip(g,{x:a.x-rx-8,y:a.y-u*.35,w:rx*2+16,h:u*.85});
   g.fillStyle='#b7c57d';g.beginPath();g.ellipse(a.x,a.y+3,rx+6,ry+8,0,0,7);g.fill();
   g.fillStyle='#e0d0a3';g.beginPath();g.ellipse(a.x,a.y+4,rx,ry,0,0,7);g.fill();
@@ -4873,7 +4962,7 @@ function marylandDetails(g){
  marylandVegetation(g);
  var u=homeArtH(S.zoom),p=marylandPoints();
  /* Garden framing is authored per landmark, never a random building scatter. */
- ['e','m','b'].forEach(function(id){var a=p[id];if(a.x<-u*2||a.x>W+u*2||a.y<-u||a.y>H+u)return;
+ ['e','m','b'].forEach(function(id){var a=p[id];if(a.x<-u*2||a.x>W+u*2||a.y<-u||a.y>H+u)return;if(id==='b'&&S.zoom>=10.6)return;
   [-1,1].forEach(function(side){var x=a.x+side*u*(id==='m'?.77:.94),y=a.y+u*.15;if(scenicLand(x,y)){marylandLamp(g,x,y,u*.31);drawArt(g,'pack-flowers',x+side*5,y+3,u*.16,1);}});
   var trees=id==='e'?[[-1.02,-.75],[.95,-.65],[-1.12,.2]]:id==='b'?[[-1.12,-.4],[-1.05,.32]]:[[-.97,-.5],[-.98,.22]];
   trees.forEach(function(v,i){var x=a.x+v[0]*u,y=a.y+v[1]*u;if(scenicLand(x,y))drawArt(g,i%2?'pack-pine':'pack-cherry',x,y,u*.43,1);});

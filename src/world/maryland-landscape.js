@@ -33,8 +33,9 @@ function marylandGrounds(g){
  drawStoryRoads(g);
  drawOsmRoads(g);                    /* real streets, where we have them */
  g.save();g.lineCap='round';g.lineJoin='round';
- MD_PATHS=marylandPathPoints();MD_PATHS.forEach(function(a){g.beginPath();g.moveTo(a[0].x,a[0].y);g.quadraticCurveTo(a[1].x,a[1].y,a[2].x,a[2].y);g.strokeStyle='#b6a175';g.lineWidth=Math.max(6,u*.12);g.stroke();g.strokeStyle='#e4ca95';g.lineWidth=Math.max(4,u*.075);g.stroke();});g.restore();
+ MD_PATHS=S.zoom>=11?[]:marylandPathPoints();MD_PATHS.forEach(function(a){       /* up close the real streets replace the drawn paths */g.beginPath();g.moveTo(a[0].x,a[0].y);g.quadraticCurveTo(a[1].x,a[1].y,a[2].x,a[2].y);g.strokeStyle='#b6a175';g.lineWidth=Math.max(6,u*.12);g.stroke();g.strokeStyle='#e4ca95';g.lineWidth=Math.max(4,u*.075);g.stroke();});g.restore();
  ['e','b','m'].forEach(function(id){var a=p[id],rx=u*(id==='m'?.86:1.02),ry=u*.29;if(a.x<-rx||a.x>W+rx||a.y<-u||a.y>H+u)return;
+  if(id==='b'&&S.zoom>=10.6)return;             /* Bruce's house stands straight on the ground among the streets, no forecourt */
   g.save();marylandLandClip(g,{x:a.x-rx-8,y:a.y-u*.35,w:rx*2+16,h:u*.85});
   g.fillStyle='#b7c57d';g.beginPath();g.ellipse(a.x,a.y+3,rx+6,ry+8,0,0,7);g.fill();
   g.fillStyle='#e0d0a3';g.beginPath();g.ellipse(a.x,a.y+4,rx,ry,0,0,7);g.fill();
@@ -70,7 +71,7 @@ function marylandDetails(g){
  marylandVegetation(g);
  var u=homeArtH(S.zoom),p=marylandPoints();
  /* Garden framing is authored per landmark, never a random building scatter. */
- ['e','m','b'].forEach(function(id){var a=p[id];if(a.x<-u*2||a.x>W+u*2||a.y<-u||a.y>H+u)return;
+ ['e','m','b'].forEach(function(id){var a=p[id];if(a.x<-u*2||a.x>W+u*2||a.y<-u||a.y>H+u)return;if(id==='b'&&S.zoom>=10.6)return;
   [-1,1].forEach(function(side){var x=a.x+side*u*(id==='m'?.77:.94),y=a.y+u*.15;if(scenicLand(x,y)){marylandLamp(g,x,y,u*.31);drawArt(g,'pack-flowers',x+side*5,y+3,u*.16,1);}});
   var trees=id==='e'?[[-1.02,-.75],[.95,-.65],[-1.12,.2]]:id==='b'?[[-1.12,-.4],[-1.05,.32]]:[[-.97,-.5],[-.98,.22]];
   trees.forEach(function(v,i){var x=a.x+v[0]*u,y=a.y+v[1]*u;if(scenicLand(x,y))drawArt(g,i%2?'pack-pine':'pack-cherry',x,y,u*.43,1);});
