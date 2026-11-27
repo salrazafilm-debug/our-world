@@ -110,7 +110,7 @@ var POI_PAL = {
 };
 /* id, name, lat, lng, icon, shows from zoom, note */
 var POIS = [
-  ['annapolis-mall', 'Westfield Annapolis Mall', 38.9875, -76.5446, 'mall', 9.8, 'The big mall off Jennifer Road, by the US-50 and Route 2 junction.', 1],
+  ['annapolis-mall', 'Annapolis Mall', 38.9875, -76.5446, 'art:poi-mall', 10.0, 'Westfield Annapolis Mall and the AMC theatre, off Jennifer Road by the US-50 and Route 2 junction.'],
   ['planet-fitness', 'Planet Fitness', 39.1246, -76.5836, 'gym', 10.4, 'Planet Fitness on Ritchie Highway, Severna Park and Pasadena.'],
   ['dca', 'Reagan National Airport', 38.8512, -77.0402, 'airport', 8.6, 'Ronald Reagan Washington National (DCA), right on the Potomac.'],
   ['bwi', 'BWI Airport', 39.1774, -76.6684, 'airport', 8.6, 'Baltimore/Washington International Thurgood Marshall (BWI).'],
@@ -128,11 +128,19 @@ HOOKS.beforePins.push(function () {
   POIS.forEach(function (it) {
     if (z < it[5]) return;
     var p = proj(it[2], it[3]); if (p.x < -40 || p.y < -50 || p.x > W + 40 || p.y > H + 30) return;
-    var s = poiScale(z, it[5]) + (it[7] || 0), a = Math.min(1, (z - it[5]) / 0.5 + 0.35);
+    var s = poiScale(z, it[5]), a = Math.min(1, (z - it[5]) / 0.5 + 0.35), b;
     ctx.save(); ctx.globalAlpha = a;
-    ctx.fillStyle = 'rgba(60,40,50,.22)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, s * POI_SP[it[4]][0].length * 0.46, s * 2, 0, 0, 7); ctx.fill();
-    var b = drawSprite(ctx, POI_SP[it[4]], POI_PAL[it[4]], p.x, p.y, s, '#FFFFFF');
+    if (/^art:/.test(it[4])) {
+      /* a painted picture, kept well under the castle's size: about 40% of a home's height, growing gently with zoom */
+      var ph = Math.max(26, Math.min(58, homeArtH(z) * 0.4));
+      ctx.fillStyle = 'rgba(60,40,50,.2)'; ctx.beginPath(); ctx.ellipse(p.x, p.y - 2, ph * 0.5, ph * 0.1, 0, 0, 7); ctx.fill();
+      b = drawArt(ctx, it[4].slice(4), p.x, p.y, ph, DPR);
+    } else {
+      ctx.fillStyle = 'rgba(60,40,50,.22)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, s * POI_SP[it[4]][0].length * 0.46, s * 2, 0, 0, 7); ctx.fill();
+      b = drawSprite(ctx, POI_SP[it[4]], POI_PAL[it[4]], p.x, p.y, s, '#FFFFFF');
+    }
     ctx.restore();
+    if (!b) return;
     addHit({ x: b.x - 6, y: b.y - 6, w: b.w + 12, h: b.h + 12 }, { kind: 'poi', id: it[0] });
     if (z > it[5] + 0.6) tryLabel(p.x, b.y - 3, it[1], { size: 12, force: 1 });
     labelBoxes.push({ x: b.x - 3, y: b.y - 3, w: b.w + 6, h: b.h + 6 });

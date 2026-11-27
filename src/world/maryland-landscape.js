@@ -47,7 +47,7 @@ function marylandGrounds(g){
  });
 }
 var MD_GROVES=[[39.35,-77.25,.22],[39.22,-76.83,.18],[39.48,-76.45,.18],[39.16,-76.42,.12],[38.99,-77.32,.15],[38.87,-76.83,.12],[38.68,-77.02,.19],[38.49,-76.75,.17],[38.32,-76.57,.16],[38.85,-75.93,.18],[39.12,-75.8,.16],[38.30,-75.65,.18]];
-var MD_TOWNS=[[39.29,-76.61,'Baltimore'],[39.74,-75.55,'Wilmington'],[38.97,-76.49,'Annapolis'],[38.75,-76.55,'Calvert']],MD_TOWNBOXES=[];
+var MD_TOWNS=[[39.29,-76.61,'Baltimore'],[39.74,-75.55,'Wilmington'],[38.75,-76.55,'Calvert']],MD_TOWNBOXES=[];
 function marylandForest(lat,lng){var v=0;MD_GROVES.forEach(function(a){var dx=(lng-a[1])*.78,dy=lat-a[0],d=Math.hypot(dx,dy)/(a[2]*1.65);v=Math.max(v,1-cloudEase(.35,1,d));});return v;}
 function marylandVegetation(g){
  var z=S.zoom;if(z<5.8)return;var tl=unproj(-70,-70),br=unproj(W+70,H+70),u=homeArtH(z),items=[];
