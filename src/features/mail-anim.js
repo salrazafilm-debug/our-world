@@ -7,6 +7,7 @@
                                   and flies off toward the other person's home
    mailAnimOpen(letter, onDone)   an envelope arrives, the seal pops, the flap flips open, the letter slides up */
 (function () {
+var PAPBG = "radial-gradient(ellipse at 50% 40%,rgba(255,248,226,.6),rgba(255,248,226,0) 65%),radial-gradient(circle at 12% 88%,rgba(150,95,45,.2),transparent 24%),radial-gradient(circle at 91% 7%,rgba(150,95,45,.17),transparent 22%),url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42 0 0 0 0 .3 0 0 0 0 .17 0 0 0 .2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
   var st = document.createElement('style');
   st.textContent = [
     '.ma-layer{position:fixed;inset:0;z-index:70;pointer-events:none}',
@@ -23,13 +24,13 @@
     '.ma-seal img{width:18px;image-rendering:pixelated;filter:brightness(1.6) saturate(.3)}',
     '.ma-stamp{position:absolute;right:9%;top:46%;width:30px;height:36px;background:#FFF;border:2px dashed #D9879F;outline:2px solid #FFF;display:grid;place-items:center;z-index:5}',
     '.ma-stamp img{width:18px;image-rendering:pixelated}',
-    '.ma-letter{position:absolute;left:7%;right:7%;top:6%;height:90%;background:#F4DFC0 url(art/mail/vintage-paper.webp) center/100% 100% no-repeat;z-index:2;padding:10px 12px;overflow:hidden;font-family:var(--fbody);color:#4A2A33;box-shadow:0 2px 0 rgba(120,70,60,.15)}',
+    '.ma-letter{position:absolute;left:7%;right:7%;top:6%;height:90%;background-color:#F1E1BE;background-image:'+PAPBG+';z-index:2;padding:10px 12px;overflow:hidden;font-family:var(--fbody);color:#4A2A33;box-shadow:0 2px 0 rgba(120,70,60,.15)}',
     '.ma-letter b{display:block;font-family:var(--fdisp);color:#8E3A57;font-size:15px;margin-bottom:6px}',
     '.ma-letter p{margin:0;font-size:12px;line-height:1.5;white-space:pre-wrap}',
     '.ma-sheet{position:absolute;transform-style:preserve-3d}',
     '.ma-panel{position:absolute;left:0;right:0;transform-style:preserve-3d}',
-    '.ma-panel>i{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#F4DFC0 url(art/mail/vintage-paper.webp) center/100% 300% no-repeat}',
-    '.ma-panel>i.b{transform:rotateX(180deg);background:#EBD1A9 url(art/mail/vintage-paper.webp) center/100% 300% no-repeat}',
+    '.ma-panel>i{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background-color:#F1E1BE;background-image:'+PAPBG+'}',
+    '.ma-panel>i.b{transform:rotateX(180deg);background-color:#E6CDA3;background-image:'+PAPBG+'}',
     '.ma-panel>i>div{position:absolute;left:0;right:0;padding:18px 20px;font-family:var(--fbody);color:#4A2A33}',
     '.ma-panel>i>div b{display:block;font-family:var(--fdisp);color:#8E3A57;font-size:18px;margin-bottom:8px}',
     '.ma-panel>i>div p{margin:0;font-size:15px;line-height:1.6;white-space:pre-wrap}',
@@ -115,6 +116,7 @@ function mailAnimSend(paperEl, letter, onDone) {
   ], { duration: 700, delay: folded + 60, easing: 'cubic-bezier(.4,0,.2,1)' }));
   var inside = folded + 60 + 700;
   setTimeout(function () {
+var PAPBG = "radial-gradient(ellipse at 50% 40%,rgba(255,248,226,.6),rgba(255,248,226,0) 65%),radial-gradient(circle at 12% 88%,rgba(150,95,45,.2),transparent 24%),radial-gradient(circle at 91% 7%,rgba(150,95,45,.17),transparent 22%),url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42 0 0 0 0 .3 0 0 0 0 .17 0 0 0 .2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
     /* the letter is in: swap the flying sheet for a letter tucked behind the front pocket (same place, no blink) */
     sheet.style.opacity = '0';
     var l = document.createElement('div'); l.className = 'ma-letter'; l.style.cssText = 'top:' + (36 - third * k / eh * 50) + '%;height:' + (third * k / eh * 100) + '%;min-height:30%'; l.innerHTML = '<b>' + maEsc(letter.title) + '</b>';
@@ -161,6 +163,7 @@ function mailAnimOpen(letter, onDone, fromEl) {
   var up = maAnim(env.letter, [{ transform: 'translateY(0)' }, { transform: 'translateY(' + (-eh * 0.82) + 'px)', offset: 0.8 }, { transform: 'translateY(' + (-eh * 0.74) + 'px)' }], { duration: 760, delay: T + 640, easing: 'cubic-bezier(.3,1.3,.5,1)' });
   maAnim(env.el, [{ transform: 'scale(1,1)' }, { transform: 'scale(1.02,.95)', offset: 0.4 }, { transform: 'scale(1,1)' }], { duration: 360, delay: T + 640, easing: 'ease-out' });
   up.finished.then(function () {
+var PAPBG = "radial-gradient(ellipse at 50% 40%,rgba(255,248,226,.6),rgba(255,248,226,0) 65%),radial-gradient(circle at 12% 88%,rgba(150,95,45,.2),transparent 24%),radial-gradient(circle at 91% 7%,rgba(150,95,45,.17),transparent 22%),url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42 0 0 0 0 .3 0 0 0 0 .17 0 0 0 .2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
     /* hand over to the reading page: the scene fades as the letter page appears beneath */
     onDone && onDone();
     var out = maAnim(layer, [{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'ease-out' });

@@ -319,3 +319,22 @@ function setMuted(m) {
   b.addEventListener('click', function () { setMuted(!SND.muted); });
   setMuted(SND.muted);
 })();
+
+/* ---------- "music will play — enable?" on opening ---------- */
+function musicPrompt() {
+  if (SND.asked || document.getElementById('musicAsk')) return; SND.asked = true;
+  var w = document.createElement('div'); w.id = 'musicAsk';
+  w.style.cssText = 'position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:rgba(60,28,40,.55);padding:20px';
+  w.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Music" style="max-width:340px;width:100%;background:#FFF3E0;border:4px solid #7a4a3a;box-shadow:0 6px 0 #4b3540;padding:22px 20px;text-align:center;font-family:var(--fdisp,inherit);color:#8E3A57">' +
+    '<div style="font-size:34px;line-height:1">♪</div><p style="margin:10px 0 4px;font-size:19px">Music will play while you explore.</p>' +
+    '<p style="margin:0 0 16px;font-size:15px;color:#5a3a40">Enable it?</p>' +
+    '<div style="display:flex;gap:10px;justify-content:center"><button type="button" class="pxbtn primary" id="musicYes">Enable music</button><button type="button" class="pxbtn" id="musicNo">Not now</button></div></div>';
+  document.body.appendChild(w);
+  document.getElementById('musicYes').onclick = function () {
+    w.remove(); setMuted(false);
+    if (LIB.length) setSongs(true); else setMusic(true);
+    startSongs();
+  };
+  document.getElementById('musicNo').onclick = function () { w.remove(); setMuted(true); };
+  document.getElementById('musicYes').focus();
+}

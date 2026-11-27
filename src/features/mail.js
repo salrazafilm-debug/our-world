@@ -13,6 +13,7 @@ ROWHOOKS.mail = function (rows) {
   if (MAIL.open) mailRender();
   draw();
 };
+var PAPBG = "radial-gradient(ellipse at 50% 40%,rgba(255,248,226,.6),rgba(255,248,226,0) 65%),radial-gradient(circle at 12% 88%,rgba(150,95,45,.2),transparent 24%),radial-gradient(circle at 91% 7%,rgba(150,95,45,.17),transparent 22%),url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42 0 0 0 0 .3 0 0 0 0 .17 0 0 0 .2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
 var MAIL = { open: false, mode: 'ext', tab: 'compose', read: null, list: null, idx: 0, busy: false, noteReveal: false };
 
 /* the post office sits halfway between our two homes */
@@ -115,7 +116,12 @@ function mailEnsure() {
     '.m-main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;align-items:center;padding:8px 0 20px;scrollbar-width:thin;scrollbar-color:#C99A84 transparent}',
     '@media (max-width:859px){.m-body{top:calc(70px + env(safe-area-inset-top));flex-direction:column-reverse;gap:6px;padding:0 10px calc(8px + env(safe-area-inset-bottom))}.m-tabs{gap:4px}.m-tab{min-height:62px;padding:5px 2px 4px;font-size:12px;line-height:1.1}.m-tab img{width:24px;height:20px}.m-main{padding:0 0 6px}.m-sign span{font-size:22px;padding:5px 10px}.m-top{padding:calc(8px + env(safe-area-inset-top)) 10px 6px}}',
     '@media (min-width:860px){.m-body{flex-direction:row;align-items:flex-start}.m-tabs{grid-template-columns:1fr;width:230px;flex:none}.m-tab{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px 11px;font-size:17px}.m-tab .m-dot{position:static;margin-left:auto}.m-main{height:100%}}',
-    '.m-paper{width:min(100%,560px);min-height:360px;background:transparent url(art/mail/vintage-paper.webp) center/100% 100% no-repeat;border:0;padding:clamp(30px,7vw,52px) clamp(32px,8vw,58px);color:#4A2A33;filter:drop-shadow(0 9px 6px rgba(29,15,14,.28))}',
+    '.m-paper{width:min(100%,560px);min-height:360px;background-color:#F1E1BE;background-image:'+PAPBG+';border:0;border-radius:3px 7px 4px 8px/6px 3px 7px 4px;box-shadow:inset 0 0 46px rgba(150,95,45,.38),inset 0 0 5px rgba(105,65,35,.45),0 10px 16px rgba(29,15,14,.32);padding:clamp(30px,7vw,52px) clamp(32px,8vw,58px);color:#4A2A33}',
+    '.m-paper.more{box-shadow:inset 0 0 46px rgba(150,95,45,.38),inset 0 0 5px rgba(105,65,35,.45),3px 4px 0 -1px #E7D5AB,6px 8px 0 -2px #D9C493,8px 12px 14px -2px rgba(29,15,14,.4)}',
+    '.m-pages{display:flex;align-items:center;gap:12px;margin-top:14px;color:var(--cream);font-family:var(--fdisp);font-size:14px}',
+    '.m-paper .run{margin:0 0 8px;font-family:var(--fdisp);font-size:13px;color:var(--rose);text-align:center;letter-spacing:.04em}',
+    '.m-read.turn-f .m-paper{animation:mTurnF .45s ease-out both;transform-origin:left center}.m-read.turn-b .m-paper{animation:mTurnB .45s ease-out both;transform-origin:right center}',
+    '@keyframes mTurnF{from{transform:perspective(900px) rotateY(-62deg);opacity:.15}}@keyframes mTurnB{from{transform:perspective(900px) rotateY(62deg);opacity:.15}}',
     '.m-compose{min-height:min(690px,100%);display:flex;flex-direction:column;padding-top:clamp(40px,9vw,62px);padding-bottom:clamp(40px,9vw,62px)}.m-compose .m-field.body{flex:1;min-height:170px}.m-compose #mBody{height:100%;min-height:170px;resize:none;background:transparent;line-height:1.7}.m-compose #mTitle{background:transparent}.m-compose .m-tools{margin-top:8px}',
     '@media (max-width:859px){.m-compose{min-height:100%;padding:38px 36px 42px}.m-compose .m-field.body{min-height:110px}.m-compose #mBody{min-height:110px}}',
     '.m-paper h3{margin:0 0 10px;text-align:center;font-family:var(--fdisp);font-weight:600;font-size:20px;color:var(--berry-dk)}',
@@ -156,6 +162,7 @@ function mailEnsure() {
   mailEl = document.createElement('section'); mailEl.id = 'mailScene'; mailEl.setAttribute('aria-label', 'Post Office');
   document.body.appendChild(mailEl);
   mailEl.addEventListener('click', mailClick);
+  mailEl.addEventListener('input', function (e) { if (e.target.id !== 'mBody') return; var n = mailPages(e.target.value).length, el = document.getElementById('mPgs'); if (el) el.textContent = n > 1 ? '(' + n + ' pages)' : ''; });
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && MAIL.open) mailBack(); });
   return mailEl;
 }
@@ -248,10 +255,26 @@ function mailTabHtml() {
     '<div class="m-field"><textarea id="mNote" style="min-height:96px" placeholder="Good morning, I’m thinking about you…">' + esc(mineN && mineN.text || '') + '</textarea></div>' +
     '<div class="m-tools"><span class="grow"></span><button class="m-btn primary" type="button" data-m="note">Pin it</button></div></div>';
 }
+/* a long letter is read page by page: roughly one sheet of paper at a time */
+function mailPages(text) {
+  text = String(text || ''); var out = [], LIM = 760;
+  while (text.length > LIM) {
+    var cut = text.lastIndexOf('\n\n', LIM); if (cut < LIM * 0.55) cut = text.lastIndexOf('\n', LIM);
+    if (cut < LIM * 0.55) cut = text.lastIndexOf(' ', LIM); if (cut < LIM * 0.4) cut = LIM;
+    out.push(text.slice(0, cut).replace(/\s+$/, '')); text = text.slice(cut).replace(/^\s+/, '');
+  }
+  out.push(text); return out;
+}
 function mailReadHtml() {
   var m = MAIL.read, list = MAIL.list, mine = m.from === S.who;
-  return '<div class="m-read' + (MAIL.calm ? ' calm' : '') + '"><div class="m-paper"><h3>' + esc(m.title || 'A letter') + ' ♥</h3><div class="txt">' + esc(m.body || '') + '</div>' +
-    '<div class="meta">' + (mine ? 'to ' + esc(shortName(m.to)) : 'from ' + esc(shortName(m.from))) + ' · ' + mailDate(m.at) + '</div></div>' +
+  var pages = mailPages(m.body);
+  if (MAIL.pageFor !== m.id) { MAIL.pageFor = m.id; MAIL.page = 0; }
+  var pg = Math.max(0, Math.min(pages.length - 1, MAIL.page || 0)), last = pg === pages.length - 1;
+  return '<div class="m-read' + (MAIL.calm ? ' calm' : '') + (MAIL.turning ? ' turn-' + MAIL.turning : '') + '"><div class="m-paper' + (last ? '' : ' more') + '">' +
+    (pg === 0 ? '<h3>' + esc(m.title || 'A letter') + ' ♥</h3>' : '<div class="run">' + esc(m.title || 'A letter') + ' · page ' + (pg + 1) + '</div>') +
+    '<div class="txt">' + esc(pages[pg]) + '</div>' +
+    (last ? '<div class="meta">' + (mine ? 'to ' + esc(shortName(m.to)) : 'from ' + esc(shortName(m.from))) + ' · ' + mailDate(m.at) + '</div>' : '') + '</div>' +
+    (pages.length > 1 ? '<div class="m-pages"><button class="m-btn" type="button" data-m="ppage" data-d="-1"' + (pg <= 0 ? ' disabled' : '') + ' aria-label="Previous page">‹</button><span>Page ' + (pg + 1) + ' of ' + pages.length + '</span><button class="m-btn" type="button" data-m="ppage" data-d="1"' + (last ? ' disabled' : '') + ' aria-label="Next page">›</button></div>' : '') +
     '<img class="under" alt="" src="art/mail/env-gold.png">' +
     (list ? '<div class="m-nav"><button class="m-btn" type="button" data-m="prev"' + (MAIL.idx <= 0 ? ' disabled' : '') + ' aria-label="Newer letter">‹</button>' +
       '<span>' + (MAIL.idx + 1) + ' of ' + list.length + '</span>' +
@@ -308,6 +331,7 @@ function mailClick(e) {
     toast('Pinned for ' + shortName(other(S.who)) + '.', '♥', 2600);
     return;
   }
+  if (a === 'ppage') { var d = parseInt(b.dataset.d, 10) || 0; MAIL.page = Math.max(0, (MAIL.page || 0) + d); MAIL.turning = d > 0 ? 'f' : 'b'; mailRender(); MAIL.turning = null; return; }
   if (a === 'send') return mailSend();
 }
 function mailSend() {
