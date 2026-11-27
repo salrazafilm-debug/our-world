@@ -8261,7 +8261,8 @@ var MAIL = { open: false, mode: 'ext', tab: 'letters', read: null, list: null, i
 /* the post office sits halfway between our two homes */
 var MAIL_POS = { lat: (HOMES.bruce.lat + HOMES.elena.lat) / 2, lng: (HOMES.bruce.lng + HOMES.elena.lng) / 2 };
 function mailUnread() { return S.mail.filter(function (m) { return m.to === S.who && !m.openedAt; }).sort(function (a, b) { return (a.at || 0) - (b.at || 0); }); }
-function mailAll() { return S.mail.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); }); }
+function mailIsNew(m) { return m.to === S.who && !m.openedAt; }
+function mailAll() { return S.mail.slice().sort(function (a, b) { return (mailIsNew(b) ? 1 : 0) - (mailIsNew(a) ? 1 : 0) || (b.at || 0) - (a.at || 0); }); }
 function mailSave(m) {
   S.mail = S.mail.filter(function (x) { return x.id !== m.id; }).concat([m]);
   try { localStorage.setItem('ow.mail', JSON.stringify(S.mail)); } catch (e) {}
@@ -8371,6 +8372,8 @@ function mailEnsure() {
     '.m-paper .meta{margin-top:12px;font-family:var(--fdisp);font-size:14px;color:var(--rose);text-align:right}',
     '.m-paper.pinned{position:relative}.m-paper.pinned:before{content:"";position:absolute;top:-2px;left:50%;width:14px;height:14px;margin-left:-7px;background:var(--berry);clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)}',
     '.m-env-row{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;padding:8px 0 4px}',
+    '.m-env-row.big{gap:22px;padding:10px 0 8px}.m-env-row.big .m-env{width:clamp(150px,42vw,210px)}.m-env-row.big .m-env span{font-size:16px;margin-top:8px}',
+    '.m-newhead{margin:4px 0 0;text-align:center;font-family:var(--fdisp);font-size:17px;color:var(--cream)}',
     '.m-env{position:relative;width:96px;background:none;border:none;padding:0;cursor:pointer;animation:mBob 2.8s ease-in-out infinite}',
     '.m-env:nth-child(2){animation-delay:-.9s}.m-env:nth-child(3){animation-delay:-1.8s}',
     '.m-env img{width:100%;image-rendering:pixelated;filter:drop-shadow(0 0 10px rgba(255,214,140,.65));transition:transform .15s}',
@@ -8413,7 +8416,7 @@ function mailOpen(opts) {
   opts = opts || {};
   mailEnsure(); closeSheet();
   if (typeof dashClose === 'function') dashClose();
-  MAIL.open = true; MAIL.read = null; MAIL.noteReveal = false;
+  MAIL.open = true; MAIL.read = null; MAIL.noteReveal = false; MAIL.showAll = false;
   MAIL.mode = opts.room ? 'room' : 'ext';
   MAIL.tab = opts.tab || 'letters';
   if (!opts.room) flyTo(MAIL_POS.lat, MAIL_POS.lng, Math.max(S.zoom, 11.6));
@@ -8484,7 +8487,15 @@ function mailTabHtml() {
   if (t === 'letters') {
     var all = mailAll();
     if (!all.length) return '<div class="m-empty-action"><img src="art/mail/env-row.png" alt="" width="110"><span>No letters here yet. Start your story with one.</span><button class="m-btn primary" type="button" data-m="tab" data-id="compose">Write a letter</button></div>';
-    return '<div class="m-list">' + all.map(function (m, i) {
+    var fresh = mailUnread().slice().reverse();      /* newest unread first */
+    var top = fresh.length
+      ? '<p class="m-newhead">New for you</p><div class="m-env-row big">' + fresh.slice(0, 6).map(function (m) {
+          return '<button class="m-env" type="button" data-m="open" data-id="' + esc(m.id) + '"><img alt="" src="art/mail/env-gold.png"><span>' + esc(m.title || 'A letter') + '</span></button>';
+        }).join('') + '</div>'
+      : '<p class="m-empty">All caught up ♥<br>No unopened letters.</p>';
+    var toggle = '<button class="m-btn" type="button" data-m="showall" style="margin:6px auto">' + (MAIL.showAll ? 'Hide old letters' : 'See all letters (' + all.length + ')') + '</button>';
+    if (!MAIL.showAll) return top + toggle;
+    return top + toggle + '<div class="m-list">' + all.map(function (m, i) {
       var mine = m.from === S.who, isNew = !mine && !m.openedAt;
       return '<button class="m-row' + (isNew ? ' new' : '') + '" type="button" data-m="look" data-i="' + i + '"><img alt="" src="art/mail/env-row.png"><span><b>' + esc(m.title || 'A letter') + '</b><small>' +
         mailDate(m.at) + ' · ' + (mine ? 'to ' + esc(shortName(m.to)) : 'from ' + esc(shortName(m.from))) + (isNew ? ' · new' : '') + '</small></span><span class="chev">›</span></button>';
@@ -8585,6 +8596,7 @@ function mailClick(e) {
   }
   if (a === 'ppage') { var d = parseInt(b.dataset.d, 10) || 0; MAIL.page = Math.max(0, (MAIL.page || 0) + d); MAIL.turning = d > 0 ? 'f' : 'b'; mailRender(); MAIL.turning = null; return; }
   if (a === 'music') { var bx = document.getElementById('mSongBox'); if (!bx) return; var show = bx.style.display === 'none'; bx.style.display = show ? '' : 'none'; b.setAttribute('aria-pressed', show ? 'true' : 'false'); if (show) bx.scrollIntoView({ block: 'nearest' }); return; }
+  if (a === 'showall') { MAIL.showAll = !MAIL.showAll; return mailRender(); }
   if (a === 'send') return mailSend();
 }
 function mailSend() {
