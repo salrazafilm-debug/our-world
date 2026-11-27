@@ -258,8 +258,8 @@ function mailTabHtml() {
 }
 /* a long letter is read page by page: roughly one sheet of paper at a time */
 function mailPages(text) {
-  text = String(text || ''); var out = [], LIM = 760;
-  while (text.length > LIM) {
+  text = String(text || ''); var out = [], LIM = 760;   /* the last page may run a bit long so a few leftover lines never get a sheet of their own */
+  while (text.length > LIM * 1.45) {
     var cut = text.lastIndexOf('\n\n', LIM); if (cut < LIM * 0.55) cut = text.lastIndexOf('\n', LIM);
     if (cut < LIM * 0.55) cut = text.lastIndexOf(' ', LIM); if (cut < LIM * 0.4) cut = LIM;
     out.push(text.slice(0, cut).replace(/\s+$/, '')); text = text.slice(cut).replace(/^\s+/, '');
