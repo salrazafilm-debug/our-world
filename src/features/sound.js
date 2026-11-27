@@ -2,7 +2,7 @@
    tune. Both are made on the fly (no audio files) and both start OFF. */
 
 var SND = { on: false, music: false, ctx: null, out: null, timer: null, step: 0 };
-try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; } catch (e) {}
+try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; SND.songs = localStorage.getItem('ow.songsOn') === 'on'; } catch (e) {}
 
 function audio() {
   if (SND.ctx) { if (SND.ctx.state === 'suspended') SND.ctx.resume(); return SND.ctx; }
@@ -50,11 +50,16 @@ function musicTick() {
   SND.step++;
 }
 function startMusic() {
-  if (bgP.has()) { clearInterval(SND.timer); SND.timer = null; bgP.start(); return; }
   if (SND.timer || !audio()) return;
   SND.timer = setInterval(musicTick, 420);
 }
-function stopMusic() { clearInterval(SND.timer); SND.timer = null; bgP.stop(true); }
+function stopMusic() { clearInterval(SND.timer); SND.timer = null; }
+function startSongs() { if (SND.songs && bgP.has()) { SND.songsRun = true; bgP.start(); } }
+function setSongs(on) {
+  SND.songs = on;
+  try { localStorage.setItem('ow.songsOn', on ? 'on' : 'off'); } catch (e) {}
+  if (on) startSongs(); else bgP.stop(true);
+}
 function setMusic(on) {
   SND.music = on;
   try { localStorage.setItem('ow.music', on ? 'on' : 'off'); } catch (e) {}
@@ -70,6 +75,7 @@ document.addEventListener('pointerdown', function first() {
   document.removeEventListener('pointerdown', first, true);
   if (SND.on || SND.music) audio();
   if (SND.music) startMusic();
+  startSongs();
 }, true);
 document.addEventListener('visibilitychange', function () {
   if (!SND.ctx) return;
@@ -153,21 +159,32 @@ function songAdd(files, done) {
     if (f.size > 25 * 1024 * 1024) { toast('“' + f.name + '” is too big (25 MB max).', '🎵', 3500); return false; }
     return true;
   });
-  if (!ok.length) return;
+  /* let her name each song (cancel skips it) */
+  var named = [];
+  ok.forEach(function (f) {
+    var def = f.name.replace(/.mp3$/i, ''), nm = prompt('Name this song:', def);
+    if (nm !== null) named.push({ f: f, name: (nm.trim() || def).slice(0, 60) });
+  });
+  if (!named.length) return;
   if (CLOUD()) {
-    toast('Uploading ' + ok.length + (ok.length > 1 ? ' songs' : ' song') + '…', '🎵', 3000);
+    toast('Uploading ' + named.length + (named.length > 1 ? ' songs' : ' song') + '…', '🎵', 3000);
     var chain = Promise.resolve();
-    ok.forEach(function (f) { chain = chain.then(function () { return OWCloud.songs.add(f, f.name.replace(/.mp3$/i, '')); }); });
+    named.forEach(function (n) { chain = chain.then(function () { return OWCloud.songs.add(n.f, n.name); }); });
     chain.then(function () { toast('Songs saved for both of you.', '🎵', 3000); songLoad(done); })
       .catch(function () { toast('Could not upload — is the songs setup (supabase/songs.sql) run?', '🎵', 6000); songLoad(done); });
     return;
   }
   songRecs(function (recs) {
-    ok.forEach(function (f) {
-      recs.push({ id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: f.name.replace(/\.mp3$/i, ''), blob: f });
+    named.forEach(function (n) {
+      recs.push({ id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: n.name, blob: n.f });
     });
     songWrite(recs, function () { songLoad(done); });
   });
+}
+function songRename(id, name, done) {
+  var sg = songById(id); if (!sg) return;
+  if (CLOUD()) { OWCloud.songs.rename(id, name).catch(function () { toast('Could not rename.', '🎵', 3000); }).then(function () { sg.name = name; if (done) done(); }); return; }
+  songRecs(function (recs) { recs.forEach(function (r) { if (r.id === id) r.name = name; }); songWrite(recs, function () { sg.name = name; if (done) done(); }); });
 }
 function songRemove(id, done) {
   plStopAll();
@@ -175,7 +192,7 @@ function songRemove(id, done) {
     var sg = songById(id);
     OWCloud.songs.remove(id, sg && sg.path).catch(function () {}).then(function () {
       SEL.bg = SEL.bg.filter(function (i) { return i !== id; }); SEL.env = SEL.env.filter(function (i) { return i !== id; }); selSave();
-      songLoad(function () { if (SND.music) startMusic(); if (done) done(); });
+      songLoad(function () { startSongs(); if (done) done(); });
     });
     return;
   }
@@ -184,7 +201,7 @@ function songRemove(id, done) {
       SEL.bg = SEL.bg.filter(function (i) { return i !== id; });
       SEL.env = SEL.env.filter(function (i) { return i !== id; });
       selSave();
-      songLoad(function () { if (SND.music) startMusic(); if (done) done(); });
+      songLoad(function () { startSongs(); if (done) done(); });
     });
   });
 }
@@ -192,7 +209,7 @@ function songToggle(slot, id) {
   var i = SEL[slot].indexOf(id);
   if (i < 0) SEL[slot].push(id); else SEL[slot].splice(i, 1);
   selSave();
-  if (slot === 'bg') { bgP.stop(true); if (SND.music) startMusic(); }
+  if (slot === 'bg') { bgP.stop(true); startSongs(); }
 }
 
 /* --- one player: plays its slot's songs in order, crossfading, looping forever --- */
@@ -252,7 +269,7 @@ function songPreview(what) {
 }
 function songPreviewStop() {
   preP.stop(); PRE.on = null;
-  if (SND.music && bgP.has()) bgP.resume();
+  if (SND.songs && bgP.has()) bgP.resume();
 }
 
 /* envelope song: the background pauses while a letter is open, then comes back */
@@ -263,6 +280,6 @@ function envSongStart() {
 }
 function envSongStop() {
   if (envP.timer) envP.stop();
-  if (SND.music && bgP.has()) bgP.resume();
+  if (SND.songs && bgP.has()) bgP.resume();
 }
-if (!CLOUD()) songLoad(function () { if (SND.music && SND.ctx) startMusic(); });
+if (!CLOUD()) songLoad(function () { startSongs(); });

@@ -1269,6 +1269,7 @@ var songs = {
     return sb.storage.from('songs').upload(path, file, { contentType: 'audio/mpeg', upsert: false }).then(ck)
       .then(function () { return sb.from('songs').insert({ name: name, path: path }).then(ck); });
   },
+  rename: function (id, name) { return sb.from('songs').update({ name: name }).eq('id', id).then(ck); },
   remove: function (id, path) {
     return sb.from('songs').delete().eq('id', id).then(ck)
       .then(function () { return sb.storage.from('songs').remove([path]); });
@@ -6762,7 +6763,7 @@ if (WALK.pts.length) setTimeout(function () { toast('You have an unfinished walk
    tune. Both are made on the fly (no audio files) and both start OFF. */
 
 var SND = { on: false, music: false, ctx: null, out: null, timer: null, step: 0 };
-try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; } catch (e) {}
+try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; SND.songs = localStorage.getItem('ow.songsOn') === 'on'; } catch (e) {}
 
 function audio() {
   if (SND.ctx) { if (SND.ctx.state === 'suspended') SND.ctx.resume(); return SND.ctx; }
@@ -6810,11 +6811,16 @@ function musicTick() {
   SND.step++;
 }
 function startMusic() {
-  if (bgP.has()) { clearInterval(SND.timer); SND.timer = null; bgP.start(); return; }
   if (SND.timer || !audio()) return;
   SND.timer = setInterval(musicTick, 420);
 }
-function stopMusic() { clearInterval(SND.timer); SND.timer = null; bgP.stop(true); }
+function stopMusic() { clearInterval(SND.timer); SND.timer = null; }
+function startSongs() { if (SND.songs && bgP.has()) { SND.songsRun = true; bgP.start(); } }
+function setSongs(on) {
+  SND.songs = on;
+  try { localStorage.setItem('ow.songsOn', on ? 'on' : 'off'); } catch (e) {}
+  if (on) startSongs(); else bgP.stop(true);
+}
 function setMusic(on) {
   SND.music = on;
   try { localStorage.setItem('ow.music', on ? 'on' : 'off'); } catch (e) {}
@@ -6830,6 +6836,7 @@ document.addEventListener('pointerdown', function first() {
   document.removeEventListener('pointerdown', first, true);
   if (SND.on || SND.music) audio();
   if (SND.music) startMusic();
+  startSongs();
 }, true);
 document.addEventListener('visibilitychange', function () {
   if (!SND.ctx) return;
@@ -6913,21 +6920,32 @@ function songAdd(files, done) {
     if (f.size > 25 * 1024 * 1024) { toast('“' + f.name + '” is too big (25 MB max).', '🎵', 3500); return false; }
     return true;
   });
-  if (!ok.length) return;
+  /* let her name each song (cancel skips it) */
+  var named = [];
+  ok.forEach(function (f) {
+    var def = f.name.replace(/.mp3$/i, ''), nm = prompt('Name this song:', def);
+    if (nm !== null) named.push({ f: f, name: (nm.trim() || def).slice(0, 60) });
+  });
+  if (!named.length) return;
   if (CLOUD()) {
-    toast('Uploading ' + ok.length + (ok.length > 1 ? ' songs' : ' song') + '…', '🎵', 3000);
+    toast('Uploading ' + named.length + (named.length > 1 ? ' songs' : ' song') + '…', '🎵', 3000);
     var chain = Promise.resolve();
-    ok.forEach(function (f) { chain = chain.then(function () { return OWCloud.songs.add(f, f.name.replace(/.mp3$/i, '')); }); });
+    named.forEach(function (n) { chain = chain.then(function () { return OWCloud.songs.add(n.f, n.name); }); });
     chain.then(function () { toast('Songs saved for both of you.', '🎵', 3000); songLoad(done); })
       .catch(function () { toast('Could not upload — is the songs setup (supabase/songs.sql) run?', '🎵', 6000); songLoad(done); });
     return;
   }
   songRecs(function (recs) {
-    ok.forEach(function (f) {
-      recs.push({ id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: f.name.replace(/\.mp3$/i, ''), blob: f });
+    named.forEach(function (n) {
+      recs.push({ id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: n.name, blob: n.f });
     });
     songWrite(recs, function () { songLoad(done); });
   });
+}
+function songRename(id, name, done) {
+  var sg = songById(id); if (!sg) return;
+  if (CLOUD()) { OWCloud.songs.rename(id, name).catch(function () { toast('Could not rename.', '🎵', 3000); }).then(function () { sg.name = name; if (done) done(); }); return; }
+  songRecs(function (recs) { recs.forEach(function (r) { if (r.id === id) r.name = name; }); songWrite(recs, function () { sg.name = name; if (done) done(); }); });
 }
 function songRemove(id, done) {
   plStopAll();
@@ -6935,7 +6953,7 @@ function songRemove(id, done) {
     var sg = songById(id);
     OWCloud.songs.remove(id, sg && sg.path).catch(function () {}).then(function () {
       SEL.bg = SEL.bg.filter(function (i) { return i !== id; }); SEL.env = SEL.env.filter(function (i) { return i !== id; }); selSave();
-      songLoad(function () { if (SND.music) startMusic(); if (done) done(); });
+      songLoad(function () { startSongs(); if (done) done(); });
     });
     return;
   }
@@ -6944,7 +6962,7 @@ function songRemove(id, done) {
       SEL.bg = SEL.bg.filter(function (i) { return i !== id; });
       SEL.env = SEL.env.filter(function (i) { return i !== id; });
       selSave();
-      songLoad(function () { if (SND.music) startMusic(); if (done) done(); });
+      songLoad(function () { startSongs(); if (done) done(); });
     });
   });
 }
@@ -6952,7 +6970,7 @@ function songToggle(slot, id) {
   var i = SEL[slot].indexOf(id);
   if (i < 0) SEL[slot].push(id); else SEL[slot].splice(i, 1);
   selSave();
-  if (slot === 'bg') { bgP.stop(true); if (SND.music) startMusic(); }
+  if (slot === 'bg') { bgP.stop(true); startSongs(); }
 }
 
 /* --- one player: plays its slot's songs in order, crossfading, looping forever --- */
@@ -7012,7 +7030,7 @@ function songPreview(what) {
 }
 function songPreviewStop() {
   preP.stop(); PRE.on = null;
-  if (SND.music && bgP.has()) bgP.resume();
+  if (SND.songs && bgP.has()) bgP.resume();
 }
 
 /* envelope song: the background pauses while a letter is open, then comes back */
@@ -7023,9 +7041,9 @@ function envSongStart() {
 }
 function envSongStop() {
   if (envP.timer) envP.stop();
-  if (SND.music && bgP.has()) bgP.resume();
+  if (SND.songs && bgP.has()) bgP.resume();
 }
-if (!CLOUD()) songLoad(function () { if (SND.music && SND.ctx) startMusic(); });
+if (!CLOUD()) songLoad(function () { startSongs(); });
 
 /* ---- features/bucket.js ---- */
 /* Our shared bucket list. Either of you adds things; each taps a heart if
@@ -9461,9 +9479,10 @@ function openAtmos() {
     '<p class="hint">A warm glow where you have really been together: memories, together moments, cleared ground and recorded walks.</p>' +
     sectionTitle('Sounds') + '<div class="sheet-actions">' +
       opt('snd', 'on', 'On', SND.on) + opt('snd', 'off', 'Off', !SND.on) + '</div>' +
-    sectionTitle('Music box') + '<div class="sheet-actions">' +
+    sectionTitle('Music box (built-in tune)') + '<div class="sheet-actions">' +
       opt('music', 'on', 'Play', SND.music) + opt('music', 'off', 'Off', !SND.music) + '</div>' +
-    sectionTitle('Your own songs') + '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="songs">Choose songs (MP3)</button></div>' +
+    sectionTitle('Your own songs') + '<div class="sheet-actions">' +
+      opt('songson', 'on', 'On', SND.songs) + opt('songson', 'off', 'Off', !SND.songs) + '<button class="pxbtn" type="button" data-act="songs">Choose songs (MP3)</button></div>' +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
 }
 function songBtn(act, v, label, on) {
@@ -9471,21 +9490,22 @@ function songBtn(act, v, label, on) {
 }
 function openSongs() {
   var rows = LIB.map(function (s) {
-    var b = SEL.bg.indexOf(s.id), e = SEL.env.indexOf(s.id);
-    return '<div class="sheet-actions" style="align-items:center;margin:6px 0"><span class="grow">' + esc(s.name) + '</span>' +
-      songBtn('song-prev', s.id, PRE.on === s.id ? '■' : '▶') +
-      songBtn('song-bg', s.id, b < 0 ? 'Music' : 'Music ' + (b + 1), b >= 0) +
-      songBtn('song-env', s.id, e < 0 ? 'Letters' : 'Letters ' + (e + 1), e >= 0) +
-      songBtn('song-del', s.id, '✕') + '</div>';
+    var b = SEL.bg.indexOf(s.id) >= 0, e = SEL.env[0] === s.id;
+    return '<div style="margin:10px 0"><div class="sheet-actions" style="align-items:center"><span class="grow"><b>' + esc(s.name) + '</b></span>' +
+      songBtn('song-ren', s.id, '✎') + songBtn('song-del', s.id, '✕') + '</div>' +
+      '<div class="sheet-actions" style="align-items:center">' + songBtn('song-prev', s.id, PRE.on === s.id ? '■ Stop' : '▶ Play') +
+      songBtn('song-bg', s.id, 'Background ' + (b ? 'on' : 'off'), b) +
+      songBtn('song-env', s.id, e ? 'In letters ✓' : 'Use in letters', e) + '</div></div>';
   }).join('');
+  var env = songById(SEL.env[0]);
   openSheet(head('Your songs', 'MP3s for the map and for letters') +
-    '<p class="note">Upload MP3s, then choose which play behind the map (<b>Music</b>) and which play when you open a letter or envelope (<b>Letters</b>). Several chosen songs play in the order you tap them, each fading into the next. One chosen song loops.</p>' +
+    '<p class="note">Upload MP3s and name them. <b>Background</b> on/off decides which songs play behind the map (several play in order, fading into each other). Pick one song for letters, or none, and it loops while a letter is open.</p>' +
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button></div>' +
     (rows ? sectionTitle('Library') + rows : '<p class="hint">No songs yet.</p>') +
     sectionTitle('Letter music') +
-    '<p class="hint">' + (SEL.env.length ? 'Playing: ' + SEL.env.map(function (i) { return esc((songById(i) || {}).name || ''); }).join(' → ') + (SEL.env.length === 1 ? ' (on loop)' : '') : 'None chosen — letters open in silence.') + '</p>' +
-    '<div class="sheet-actions">' + songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + '</div>' +
-    '<p class="hint">Turn the background on under Atmosphere → Music box → Play.</p>' +
+    '<p class="hint">' + (env ? esc(env.name) + ' (on loop)' : 'None — letters open in silence.') + '</p>' +
+    (env ? '<div class="sheet-actions">' + songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + songBtn('song-envnone', 'x', 'No song') + '</div>' : '') +
+    '<p class="hint">Turn background songs on under Atmosphere → Your own songs.</p>' +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="atmos">Back</button></div>');
 }
 ACTIONS['songs'] = function () { openSongs(); };
@@ -9497,13 +9517,16 @@ ACTIONS['song-pick'] = function () {
   inp.click();
 };
 ACTIONS['song-bg'] = function (b) { songToggle('bg', b.dataset.v); openSongs(); };
-ACTIONS['song-env'] = function (b) { songToggle('env', b.dataset.v); openSongs(); };
+ACTIONS['song-env'] = function (b) { songPreviewStop(); SEL.env = SEL.env[0] === b.dataset.v ? [] : [b.dataset.v]; selSave(); openSongs(); };
+ACTIONS['song-envnone'] = function () { songPreviewStop(); SEL.env = []; selSave(); openSongs(); };
+ACTIONS['song-ren'] = function (b) { var sg = songById(b.dataset.v); if (!sg) return; var nm = prompt('Rename song:', sg.name); if (nm && nm.trim()) songRename(b.dataset.v, nm.trim().slice(0, 60), openSongs); };
 ACTIONS['song-prev'] = function (b) { songPreview(b.dataset.v); openSongs(); };
 ACTIONS['song-del'] = function (b) { songPreviewStop(); songRemove(b.dataset.v, openSongs); };
 ACTIONS['tod'] = function (b) { AMB.tod = b.dataset.v; try { localStorage.setItem('ow.tod', AMB.tod); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['weather'] = function (b) { AMB.weather = b.dataset.v === 'on'; try { localStorage.setItem('ow.weather', AMB.weather ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['heat'] = function (b) { AMB.heat = b.dataset.v === 'on'; try { localStorage.setItem('ow.heat', AMB.heat ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['snd'] = function (b) { setSound(b.dataset.v === 'on'); openAtmos(); };
+ACTIONS['songson'] = function (b) { setSongs(b.dataset.v === 'on'); openAtmos(); };
 ACTIONS['music'] = function (b) { setMusic(b.dataset.v === 'on'); openAtmos(); };
 ACTIONS['sign-out'] = function () { if (window.OWCloud && OWCloud.configured) OWCloud.signOut(); else location.reload(); };
 
@@ -9767,7 +9790,7 @@ function startBehindGate() {
   function unlock() {
     gate.hidden = true;
     document.body.classList.remove('locked');
-    if (!booted) { booted = true; boot(); if (typeof songLoad === 'function') songLoad(function () { if (SND.music) startMusic(); }); }
+    if (!booted) { booted = true; boot(); if (typeof songLoad === 'function') songLoad(function () { startSongs(); }); }
   }
   if (!window.OWCloud || !OWCloud.configured) { unlock(); return; }
   OWCloud.onSignedOut(function () {

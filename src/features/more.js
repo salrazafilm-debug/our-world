@@ -218,9 +218,10 @@ function openAtmos() {
     '<p class="hint">A warm glow where you have really been together: memories, together moments, cleared ground and recorded walks.</p>' +
     sectionTitle('Sounds') + '<div class="sheet-actions">' +
       opt('snd', 'on', 'On', SND.on) + opt('snd', 'off', 'Off', !SND.on) + '</div>' +
-    sectionTitle('Music box') + '<div class="sheet-actions">' +
+    sectionTitle('Music box (built-in tune)') + '<div class="sheet-actions">' +
       opt('music', 'on', 'Play', SND.music) + opt('music', 'off', 'Off', !SND.music) + '</div>' +
-    sectionTitle('Your own songs') + '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="songs">Choose songs (MP3)</button></div>' +
+    sectionTitle('Your own songs') + '<div class="sheet-actions">' +
+      opt('songson', 'on', 'On', SND.songs) + opt('songson', 'off', 'Off', !SND.songs) + '<button class="pxbtn" type="button" data-act="songs">Choose songs (MP3)</button></div>' +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
 }
 function songBtn(act, v, label, on) {
@@ -228,21 +229,22 @@ function songBtn(act, v, label, on) {
 }
 function openSongs() {
   var rows = LIB.map(function (s) {
-    var b = SEL.bg.indexOf(s.id), e = SEL.env.indexOf(s.id);
-    return '<div class="sheet-actions" style="align-items:center;margin:6px 0"><span class="grow">' + esc(s.name) + '</span>' +
-      songBtn('song-prev', s.id, PRE.on === s.id ? '■' : '▶') +
-      songBtn('song-bg', s.id, b < 0 ? 'Music' : 'Music ' + (b + 1), b >= 0) +
-      songBtn('song-env', s.id, e < 0 ? 'Letters' : 'Letters ' + (e + 1), e >= 0) +
-      songBtn('song-del', s.id, '✕') + '</div>';
+    var b = SEL.bg.indexOf(s.id) >= 0, e = SEL.env[0] === s.id;
+    return '<div style="margin:10px 0"><div class="sheet-actions" style="align-items:center"><span class="grow"><b>' + esc(s.name) + '</b></span>' +
+      songBtn('song-ren', s.id, '✎') + songBtn('song-del', s.id, '✕') + '</div>' +
+      '<div class="sheet-actions" style="align-items:center">' + songBtn('song-prev', s.id, PRE.on === s.id ? '■ Stop' : '▶ Play') +
+      songBtn('song-bg', s.id, 'Background ' + (b ? 'on' : 'off'), b) +
+      songBtn('song-env', s.id, e ? 'In letters ✓' : 'Use in letters', e) + '</div></div>';
   }).join('');
+  var env = songById(SEL.env[0]);
   openSheet(head('Your songs', 'MP3s for the map and for letters') +
-    '<p class="note">Upload MP3s, then choose which play behind the map (<b>Music</b>) and which play when you open a letter or envelope (<b>Letters</b>). Several chosen songs play in the order you tap them, each fading into the next. One chosen song loops.</p>' +
+    '<p class="note">Upload MP3s and name them. <b>Background</b> on/off decides which songs play behind the map (several play in order, fading into each other). Pick one song for letters, or none, and it loops while a letter is open.</p>' +
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button></div>' +
     (rows ? sectionTitle('Library') + rows : '<p class="hint">No songs yet.</p>') +
     sectionTitle('Letter music') +
-    '<p class="hint">' + (SEL.env.length ? 'Playing: ' + SEL.env.map(function (i) { return esc((songById(i) || {}).name || ''); }).join(' → ') + (SEL.env.length === 1 ? ' (on loop)' : '') : 'None chosen — letters open in silence.') + '</p>' +
-    '<div class="sheet-actions">' + songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + '</div>' +
-    '<p class="hint">Turn the background on under Atmosphere → Music box → Play.</p>' +
+    '<p class="hint">' + (env ? esc(env.name) + ' (on loop)' : 'None — letters open in silence.') + '</p>' +
+    (env ? '<div class="sheet-actions">' + songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + songBtn('song-envnone', 'x', 'No song') + '</div>' : '') +
+    '<p class="hint">Turn background songs on under Atmosphere → Your own songs.</p>' +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="atmos">Back</button></div>');
 }
 ACTIONS['songs'] = function () { openSongs(); };
@@ -254,13 +256,16 @@ ACTIONS['song-pick'] = function () {
   inp.click();
 };
 ACTIONS['song-bg'] = function (b) { songToggle('bg', b.dataset.v); openSongs(); };
-ACTIONS['song-env'] = function (b) { songToggle('env', b.dataset.v); openSongs(); };
+ACTIONS['song-env'] = function (b) { songPreviewStop(); SEL.env = SEL.env[0] === b.dataset.v ? [] : [b.dataset.v]; selSave(); openSongs(); };
+ACTIONS['song-envnone'] = function () { songPreviewStop(); SEL.env = []; selSave(); openSongs(); };
+ACTIONS['song-ren'] = function (b) { var sg = songById(b.dataset.v); if (!sg) return; var nm = prompt('Rename song:', sg.name); if (nm && nm.trim()) songRename(b.dataset.v, nm.trim().slice(0, 60), openSongs); };
 ACTIONS['song-prev'] = function (b) { songPreview(b.dataset.v); openSongs(); };
 ACTIONS['song-del'] = function (b) { songPreviewStop(); songRemove(b.dataset.v, openSongs); };
 ACTIONS['tod'] = function (b) { AMB.tod = b.dataset.v; try { localStorage.setItem('ow.tod', AMB.tod); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['weather'] = function (b) { AMB.weather = b.dataset.v === 'on'; try { localStorage.setItem('ow.weather', AMB.weather ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['heat'] = function (b) { AMB.heat = b.dataset.v === 'on'; try { localStorage.setItem('ow.heat', AMB.heat ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['snd'] = function (b) { setSound(b.dataset.v === 'on'); openAtmos(); };
+ACTIONS['songson'] = function (b) { setSongs(b.dataset.v === 'on'); openAtmos(); };
 ACTIONS['music'] = function (b) { setMusic(b.dataset.v === 'on'); openAtmos(); };
 ACTIONS['sign-out'] = function () { if (window.OWCloud && OWCloud.configured) OWCloud.signOut(); else location.reload(); };
 

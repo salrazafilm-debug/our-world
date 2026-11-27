@@ -14,9 +14,11 @@ alter table public.songs enable row level security;
 drop policy if exists "members songs read"   on public.songs;
 drop policy if exists "members songs add"    on public.songs;
 drop policy if exists "members songs remove" on public.songs;
+drop policy if exists "members songs rename" on public.songs;
 create policy "members songs read"   on public.songs for select to authenticated using (true);
 create policy "members songs add"    on public.songs for insert to authenticated with check (user_id = auth.uid());
 create policy "members songs remove" on public.songs for delete to authenticated using (true);
+create policy "members songs rename" on public.songs for update to authenticated using (true) with check (true);
 revoke all on public.songs from anon;
 
 -- The files themselves live in a PRIVATE bucket: only signed-in accounts can read or add them.

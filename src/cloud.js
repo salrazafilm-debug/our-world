@@ -193,6 +193,7 @@ var songs = {
     return sb.storage.from('songs').upload(path, file, { contentType: 'audio/mpeg', upsert: false }).then(ck)
       .then(function () { return sb.from('songs').insert({ name: name, path: path }).then(ck); });
   },
+  rename: function (id, name) { return sb.from('songs').update({ name: name }).eq('id', id).then(ck); },
   remove: function (id, path) {
     return sb.from('songs').delete().eq('id', id).then(ck)
       .then(function () { return sb.storage.from('songs').remove([path]); });
