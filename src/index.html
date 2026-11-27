@@ -2184,8 +2184,9 @@ function flyTo(lat, lng, z) {
 }
 /* for local testing only: jump the camera (never defined on the live site) */
 if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owFly = function (la, ln, zz) { flyTo(la, ln, zz); };
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owBoot = function () { var g = document.getElementById('gate'); if (g) g.hidden = true; document.body.classList.remove('locked'); boot(); };
 if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owDebug = function () {
-  return { houses: OSM_HOUSES.map(function (o) { var q = unproj(o.x, o.y); return [q.lat, q.lng]; }), bruce: (function () { var q = homeDisplayPos('bruce', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), elena: (function () { var q = homeDisplayPos('elena', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), z: S.zoom };
+  return { memories: S.memories.length, bookPages: BOOK.pages.length, houses: OSM_HOUSES.map(function (o) { var q = unproj(o.x, o.y); return [q.lat, q.lng]; }), bruce: (function () { var q = homeDisplayPos('bruce', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), elena: (function () { var q = homeDisplayPos('elena', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), z: S.zoom };
 };
 function enterMap(lat, lng, z) {
   lastModeSwitch = performance.now();
