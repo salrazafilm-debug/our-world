@@ -221,20 +221,20 @@ function openAtmos() {
     sectionTitle('Music box') + '<div class="sheet-actions">' +
       opt('music', 'on', 'Play', SND.music) + opt('music', 'off', 'Off', !SND.music) + '</div>' +
     sectionTitle('Your own songs') +
-    '<p class="hint">Upload an MP3 to play behind the map, and another for when you open a letter or envelope. Songs stay on this device.</p>' +
+    '<p class="hint">Upload MP3s to play behind the map in order, each fading into the next, and one for when you open a letter or envelope. Songs stay on this device.</p>' +
     songRow('bg', 'Background song') + songRow('env', 'Envelope song') +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
 }
 function songRow(slot, label) {
-  var has = SONG.urls[slot];
-  return '<div class="sheet-actions" style="align-items:center"><span class="grow">' + label + ': ' + (has ? esc(SONG.names[slot]) : 'none') + '</span>' +
-    '<button class="pxbtn" type="button" data-act="song-pick" data-v="' + slot + '">' + (has ? 'Change' : 'Upload MP3') + '</button>' +
-    (has ? '<button class="pxbtn" type="button" data-act="song-clear" data-v="' + slot + '">Remove</button>' : '') + '</div>';
+  var has = songHas(slot);
+  return '<div class="sheet-actions" style="align-items:center"><span class="grow">' + label + ': ' + (has ? esc(songLabel(slot)) : 'none') + '</span>' +
+    '<button class="pxbtn" type="button" data-act="song-pick" data-v="' + slot + '">' + (slot === 'bg' ? (has ? 'Add more' : 'Upload MP3s') : (has ? 'Change' : 'Upload MP3')) + '</button>' +
+    (has ? '<button class="pxbtn" type="button" data-act="song-clear" data-v="' + slot + '">Remove' + (slot === 'bg' ? ' all' : '') + '</button>' : '') + '</div>';
 }
 ACTIONS['song-pick'] = function (b) {
   var slot = b.dataset.v, inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = 'audio/mpeg,.mp3';
-  inp.onchange = function () { songSave(slot, inp.files[0], function () { if (slot === 'bg' && SND.music) startMusic(); openAtmos(); }); };
+  inp.type = 'file'; inp.accept = 'audio/mpeg,.mp3'; inp.multiple = slot === 'bg';
+  inp.onchange = function () { songAdd(slot, inp.files, openAtmos); };
   inp.click();
 };
 ACTIONS['song-clear'] = function (b) { songClear(b.dataset.v, openAtmos); };

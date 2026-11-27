@@ -1,7 +1,6 @@
 /* Sounds and music: soft chimes for little moments, and an optional music-box
    tune. Both are made on the fly (no audio files) and both start OFF. */
 
-var SONG = { bg: null, env: null, urls: {}, names: {} };
 var SND = { on: false, music: false, ctx: null, out: null, timer: null, step: 0 };
 try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; } catch (e) {}
 
@@ -51,11 +50,11 @@ function musicTick() {
   SND.step++;
 }
 function startMusic() {
-  if (SONG.urls.bg) { stopMusicTimer(); songPlay('bg'); return; }
+  if (songHas('bg')) { clearInterval(SND.timer); SND.timer = null; plStart(); return; }
   if (SND.timer || !audio()) return;
   SND.timer = setInterval(musicTick, 420);
 }
-function stopMusic() { clearInterval(SND.timer); SND.timer = null; if (SONG.bg) SONG.bg.pause(); }
+function stopMusic() { clearInterval(SND.timer); SND.timer = null; plStop(); }
 function setMusic(on) {
   SND.music = on;
   try { localStorage.setItem('ow.music', on ? 'on' : 'off'); } catch (e) {}
@@ -78,8 +77,12 @@ document.addEventListener('visibilitychange', function () {
 });
 
 /* ---------- your own songs (MP3 upload) ----------
-   Two slots: 'bg' plays softly behind the map instead of the music box, 'env' plays while a
-   letter or envelope is open. Files are kept on this device (IndexedDB), never sent anywhere. */
+   'bg' is a playlist that plays softly behind the map, each song fading into the next.
+   'env' is one song that plays while a letter or envelope is open.
+   Files stay on this device (IndexedDB); nothing is uploaded anywhere. */
+var FADE = 6;                                   /* seconds of crossfade between songs */
+var BGV = .35, ENVV = .6;                       /* volumes */
+var PL = { i: 0, cur: null, timer: null, lists: { bg: [], env: [] } };   /* lists hold { url, name } */
 function songDb(cb) {
   try {
     var r = indexedDB.open('ow-songs', 1);
@@ -88,30 +91,37 @@ function songDb(cb) {
     r.onerror = function () { cb(null); };
   } catch (e) { cb(null); }
 }
+/* stored value per slot: an array of { blob, name } (older single-song saves are upgraded) */
+function songRead(db, slot, cb) {
+  var q = db.transaction('songs').objectStore('songs').get(slot);
+  q.onsuccess = function () { var v = q.result; cb(!v ? [] : Array.isArray(v) ? v : (v.blob ? [v] : [])); };
+  q.onerror = function () { cb([]); };
+}
 function songLoad(slot, done) {
   songDb(function (db) {
     if (!db) return done && done();
-    var q = db.transaction('songs').objectStore('songs').get(slot);
-    q.onsuccess = function () {
-      var rec = q.result;
-      if (rec && rec.blob) { SONG.urls[slot] = URL.createObjectURL(rec.blob); SONG.names[slot] = rec.name || 'My song'; }
+    songRead(db, slot, function (recs) {
+      PL.lists[slot].forEach(function (s) { URL.revokeObjectURL(s.url); });
+      PL.lists[slot] = recs.map(function (r) { return { url: URL.createObjectURL(r.blob), name: r.name || 'My song' }; });
       done && done();
-    };
-    q.onerror = function () { done && done(); };
+    });
   });
 }
-function songSave(slot, file, done) {
-  if (!file) return;
-  if (!/\.mp3$/i.test(file.name) && file.type !== 'audio/mpeg') { toast('Please choose an MP3 file.', '🎵', 3500); return; }
-  if (file.size > 25 * 1024 * 1024) { toast('That file is too big (25 MB max).', '🎵', 3500); return; }
+function songAdd(slot, files, done) {
+  var ok = [].slice.call(files || []).filter(function (f) {
+    if (!/\.mp3$/i.test(f.name) && f.type !== 'audio/mpeg') { toast('“' + f.name + '” is not an MP3.', '🎵', 3500); return false; }
+    if (f.size > 25 * 1024 * 1024) { toast('“' + f.name + '” is too big (25 MB max).', '🎵', 3500); return false; }
+    return true;
+  });
+  if (!ok.length) return;
   songDb(function (db) {
-    if (!db) { toast('Could not save the song on this device.', '🎵', 3500); return; }
-    var tx = db.transaction('songs', 'readwrite');
-    tx.objectStore('songs').put({ blob: file, name: file.name.replace(/\.mp3$/i, '') }, slot);
-    tx.oncomplete = function () {
-      if (SONG.urls[slot]) URL.revokeObjectURL(SONG.urls[slot]);
-      songLoad(slot, function () { songRefresh(slot); done && done(); });
-    };
+    if (!db) { toast('Could not save songs on this device.', '🎵', 3500); return; }
+    songRead(db, slot, function (recs) {
+      var add = ok.map(function (f) { return { blob: f, name: f.name.replace(/\.mp3$/i, '') }; });
+      recs = slot === 'bg' ? recs.concat(add) : [add[0]];
+      var tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').put(recs, slot);
+      tx.oncomplete = function () { songLoad(slot, function () { if (slot === 'bg' && SND.music) { plStop(); plStart(); } done && done(); }); };
+    });
   });
 }
 function songClear(slot, done) {
@@ -119,34 +129,74 @@ function songClear(slot, done) {
     if (!db) return;
     var tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').delete(slot);
     tx.oncomplete = function () {
-      if (SONG.urls[slot]) URL.revokeObjectURL(SONG.urls[slot]);
-      delete SONG.urls[slot]; delete SONG.names[slot];
-      if (SONG[slot]) { SONG[slot].pause(); SONG[slot] = null; }
-      songRefresh(slot); done && done();
+      if (slot === 'bg') plStop(); else envSongStop(true);
+      PL.lists[slot].forEach(function (s) { URL.revokeObjectURL(s.url); }); PL.lists[slot] = [];
+      if (slot === 'bg' && SND.music) startMusic();
+      done && done();
     };
   });
 }
-function songEl(slot, loop, vol) {
-  if (!SONG.urls[slot]) return null;
-  if (!SONG[slot]) { SONG[slot] = new Audio(SONG.urls[slot]); SONG[slot].loop = loop; SONG[slot].volume = vol; }
-  return SONG[slot];
+function songHas(slot) { return PL.lists[slot].length > 0; }
+function songLabel(slot) {
+  var l = PL.lists[slot];
+  return !l.length ? 'none' : l.length === 1 ? l[0].name : l.length + ' songs (' + l.map(function (s) { return s.name; }).join(', ') + ')';
 }
-function songPlay(slot) { var a = songEl(slot, slot === 'bg', slot === 'bg' ? .35 : .6); if (a) a.play().catch(function () {}); return !!a; }
-function songRefresh(slot) {            /* a slot was added or removed: re-sync what is playing */
-  if (slot === 'bg') { if (SND.music) { stopMusic(); startMusic(); } }
+
+/* --- background playlist with crossfade --- */
+function plTrack(n) {
+  var l = PL.lists.bg, a = new Audio(l[n % l.length].url);
+  a.volume = 0; a.preload = 'auto'; a.play().catch(function () {});
+  return { a: a, fadeOut: false };
 }
-/* envelope song: pauses the background while a letter is open, then gives it back */
+function plStart() {
+  if (!songHas('bg') || PL.timer) return;
+  PL.i = 0; PL.live = [plTrack(0)];
+  PL.timer = setInterval(plTick, 200);
+}
+function plStop() {
+  clearInterval(PL.timer); PL.timer = null;
+  (PL.live || []).forEach(function (t) { t.a.pause(); }); PL.live = [];
+}
+function plPause() { (PL.live || []).forEach(function (t) { t.a.pause(); }); }
+function plResume() { (PL.live || []).forEach(function (t) { t.a.play().catch(function () {}); }); }
+function plTick() {
+  var step = .2 / FADE * BGV;
+  PL.live = PL.live.filter(function (t) {
+    var a = t.a, d = a.duration, fade = Math.min(FADE, (d || 2 * FADE) / 2);
+    if (!t.fadeOut) {
+      /* fade in over the first seconds, hold, then hand over to the next song */
+      a.volume = Math.min(BGV, a.volume + step);
+      if (d && a.currentTime >= d - fade) {
+        t.fadeOut = true; PL.i = (PL.i + 1) % PL.lists.bg.length; PL.live.push(plTrack(PL.i));
+      }
+    } else {
+      a.volume = Math.max(0, a.volume - step);
+      if (a.volume <= 0 || a.ended) { a.pause(); return false; }
+    }
+    return true;
+  });
+  /* a song that ended with no live successor (e.g. a very short file) */
+  if (PL.timer && !PL.live.length) { PL.i = (PL.i + 1) % PL.lists.bg.length; PL.live = [plTrack(PL.i)]; }
+}
+
+/* --- envelope song: pauses the background while a letter is open, then gives it back --- */
+var ENV = { a: null };
 function envSongStart() {
-  if (!SONG.urls.env) return;
-  if (SONG.bg) SONG.bg.pause();
-  stopMusicTimer();
-  if (SONG.env) SONG.env.currentTime = 0;
-  songPlay('env');
+  if (!songHas('env')) return;
+  plPause();
+  if (!ENV.a) { ENV.a = new Audio(PL.lists.env[0].url); ENV.a.loop = true; ENV.a.volume = 0; }
+  ENV.a.currentTime = 0; ENV.a.play().catch(function () {});
+  clearInterval(ENV.t);
+  ENV.t = setInterval(function () { ENV.a.volume = Math.min(ENVV, ENV.a.volume + .06); if (ENV.a.volume >= ENVV) clearInterval(ENV.t); }, 120);
 }
-function envSongStop() {
-  if (SONG.env) SONG.env.pause();
-  if (SND.music) startMusic();
+function envSongStop(drop) {
+  if (ENV.a) {
+    var a = ENV.a; clearInterval(ENV.t);
+    if (drop) ENV.a = null;
+    ENV.t = setInterval(function () { a.volume = Math.max(0, a.volume - .08); if (a.volume <= 0) { clearInterval(ENV.t); a.pause(); } }, 100);
+  }
+  if (SND.music && songHas('bg')) plResume();
 }
-function stopMusicTimer() { clearInterval(SND.timer); SND.timer = null; }
+
 songLoad('bg', function () { if (SND.music && SND.ctx) startMusic(); });
 songLoad('env');
