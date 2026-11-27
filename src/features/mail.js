@@ -13,7 +13,7 @@ ROWHOOKS.mail = function (rows) {
   if (MAIL.open) mailRender();
   draw();
 };
-var MAIL = { open: false, mode: 'ext', tab: 'compose', read: null, list: null, idx: 0, busy: false };
+var MAIL = { open: false, mode: 'ext', tab: 'compose', read: null, list: null, idx: 0, busy: false, noteReveal: false };
 
 /* the post office sits halfway between our two homes */
 var MAIL_POS = { lat: (HOMES.bruce.lat + HOMES.elena.lat) / 2, lng: (HOMES.bruce.lng + HOMES.elena.lng) / 2 };
@@ -76,7 +76,7 @@ function mailEnsure() {
   st.textContent = [
     '#mailScene{position:fixed;inset:0;z-index:33;display:none;overflow:hidden;color:var(--ink);font-family:var(--fbody);-webkit-user-select:none;user-select:none}',
     '#mailScene.on{display:block}',
-    '#mailScene .m-btn,#mailScene .m-tab,#mailScene .m-paper,#mailScene .m-row,#mailScene .m-sign,#mailScene .m-pill{clip-path:var(--px-step)}',
+    '#mailScene .m-btn,#mailScene .m-tab,#mailScene .m-row,#mailScene .m-sign,#mailScene .m-pill{clip-path:var(--px-step)}',
     '.m-btn{height:46px;min-width:46px;padding:0 14px;border:3px solid var(--berry);border-bottom-width:7px;background:var(--cream);color:var(--berry);font-family:var(--fdisp);font-weight:600;font-size:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s,border-bottom-width .08s}',
     '.m-btn:hover{transform:translateY(-1px)}.m-btn:active{transform:translateY(4px);border-bottom-width:3px}',
     '.m-btn.primary{background:var(--berry);color:var(--cream);border-color:var(--berry-dk)}.m-btn[disabled]{opacity:.5}',
@@ -103,8 +103,8 @@ function mailEnsure() {
     /* inside */
     '.m-room{position:absolute;inset:0;background:#3A2530}',
     /* a warm wooden room: planks, a shelf line and two lamp glows (no baked UI behind the controls) */
-    '.m-room .bg{position:absolute;inset:0;background:radial-gradient(circle at 12% 8%,rgba(255,190,110,.35),transparent 28%),radial-gradient(circle at 88% 8%,rgba(255,190,110,.35),transparent 28%),repeating-linear-gradient(90deg,#4A2C2E 0 46px,#432729 46px 48px);}',
-    '.m-room .bg:after{content:"";position:absolute;left:0;right:0;bottom:0;height:22%;background:#5A3424;border-top:6px solid #3B2018}',
+    '.m-room .bg{position:absolute;inset:0;background:#59302D url(art/mail/room-interior.webp) center/cover no-repeat}',
+    '.m-room .bg:after{content:"";position:absolute;inset:0;background:rgba(42,20,28,.12);pointer-events:none}',
     '.m-room.enter{animation:mIn .45s ease-out}@keyframes mIn{from{opacity:0;transform:scale(1.06)}}',
     '.m-body{position:absolute;left:0;right:0;top:calc(84px + env(safe-area-inset-top));bottom:0;display:flex;flex-direction:column;gap:12px;padding:0 14px calc(14px + env(safe-area-inset-bottom));max-width:980px;margin:0 auto}',
     '.m-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}',
@@ -112,11 +112,14 @@ function mailEnsure() {
     '.m-tab img{width:30px;height:24px;object-fit:contain;image-rendering:pixelated}',
     '.m-tab.on{background:var(--cream);color:var(--berry-dk);border-color:var(--berry);border-bottom-color:var(--berry-dk)}',
     '.m-tab:active{transform:translateY(4px);border-bottom-width:3px}.m-tab .m-dot{position:absolute;top:4px;right:6px}',
-    '.m-main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:6px}',
+    '.m-main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;align-items:center;padding:8px 0 20px;scrollbar-width:thin;scrollbar-color:#C99A84 transparent}',
+    '@media (max-width:859px){.m-body{top:calc(70px + env(safe-area-inset-top));flex-direction:column-reverse;gap:6px;padding:0 10px calc(8px + env(safe-area-inset-bottom))}.m-tabs{gap:4px}.m-tab{min-height:62px;padding:5px 2px 4px;font-size:12px;line-height:1.1}.m-tab img{width:24px;height:20px}.m-main{padding:0 0 6px}.m-sign span{font-size:22px;padding:5px 10px}.m-top{padding:calc(8px + env(safe-area-inset-top)) 10px 6px}}',
     '@media (min-width:860px){.m-body{flex-direction:row;align-items:flex-start}.m-tabs{grid-template-columns:1fr;width:230px;flex:none}.m-tab{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px 11px;font-size:17px}.m-tab .m-dot{position:static;margin-left:auto}.m-main{height:100%}}',
-    '.m-paper{width:min(100%,560px);background:#FFF4E6;border:3px solid #C99A84;border-bottom-width:7px;padding:18px 20px 20px;color:var(--ink);box-shadow:none}',
+    '.m-paper{width:min(100%,560px);min-height:360px;background:transparent url(art/mail/vintage-paper.webp) center/100% 100% no-repeat;border:0;padding:clamp(30px,7vw,52px) clamp(32px,8vw,58px);color:#4A2A33;filter:drop-shadow(0 9px 6px rgba(29,15,14,.28))}',
+    '.m-compose{min-height:min(690px,100%);display:flex;flex-direction:column;padding-top:clamp(40px,9vw,62px);padding-bottom:clamp(40px,9vw,62px)}.m-compose .m-field.body{flex:1;min-height:170px}.m-compose #mBody{height:100%;min-height:170px;resize:none;background:transparent;line-height:1.7}.m-compose #mTitle{background:transparent}.m-compose .m-tools{margin-top:8px}',
+    '@media (max-width:859px){.m-compose{min-height:100%;padding:38px 36px 42px}.m-compose .m-field.body{min-height:110px}.m-compose #mBody{min-height:110px}}',
     '.m-paper h3{margin:0 0 10px;text-align:center;font-family:var(--fdisp);font-weight:600;font-size:20px;color:var(--berry-dk)}',
-    '.m-paper .txt{font-size:16.5px;line-height:1.65;white-space:pre-wrap;word-wrap:break-word;user-select:text;-webkit-user-select:text}',
+    '.m-paper .txt{font-size:17px;line-height:1.75;white-space:pre-wrap;word-wrap:break-word;user-select:text;-webkit-user-select:text}',
     '.m-paper .meta{margin-top:12px;font-family:var(--fdisp);font-size:14px;color:var(--rose);text-align:right}',
     '.m-paper.pinned{position:relative}.m-paper.pinned:before{content:"";position:absolute;top:-2px;left:50%;width:14px;height:14px;margin-left:-7px;background:var(--berry);clip-path:polygon(30% 0,70% 0,100% 30%,100% 70%,70% 100%,30% 100%,0 70%,0 30%)}',
     '.m-env-row{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;padding:8px 0 4px}',
@@ -125,6 +128,8 @@ function mailEnsure() {
     '.m-env img{width:100%;image-rendering:pixelated;filter:drop-shadow(0 0 10px rgba(255,214,140,.65));transition:transform .15s}',
     '.m-env:hover img{transform:translateY(-4px) rotate(-3deg)}.m-env span{display:block;margin-top:6px;font-family:var(--fdisp);font-size:13px;color:var(--cream);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     '.m-empty{color:var(--cream);text-align:center;font-size:15px;line-height:1.5;padding:12px}',
+    '.m-note-env{width:min(100%,340px);padding:18px 12px 14px;background:rgba(74,38,39,.72);border:3px solid var(--wood-dk);border-bottom-width:7px;color:var(--cream);font-family:var(--fdisp);text-align:center;cursor:pointer}.m-note-env img{display:block;width:min(76%,230px);margin:0 auto 8px;image-rendering:pixelated}.m-note-env b{display:block;font-size:18px}.m-note-env small{display:block;margin-top:4px;font-family:var(--fbody);font-size:14px}.m-note-env:focus-visible{outline:3px solid var(--gold);outline-offset:3px}',
+    '.m-empty-action{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:320px;margin:auto;text-align:center;color:var(--cream);font-size:16px;line-height:1.5}',
     /* reading */
     '.m-read{width:min(100%,560px);display:flex;flex-direction:column;align-items:center}',
     '.m-read .m-paper{animation:mUnfold .55s cubic-bezier(.2,.8,.2,1) both}',
@@ -134,7 +139,7 @@ function mailEnsure() {
     '.m-nav{display:flex;align-items:center;gap:12px;margin-top:12px;color:var(--cream);font-family:var(--fdisp)}',
     /* compose */
     '.m-field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}.m-field label{font-family:var(--fdisp);font-size:15px;color:var(--berry-dk)}',
-    '.m-field input,.m-field textarea{font:inherit;font-size:16px;color:var(--ink);background:#FFFDF8;border:3px solid #E2C2AE;padding:10px 12px;border-radius:0;user-select:text;-webkit-user-select:text}',
+    '.m-field input,.m-field textarea{font:inherit;font-size:16px;color:var(--ink);background:rgba(255,248,231,.38);border:0;border-bottom:2px solid #A87559;padding:10px 4px;border-radius:0;user-select:text;-webkit-user-select:text}',
     '.m-field input:focus,.m-field textarea:focus{outline:none;border-color:var(--berry)}.m-field textarea{min-height:150px;resize:vertical;line-height:1.6}',
     '.m-tools{display:flex;align-items:center;gap:10px}.m-tools .grow{flex:1}',
     '.m-fly{position:fixed;z-index:40;width:110px;pointer-events:none;image-rendering:pixelated;animation:mFly 1.1s cubic-bezier(.5,0,.75,0) forwards}',
@@ -159,7 +164,7 @@ function mailOpen(opts) {
   opts = opts || {};
   mailEnsure(); closeSheet();
   if (typeof dashClose === 'function') dashClose();
-  MAIL.open = true; MAIL.read = null;
+  MAIL.open = true; MAIL.read = null; MAIL.noteReveal = false;
   MAIL.mode = opts.room ? 'room' : 'ext';
   MAIL.tab = opts.tab || 'compose';
   if (!opts.room) flyTo(MAIL_POS.lat, MAIL_POS.lng, Math.max(S.zoom, 11.6));
@@ -199,6 +204,8 @@ function mailRender(anim) {
 
 function todayNoteHtml() {
   var them = other(S.who), n = S.notes && S.notes[them];
+  if (!MAIL.noteReveal) return '<button class="m-note-env" type="button" data-m="note-open" aria-label="Open today’s note from ' + esc(shortName(them)) + '">' +
+    '<img src="art/mail/env-gold.png" alt=""><b>Today’s Note</b><small>From ' + esc(shortName(them)) + ' · tap the envelope</small></button>';
   return '<div class="m-paper pinned"><h3>Today’s Note ♥</h3><div class="txt">' +
     (n && n.text ? esc(n.text) : 'No note from ' + esc(shortName(them)) + ' yet today.') + '</div>' +
     (n && n.text ? '<div class="meta">from ' + esc(shortName(them)) + '</div>' : '') + '</div>';
@@ -214,15 +221,15 @@ function mailTabHtml() {
   }
   if (t === 'compose') {
     var to = shortName(other(S.who));
-    return '<div class="m-paper" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
+    return '<div class="m-paper m-compose" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
       '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" maxlength="60" placeholder="Tonight ♥"></div>' +
-      '<div class="m-field"><label for="mBody">Your letter</label><textarea id="mBody" maxlength="4000" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
+      '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" maxlength="4000" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
       '<div class="m-tools"><button class="m-btn" type="button" data-m="heart" aria-label="Add a heart">♥</button><span class="grow"></span>' +
       '<button class="m-btn primary" type="button" data-m="send"><img alt="" src="art/mail/env-row.png">Send</button></div></div>';
   }
   if (t === 'letters') {
     var all = mailAll();
-    if (!all.length) return '<p class="m-empty">No letters yet. The first one is waiting to be written.</p>';
+    if (!all.length) return '<div class="m-empty-action"><img src="art/mail/env-row.png" alt="" width="110"><span>No letters here yet. Start your story with one.</span><button class="m-btn primary" type="button" data-m="tab" data-id="compose">Write a letter</button></div>';
     return '<div class="m-list">' + all.map(function (m, i) {
       var mine = m.from === S.who, isNew = !mine && !m.openedAt;
       return '<button class="m-row' + (isNew ? ' new' : '') + '" type="button" data-m="look" data-i="' + i + '"><img alt="" src="art/mail/env-row.png"><span><b>' + esc(m.title || 'A letter') + '</b><small>' +
@@ -258,7 +265,13 @@ function mailClick(e) {
   var a = b.dataset.m;
   if (a === 'back') return mailBack();
   if (a === 'enter') { MAIL.mode = 'room'; MAIL.tab = 'compose'; return mailRender(true); }
-  if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; return mailRender(); }
+  if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; MAIL.noteReveal = false; return mailRender(); }
+  if (a === 'note-open') {
+    var note = S.notes && S.notes[other(S.who)];
+    if (!note || !note.text) { MAIL.noteReveal = true; return mailRender(); }
+    MAIL.busy = true;
+    return mailAnimOpen({ title: 'Today’s Note', body: note.text }, function () { MAIL.busy = false; MAIL.noteReveal = true; mailRender(); }, b.querySelector('img') || b);
+  }
   if (a === 'open') {
     var m = S.mail.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!m) return;
     /* a new letter arrives as an envelope: the seal pops, the flap opens, the letter slides up, then it is read */

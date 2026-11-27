@@ -23,13 +23,13 @@
     '.ma-seal img{width:18px;image-rendering:pixelated;filter:brightness(1.6) saturate(.3)}',
     '.ma-stamp{position:absolute;right:9%;top:46%;width:30px;height:36px;background:#FFF;border:2px dashed #D9879F;outline:2px solid #FFF;display:grid;place-items:center;z-index:5}',
     '.ma-stamp img{width:18px;image-rendering:pixelated}',
-    '.ma-letter{position:absolute;left:7%;right:7%;top:6%;height:90%;background:#FFFBF4;border:2px solid #E2C2AE;z-index:2;padding:10px 12px;overflow:hidden;font-family:var(--fbody);color:#4A2A33;box-shadow:0 2px 0 rgba(120,70,60,.15)}',
+    '.ma-letter{position:absolute;left:7%;right:7%;top:6%;height:90%;background:#F4DFC0 url(art/mail/vintage-paper.webp) center/100% 100% no-repeat;z-index:2;padding:10px 12px;overflow:hidden;font-family:var(--fbody);color:#4A2A33;box-shadow:0 2px 0 rgba(120,70,60,.15)}',
     '.ma-letter b{display:block;font-family:var(--fdisp);color:#8E3A57;font-size:15px;margin-bottom:6px}',
     '.ma-letter p{margin:0;font-size:12px;line-height:1.5;white-space:pre-wrap}',
     '.ma-sheet{position:absolute;transform-style:preserve-3d}',
     '.ma-panel{position:absolute;left:0;right:0;transform-style:preserve-3d}',
-    '.ma-panel>i{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#FFFBF4;border:2px solid #E2C2AE}',
-    '.ma-panel>i.b{transform:rotateX(180deg);background:#F6EADB}',
+    '.ma-panel>i{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#F4DFC0 url(art/mail/vintage-paper.webp) center/100% 300% no-repeat}',
+    '.ma-panel>i.b{transform:rotateX(180deg);background:#EBD1A9 url(art/mail/vintage-paper.webp) center/100% 300% no-repeat}',
     '.ma-panel>i>div{position:absolute;left:0;right:0;padding:18px 20px;font-family:var(--fbody);color:#4A2A33}',
     '.ma-panel>i>div b{display:block;font-family:var(--fdisp);color:#8E3A57;font-size:18px;margin-bottom:8px}',
     '.ma-panel>i>div p{margin:0;font-size:15px;line-height:1.6;white-space:pre-wrap}',
@@ -79,7 +79,7 @@ function mailAnimSend(paperEl, letter, onDone) {
   function panel(i) {
     var p = document.createElement('div'); p.className = 'ma-panel';
     p.style.cssText = 'top:' + (third * i) + 'px;height:' + third + 'px;transform-origin:50% ' + (i === 2 ? '0%' : i === 0 ? '100%' : '50%');
-    p.innerHTML = '<i class="f"><div style="top:' + (-third * i) + 'px">' + content + '</div><span class="ma-shade"></span></i><i class="b"></i>';
+    p.innerHTML = '<i class="f" style="background-position:center ' + (i * 50) + '%"><div style="top:' + (-third * i) + 'px">' + content + '</div><span class="ma-shade"></span></i><i class="b" style="background-position:center ' + (i * 50) + '%"></i>';
     sheet.appendChild(p); return p;
   }
   var top = panel(0), mid = panel(1), bot = panel(2);
