@@ -6,6 +6,7 @@ function scenicRand(a, b, seed) { return terHash(a, b, seed); }
 function scenicLand(x, y) { return terrainAt(x, y) === 'land'; }
 function scenicAvoid(x, y, radius) {
   if(nycAvoid(x,y,8))return true;
+  if(osmRoadNearXY(x,y,Math.max(4,Math.min(14,radius*.4))))return true;       /* real streets stay clear of trees */
   if(repairClear(x,y,radius))return true;
   var places = SCENIC_AVOID;
   for (var i = 0; i < places.length; i++) {

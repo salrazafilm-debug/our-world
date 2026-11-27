@@ -10,7 +10,7 @@ function homeBaseRegions() { return HOMEBASE.map(function (h) { return { id: h.i
 
 /* one size rule for every home sprite: big at the home-base view, bigger close in */
 /* one smooth curve: places only ever grow as you zoom in, and stay visible when zoomed out */
-function homeArtH(z) { return Math.max(30, Math.min(176, 51 + (z - 6.9) * 15)); }
+function homeArtH(z) { return Math.max(30, Math.min(150, 49 + (z - 6.9) * 13.5)); }
 
 var HBBOX = {};
 var HB_LABEL = { bruce: 'Chesapeake Beach', elena: 'Arnold · Annapolis' };

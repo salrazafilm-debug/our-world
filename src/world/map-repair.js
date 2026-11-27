@@ -7,7 +7,9 @@ function repairPrepare(){
  var e=proj(HOMES.elena.lat,HOMES.elena.lng),b=proj(HOMES.bruce.lat,HOMES.bruce.lng);
  var m=proj((HOMES.elena.lat+HOMES.bruce.lat)/2,(HOMES.elena.lng+HOMES.bruce.lng)/2);
  var gap=Math.max(0,homeArtH(S.zoom)*1.45-(b.y-e.y)/2);
- e.y-=gap;b.y+=gap;b.x-=homeArtH(S.zoom)*.5;
+ /* zoomed out the homes are spaced apart to stay readable; close in they sit at their real spots among the streets */
+ var spread=1-cloudEase(10.4,11.2,S.zoom);
+ e.y-=gap*spread;b.y+=gap*spread;b.x-=homeArtH(S.zoom)*.5*spread;
  var dc=proj(38.8895,-77.0353),n=proj(38.79,-77.40);
  dc.x=Math.min(dc.x,m.x-homeArtH(S.zoom)*2.65);
  n.x=Math.min(n.x,m.x-homeArtH(S.zoom)*2.15);n.y=Math.max(n.y,m.y+homeArtH(S.zoom)*1.65);
@@ -22,7 +24,7 @@ function repairBox(id){
  if(id==='elena'){h*=1.12;w=h*.8;}
  else if(id==='bruce'){h*=.86;w=h*1.6;}
  else if(id==='mail'){h*=.82;w=h*1.35;}
- else if(id==='dc'){return{x:p.x-homeArtH(S.zoom)*1.35,y:p.y-homeArtH(S.zoom)*1.5,w:homeArtH(S.zoom)*2.5,h:homeArtH(S.zoom)*1.85,id:id};}
+ else if(id==='dc'){var dk=S.zoom>=10.4?.62:1;return{x:p.x-homeArtH(S.zoom)*1.35*dk,y:p.y-homeArtH(S.zoom)*1.5*dk,w:homeArtH(S.zoom)*2.5*dk,h:homeArtH(S.zoom)*1.85*dk,id:id};}     /* a tighter clearing up close */
  else {h*=1.05;w=homeArtH(S.zoom)*1.55;}
  return{x:p.x-w/2,y:p.y-h,w:w,h:h,id:id};
 }

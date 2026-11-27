@@ -25,7 +25,7 @@ function storyBridge(g,bridge,width){
  }else{g.fillStyle='#777e88';[.25,.5,.75].forEach(function(t){g.fillRect(len*t-1,width*.5,3,5);});}
  g.restore();
 }
-function storyRoadNear(x,y,r){return STORY_ROAD_GEOMETRY.some(function(road){for(var i=1;i<road.points.length;i++){var a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r)return true;}return false;});}
+function storyRoadNear(x,y,r){if(OSMR.ready&&S.zoom>=9.2&&STORY_ROAD_GEOMETRY.length){var q=unproj(x,y);if(osmCovered(q.lat,q.lng))return false;}return STORY_ROAD_GEOMETRY.some(function(road){for(var i=1;i<road.points.length;i++){var a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<r)return true;}return false;});}
 function storyRoadOffset(x,y,r){
  var nearest=null;
  STORY_ROAD_GEOMETRY.forEach(function(road){for(var i=1;i<road.points.length;i++){var a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1))),px=a.x+t*dx,py=a.y+t*dy,d=Math.hypot(x-px,y-py);if(!nearest||d<nearest.d)nearest={x:px,y:py,d:d,dx:dx,dy:dy};}});
@@ -39,7 +39,9 @@ function storyRoadSamples(a,b,id){
  [[a.x,dx,-40,W+40],[a.y,dy,-40,H+40]].forEach(function(axis){if(Math.abs(axis[1])<.00001){if(axis[0]<axis[2]||axis[0]>axis[3])hi=-1;return;}var t0=(axis[2]-axis[0])/axis[1],t1=(axis[3]-axis[0])/axis[1];lo=Math.max(lo,Math.min(t0,t1));hi=Math.min(hi,Math.max(t0,t1));});
  var samples=[],n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));for(var j=Math.ceil(lo*n);j<=Math.floor(hi*n);j++){var t=j/n;samples.push({x:a.x+dx*t,y:a.y+dy*t,index:id*10000000+j});}return samples;
 }
-function drawStoryRoads(g){
+/* the simplified corridors step aside where we have the real streets */
+function drawStoryRoads(g){g.save();osmClipOutside(g);drawStoryRoadsRaw(g);g.restore();}
+function drawStoryRoadsRaw(g){
  STORY_ROAD_GEOMETRY=[];var z=S.zoom,alpha=cloudEase(5.8,7.4,z);if(alpha<.001)return;
  var u=homeArtH(z),width=Math.min(8,Math.max(3,u*.075));
  (window.OW_ROUTES||[]).forEach(function(route){

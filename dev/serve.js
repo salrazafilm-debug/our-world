@@ -9,6 +9,7 @@ const ROOT = path.join(__dirname, '..');
 const PORT = Number(process.env.PORT || 4173);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
                 '.css': 'text/css; charset=utf-8', '.md': 'text/markdown; charset=utf-8',
+                '.json': 'application/json; charset=utf-8', '.webp': 'image/webp', '.mp4': 'video/mp4',
                 '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
 
 function page() {
