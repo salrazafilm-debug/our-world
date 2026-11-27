@@ -14,7 +14,7 @@ ROWHOOKS.mail = function (rows) {
   draw();
 };
 var PAPBG = "radial-gradient(ellipse at 50% 40%,rgba(255,248,226,.6),rgba(255,248,226,0) 65%),radial-gradient(circle at 12% 88%,rgba(150,95,45,.2),transparent 24%),radial-gradient(circle at 91% 7%,rgba(150,95,45,.17),transparent 22%),url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42 0 0 0 0 .3 0 0 0 0 .17 0 0 0 .2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
-var MAIL = { open: false, mode: 'ext', tab: 'compose', read: null, list: null, idx: 0, busy: false, noteReveal: false };
+var MAIL = { open: false, mode: 'ext', tab: 'letters', read: null, list: null, idx: 0, busy: false, noteReveal: false };
 
 /* the post office sits halfway between our two homes */
 var MAIL_POS = { lat: (HOMES.bruce.lat + HOMES.elena.lat) / 2, lng: (HOMES.bruce.lng + HOMES.elena.lng) / 2 };
@@ -173,7 +173,7 @@ function mailOpen(opts) {
   if (typeof dashClose === 'function') dashClose();
   MAIL.open = true; MAIL.read = null; MAIL.noteReveal = false;
   MAIL.mode = opts.room ? 'room' : 'ext';
-  MAIL.tab = opts.tab || 'compose';
+  MAIL.tab = opts.tab || 'letters';
   if (!opts.room) flyTo(MAIL_POS.lat, MAIL_POS.lng, Math.max(S.zoom, 11.6));
   mailRender(true);
   mailEl.classList.add('on');
@@ -231,12 +231,12 @@ function mailTabHtml() {
     return '<div class="m-paper m-compose" id="mPaper"><h3>A letter for ' + esc(to) + '</h3>' +
       '<div class="m-field"><label for="mTitle">Letter title</label><input id="mTitle" type="text" placeholder="Tonight ♥"></div>' +
       '<div class="m-field body"><label for="mBody">Your letter</label><textarea id="mBody" placeholder="Dear ' + esc(to) + ',"></textarea></div>' +
-      '<div class="m-field"><label>Songs when it is opened <small>(leave empty for my usual)</small></label><div id="mSongs" style="display:flex;flex-direction:column;gap:4px;font-size:15px">' +
+      '<div class="m-field" id="mSongBox" style="display:none"><label>Songs when it is opened <small>(leave empty for my usual)</small></label><div id="mSongs" style="display:flex;flex-direction:column;gap:4px;font-size:15px">' +
         '<label><input type="checkbox" value="all"> All songs</label>' +
         (typeof LIB !== 'undefined' ? LIB.map(function (s) { return '<label><input type="checkbox" value="' + esc(s.id) + '"> ' + esc(s.name) + '</label>'; }).join('') : '') +
         '<label><input type="checkbox" value="none"> Silence</label></div>' +
         '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:14px">Start the song on page <input id="mSongPage" type="number" min="1" placeholder="1" style="width:64px;font:inherit;background:rgba(255,248,231,.38);border:0;border-bottom:2px solid #A87559"></label></div>' +
-      '<div class="m-tools"><button class="m-btn" type="button" data-m="heart" aria-label="Add a heart">♥</button><span class="grow"></span>' +
+      '<div class="m-tools"><button class="m-btn" type="button" data-m="heart" aria-label="Add a heart">♥</button><button class="m-btn" type="button" data-m="music" aria-label="Music for this letter" aria-pressed="false" title="Music for this letter">♪</button><span class="grow"></span>' +
       '<button class="m-btn primary" type="button" data-m="send"><img alt="" src="art/mail/env-row.png">Send</button></div></div>';
   }
   if (t === 'letters') {
@@ -301,7 +301,7 @@ function mailClick(e) {
   var b = e.target.closest('[data-m]'); if (!b || MAIL.busy) return;
   var a = b.dataset.m;
   if (a === 'back') return mailBack();
-  if (a === 'enter') { MAIL.mode = 'room'; MAIL.tab = 'compose'; return mailRender(true); }
+  if (a === 'enter') { MAIL.mode = 'room'; MAIL.tab = 'letters'; return mailRender(true); }
   if (a === 'tab') { MAIL.tab = b.dataset.id; MAIL.read = null; MAIL.list = null; MAIL.noteReveal = false; return mailRender(); }
   if (a === 'note-open') {
     var note = S.notes && S.notes[other(S.who)];
@@ -342,6 +342,7 @@ function mailClick(e) {
     return;
   }
   if (a === 'ppage') { var d = parseInt(b.dataset.d, 10) || 0; MAIL.page = Math.max(0, (MAIL.page || 0) + d); MAIL.turning = d > 0 ? 'f' : 'b'; mailRender(); MAIL.turning = null; return; }
+  if (a === 'music') { var bx = document.getElementById('mSongBox'); if (!bx) return; var show = bx.style.display === 'none'; bx.style.display = show ? '' : 'none'; b.setAttribute('aria-pressed', show ? 'true' : 'false'); if (show) bx.scrollIntoView({ block: 'nearest' }); return; }
   if (a === 'send') return mailSend();
 }
 function mailSend() {
