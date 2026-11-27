@@ -6785,11 +6785,11 @@ function musicTick() {
   SND.step++;
 }
 function startMusic() {
-  if (songHas('bg')) { clearInterval(SND.timer); SND.timer = null; plStart(); return; }
+  if (bgP.has()) { clearInterval(SND.timer); SND.timer = null; bgP.start(); return; }
   if (SND.timer || !audio()) return;
   SND.timer = setInterval(musicTick, 420);
 }
-function stopMusic() { clearInterval(SND.timer); SND.timer = null; plStop(); }
+function stopMusic() { clearInterval(SND.timer); SND.timer = null; bgP.stop(true); }
 function setMusic(on) {
   SND.music = on;
   try { localStorage.setItem('ow.music', on ? 'on' : 'off'); } catch (e) {}
@@ -6811,13 +6811,16 @@ document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'hidden') { SND.ctx.suspend(); } else if (SND.on || SND.music) SND.ctx.resume();
 });
 
-/* ---------- your own songs (MP3 upload) ----------
-   'bg' is a playlist that plays softly behind the map, each song fading into the next.
-   'env' is one song that plays while a letter or envelope is open.
-   Files stay on this device (IndexedDB); nothing is uploaded anywhere. */
-var FADE = 6;                                   /* seconds of crossfade between songs */
-var BGV = .35, ENVV = .6;                       /* volumes */
-var PL = { i: 0, cur: null, timer: null, lists: { bg: [], env: [] } };   /* lists hold { url, name } */
+/* ---------- your own songs (MP3 library) ----------
+   Upload MP3s once, then tick which ones play behind the map ("music") and which play when a
+   letter or envelope is open ("letters"). Several ticked songs play in order, each fading into
+   the next; a single ticked song simply loops. Files stay on this device (IndexedDB). */
+var FADE = 6;                                       /* seconds of crossfade */
+var LIB = [];                                       /* { id, name, url } */
+var SEL = { bg: [], env: [], pre: [] };             /* ordered song ids per slot */
+try { SEL.bg = JSON.parse(localStorage.getItem('ow.songs.bg') || '[]'); SEL.env = JSON.parse(localStorage.getItem('ow.songs.env') || '[]'); } catch (e) {}
+function selSave() { try { localStorage.setItem('ow.songs.bg', JSON.stringify(SEL.bg)); localStorage.setItem('ow.songs.env', JSON.stringify(SEL.env)); } catch (e) {} }
+function songById(id) { return LIB.filter(function (s) { return s.id === id; })[0]; }
 function songDb(cb) {
   try {
     var r = indexedDB.open('ow-songs', 1);
@@ -6826,115 +6829,148 @@ function songDb(cb) {
     r.onerror = function () { cb(null); };
   } catch (e) { cb(null); }
 }
-/* stored value per slot: an array of { blob, name } (older single-song saves are upgraded) */
-function songRead(db, slot, cb) {
-  var q = db.transaction('songs').objectStore('songs').get(slot);
-  q.onsuccess = function () { var v = q.result; cb(!v ? [] : Array.isArray(v) ? v : (v.blob ? [v] : [])); };
-  q.onerror = function () { cb([]); };
-}
-function songLoad(slot, done) {
+function dbGet(db, k, cb) { var q = db.transaction('songs').objectStore('songs').get(k); q.onsuccess = function () { cb(q.result); }; q.onerror = function () { cb(undefined); }; }
+function songLoad(done) {
   songDb(function (db) {
     if (!db) return done && done();
-    songRead(db, slot, function (recs) {
-      PL.lists[slot].forEach(function (s) { URL.revokeObjectURL(s.url); });
-      PL.lists[slot] = recs.map(function (r) { return { url: URL.createObjectURL(r.blob), name: r.name || 'My song' }; });
-      done && done();
+    dbGet(db, 'lib', function (lib) {
+      function finish(recs) {
+        LIB.forEach(function (s) { URL.revokeObjectURL(s.url); });
+        LIB = recs.map(function (r) { return { id: r.id, name: r.name, url: URL.createObjectURL(r.blob) }; });
+        SEL.bg = SEL.bg.filter(function (i) { return songById(i); });
+        SEL.env = SEL.env.filter(function (i) { return songById(i); });
+        done && done();
+      }
+      if (lib) return finish(lib);
+      /* first run after the older version: bring its saved songs into the library */
+      dbGet(db, 'bg', function (bg) { dbGet(db, 'env', function (env) {
+        var recs = [];
+        function mk(v, slot) {
+          (Array.isArray(v) ? v : (v && v.blob ? [v] : [])).forEach(function (r, i) {
+            var id = slot + i + Date.now().toString(36);
+            recs.push({ id: id, name: r.name, blob: r.blob }); SEL[slot].push(id);
+          });
+        }
+        mk(bg, 'bg'); mk(env, 'env');
+        if (recs.length) { selSave(); songWrite(recs); }
+        finish(recs);
+      }); });
     });
   });
 }
-function songAdd(slot, files, done) {
+function songWrite(recs, done) {
+  songDb(function (db) {
+    if (!db) return;
+    var tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').put(recs, 'lib');
+    tx.oncomplete = function () { if (done) done(); };
+  });
+}
+function songRecs(cb) {            /* the library with its files, read back from the db */
+  songDb(function (db) { if (!db) return cb([]); dbGet(db, 'lib', function (l) { cb(l || []); }); });
+}
+function songAdd(files, done) {
   var ok = [].slice.call(files || []).filter(function (f) {
     if (!/\.mp3$/i.test(f.name) && f.type !== 'audio/mpeg') { toast('“' + f.name + '” is not an MP3.', '🎵', 3500); return false; }
     if (f.size > 25 * 1024 * 1024) { toast('“' + f.name + '” is too big (25 MB max).', '🎵', 3500); return false; }
     return true;
   });
   if (!ok.length) return;
-  songDb(function (db) {
-    if (!db) { toast('Could not save songs on this device.', '🎵', 3500); return; }
-    songRead(db, slot, function (recs) {
-      var add = ok.map(function (f) { return { blob: f, name: f.name.replace(/\.mp3$/i, '') }; });
-      recs = slot === 'bg' ? recs.concat(add) : [add[0]];
-      var tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').put(recs, slot);
-      tx.oncomplete = function () { songLoad(slot, function () { if (slot === 'bg' && SND.music) { plStop(); plStart(); } done && done(); }); };
+  songRecs(function (recs) {
+    ok.forEach(function (f) {
+      recs.push({ id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: f.name.replace(/\.mp3$/i, ''), blob: f });
+    });
+    songWrite(recs, function () { songLoad(done); });
+  });
+}
+function songRemove(id, done) {
+  plStopAll();
+  songRecs(function (recs) {
+    songWrite(recs.filter(function (r) { return r.id !== id; }), function () {
+      SEL.bg = SEL.bg.filter(function (i) { return i !== id; });
+      SEL.env = SEL.env.filter(function (i) { return i !== id; });
+      selSave();
+      songLoad(function () { if (SND.music) startMusic(); if (done) done(); });
     });
   });
 }
-function songClear(slot, done) {
-  songDb(function (db) {
-    if (!db) return;
-    var tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').delete(slot);
-    tx.oncomplete = function () {
-      if (slot === 'bg') plStop(); else envSongStop(true);
-      PL.lists[slot].forEach(function (s) { URL.revokeObjectURL(s.url); }); PL.lists[slot] = [];
-      if (slot === 'bg' && SND.music) startMusic();
-      done && done();
-    };
-  });
-}
-function songHas(slot) { return PL.lists[slot].length > 0; }
-function songLabel(slot) {
-  var l = PL.lists[slot];
-  return !l.length ? 'none' : l.length === 1 ? l[0].name : l.length + ' songs (' + l.map(function (s) { return s.name; }).join(', ') + ')';
+function songToggle(slot, id) {
+  var i = SEL[slot].indexOf(id);
+  if (i < 0) SEL[slot].push(id); else SEL[slot].splice(i, 1);
+  selSave();
+  if (slot === 'bg') { bgP.stop(true); if (SND.music) startMusic(); }
 }
 
-/* --- background playlist with crossfade --- */
-function plTrack(n) {
-  var l = PL.lists.bg, a = new Audio(l[n % l.length].url);
-  a.volume = 0; a.preload = 'auto'; a.play().catch(function () {});
-  return { a: a, fadeOut: false };
-}
-function plStart() {
-  if (!songHas('bg') || PL.timer) return;
-  PL.i = 0; PL.live = [plTrack(0)];
-  PL.timer = setInterval(plTick, 200);
-}
-function plStop() {
-  clearInterval(PL.timer); PL.timer = null;
-  (PL.live || []).forEach(function (t) { t.a.pause(); }); PL.live = [];
-}
-function plPause() { (PL.live || []).forEach(function (t) { t.a.pause(); }); }
-function plResume() { (PL.live || []).forEach(function (t) { t.a.play().catch(function () {}); }); }
-function plTick() {
-  var step = .2 / FADE * BGV;
-  PL.live = PL.live.filter(function (t) {
+/* --- one player: plays its slot's songs in order, crossfading, looping forever --- */
+function Player(slot, vol) { this.slot = slot; this.vol = vol; this.i = 0; this.live = []; this.timer = null; this.closing = false; this.paused = false; }
+Player.prototype.urls = function () { return SEL[this.slot].map(songById).filter(Boolean); };
+Player.prototype.has = function () { return this.urls().length > 0; };
+Player.prototype.next = function () {
+  var l = this.urls(); if (!l.length) return;
+  var a = new Audio(l[this.i % l.length].url); a.volume = 0; a.preload = 'auto';
+  if (!this.paused) a.play().catch(function () {});
+  this.live.push({ a: a, out: false });
+};
+Player.prototype.start = function () {
+  if (!this.has()) return false;
+  if (this.timer && !this.closing) { if (this.paused) this.resume(); return true; }
+  this.stop(true); this.paused = false; this.i = 0; this.next();
+  var me = this; this.timer = setInterval(function () { me.tick(); }, 200);
+  return true;
+};
+Player.prototype.stop = function (hard) {      /* soft: fade everything out, then stop */
+  if (hard) { clearInterval(this.timer); this.timer = null; this.live.forEach(function (t) { t.a.pause(); }); this.live = []; this.closing = false; return; }
+  if (!this.timer) return;
+  this.closing = true; this.live.forEach(function (t) { t.out = true; });
+};
+Player.prototype.pause = function () { this.paused = true; this.live.forEach(function (t) { t.a.pause(); }); };
+Player.prototype.resume = function () { this.paused = false; this.live.forEach(function (t) { t.a.play().catch(function () {}); }); };
+Player.prototype.tick = function () {
+  if (this.paused) return;
+  var me = this, step = .2 / FADE * this.vol;
+  this.live = this.live.filter(function (t) {
     var a = t.a, d = a.duration, fade = Math.min(FADE, (d || 2 * FADE) / 2);
-    if (!t.fadeOut) {
-      /* fade in over the first seconds, hold, then hand over to the next song */
-      a.volume = Math.min(BGV, a.volume + step);
-      if (d && a.currentTime >= d - fade) {
-        t.fadeOut = true; PL.i = (PL.i + 1) % PL.lists.bg.length; PL.live.push(plTrack(PL.i));
-      }
+    if (!t.out) {
+      a.volume = Math.min(me.vol, a.volume + step);
+      if (d && a.currentTime >= d - fade) { t.out = true; me.i++; me.next(); }
     } else {
-      a.volume = Math.max(0, a.volume - step);
+      a.volume = Math.max(0, a.volume - step * 1.5);
       if (a.volume <= 0 || a.ended) { a.pause(); return false; }
     }
     return true;
   });
-  /* a song that ended with no live successor (e.g. a very short file) */
-  if (PL.timer && !PL.live.length) { PL.i = (PL.i + 1) % PL.lists.bg.length; PL.live = [plTrack(PL.i)]; }
-}
-
-/* --- envelope song: pauses the background while a letter is open, then gives it back --- */
-var ENV = { a: null };
-function envSongStart() {
-  if (!songHas('env')) return;
-  plPause();
-  if (!ENV.a) { ENV.a = new Audio(PL.lists.env[0].url); ENV.a.loop = true; ENV.a.volume = 0; }
-  ENV.a.currentTime = 0; ENV.a.play().catch(function () {});
-  clearInterval(ENV.t);
-  ENV.t = setInterval(function () { ENV.a.volume = Math.min(ENVV, ENV.a.volume + .06); if (ENV.a.volume >= ENVV) clearInterval(ENV.t); }, 120);
-}
-function envSongStop(drop) {
-  if (ENV.a) {
-    var a = ENV.a; clearInterval(ENV.t);
-    if (drop) ENV.a = null;
-    ENV.t = setInterval(function () { a.volume = Math.max(0, a.volume - .08); if (a.volume <= 0) { clearInterval(ENV.t); a.pause(); } }, 100);
+  if (!this.live.length) {
+    if (this.closing) { clearInterval(this.timer); this.timer = null; this.closing = false; }
+    else if (this.timer) { this.i++; this.next(); }
   }
-  if (SND.music && songHas('bg')) plResume();
+};
+var bgP = new Player('bg', .35), envP = new Player('env', .6), preP = new Player('pre', .6);
+var PRE = { on: null };                            /* what the preview plays: a song id, or 'env' for the letter music */
+function plStopAll() { bgP.stop(true); envP.stop(true); preP.stop(true); PRE.on = null; }
+
+/* preview: 'env' tests the letter music, a song id tests that one song; tap again to stop */
+function songPreview(what) {
+  if (PRE.on === what) { songPreviewStop(); return; }
+  preP.stop(true);
+  SEL.pre = what === 'env' ? SEL.env.slice() : [what];
+  if (!preP.has()) { toast('Tick a song for letters first.', '🎵', 2500); return; }
+  bgP.pause(); preP.start(); PRE.on = what;
+}
+function songPreviewStop() {
+  preP.stop(); PRE.on = null;
+  if (SND.music && bgP.has()) bgP.resume();
 }
 
-songLoad('bg', function () { if (SND.music && SND.ctx) startMusic(); });
-songLoad('env');
+/* envelope song: the background pauses while a letter is open, then comes back */
+function envSongStart() {
+  if (!envP.has()) return;
+  preP.stop(true); PRE.on = null;
+  bgP.pause(); envP.start();
+}
+function envSongStop() {
+  if (envP.timer) envP.stop();
+  if (SND.music && bgP.has()) bgP.resume();
+}
+songLoad(function () { if (SND.music && SND.ctx) startMusic(); });
 
 /* ---- features/bucket.js ---- */
 /* Our shared bucket list. Either of you adds things; each taps a heart if
@@ -9372,24 +9408,43 @@ function openAtmos() {
       opt('snd', 'on', 'On', SND.on) + opt('snd', 'off', 'Off', !SND.on) + '</div>' +
     sectionTitle('Music box') + '<div class="sheet-actions">' +
       opt('music', 'on', 'Play', SND.music) + opt('music', 'off', 'Off', !SND.music) + '</div>' +
-    sectionTitle('Your own songs') +
-    '<p class="hint">Upload MP3s to play behind the map in order, each fading into the next, and one for when you open a letter or envelope. Songs stay on this device.</p>' +
-    songRow('bg', 'Background song') + songRow('env', 'Envelope song') +
+    sectionTitle('Your own songs') + '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="songs">Choose songs (MP3)</button></div>' +
     '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="more">Back</button></div>');
 }
-function songRow(slot, label) {
-  var has = songHas(slot);
-  return '<div class="sheet-actions" style="align-items:center"><span class="grow">' + label + ': ' + (has ? esc(songLabel(slot)) : 'none') + '</span>' +
-    '<button class="pxbtn" type="button" data-act="song-pick" data-v="' + slot + '">' + (slot === 'bg' ? (has ? 'Add more' : 'Upload MP3s') : (has ? 'Change' : 'Upload MP3')) + '</button>' +
-    (has ? '<button class="pxbtn" type="button" data-act="song-clear" data-v="' + slot + '">Remove' + (slot === 'bg' ? ' all' : '') + '</button>' : '') + '</div>';
+function songBtn(act, v, label, on) {
+  return '<button class="pxbtn" type="button" data-act="' + act + '" data-v="' + v + '"' + (on === undefined ? '' : ' aria-pressed="' + (on ? 'true' : 'false') + '"') + '>' + label + '</button>';
 }
-ACTIONS['song-pick'] = function (b) {
-  var slot = b.dataset.v, inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = 'audio/mpeg,.mp3'; inp.multiple = slot === 'bg';
-  inp.onchange = function () { songAdd(slot, inp.files, openAtmos); };
+function openSongs() {
+  var rows = LIB.map(function (s) {
+    var b = SEL.bg.indexOf(s.id), e = SEL.env.indexOf(s.id);
+    return '<div class="sheet-actions" style="align-items:center;margin:6px 0"><span class="grow">' + esc(s.name) + '</span>' +
+      songBtn('song-prev', s.id, PRE.on === s.id ? '■' : '▶') +
+      songBtn('song-bg', s.id, b < 0 ? 'Music' : 'Music ' + (b + 1), b >= 0) +
+      songBtn('song-env', s.id, e < 0 ? 'Letters' : 'Letters ' + (e + 1), e >= 0) +
+      songBtn('song-del', s.id, '✕') + '</div>';
+  }).join('');
+  openSheet(head('Your songs', 'MP3s for the map and for letters') +
+    '<p class="note">Upload MP3s, then choose which play behind the map (<b>Music</b>) and which play when you open a letter or envelope (<b>Letters</b>). Several chosen songs play in the order you tap them, each fading into the next. One chosen song loops. Songs stay on this device.</p>' +
+    '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button></div>' +
+    (rows ? sectionTitle('Library') + rows : '<p class="hint">No songs yet.</p>') +
+    sectionTitle('Letter music') +
+    '<p class="hint">' + (SEL.env.length ? 'Playing: ' + SEL.env.map(function (i) { return esc((songById(i) || {}).name || ''); }).join(' → ') + (SEL.env.length === 1 ? ' (on loop)' : '') : 'None chosen — letters open in silence.') + '</p>' +
+    '<div class="sheet-actions">' + songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + '</div>' +
+    '<p class="hint">Turn the background on under Atmosphere → Music box → Play.</p>' +
+    '<div class="sheet-actions" style="margin-top:16px"><button class="pxbtn" type="button" data-act="atmos">Back</button></div>');
+}
+ACTIONS['songs'] = function () { openSongs(); };
+ACTIONS['atmos'] = function () { songPreviewStop(); openAtmos(); };
+ACTIONS['song-pick'] = function () {
+  var inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'audio/mpeg,.mp3'; inp.multiple = true;
+  inp.onchange = function () { songAdd(inp.files, openSongs); };
   inp.click();
 };
-ACTIONS['song-clear'] = function (b) { songClear(b.dataset.v, openAtmos); };
+ACTIONS['song-bg'] = function (b) { songToggle('bg', b.dataset.v); openSongs(); };
+ACTIONS['song-env'] = function (b) { songToggle('env', b.dataset.v); openSongs(); };
+ACTIONS['song-prev'] = function (b) { songPreview(b.dataset.v); openSongs(); };
+ACTIONS['song-del'] = function (b) { songPreviewStop(); songRemove(b.dataset.v, openSongs); };
 ACTIONS['tod'] = function (b) { AMB.tod = b.dataset.v; try { localStorage.setItem('ow.tod', AMB.tod); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['weather'] = function (b) { AMB.weather = b.dataset.v === 'on'; try { localStorage.setItem('ow.weather', AMB.weather ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
 ACTIONS['heat'] = function (b) { AMB.heat = b.dataset.v === 'on'; try { localStorage.setItem('ow.heat', AMB.heat ? 'on' : 'off'); } catch (e) {} openAtmos(); draw(); };
