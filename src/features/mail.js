@@ -171,9 +171,9 @@ function mailOpen(opts) {
   mailRender(true);
   mailEl.classList.add('on');
 }
-function mailClose() { MAIL.open = false; if (mailEl) mailEl.classList.remove('on'); draw(); }
+function mailClose() { MAIL.open = false; if (typeof envSongStop === 'function') envSongStop(); if (mailEl) mailEl.classList.remove('on'); draw(); }
 function mailBack() {
-  if (MAIL.mode === 'room' && MAIL.read) { MAIL.read = null; return mailRender(); }
+  if (MAIL.mode === 'room' && MAIL.read) { MAIL.read = null; if (typeof envSongStop === 'function') envSongStop(); return mailRender(); }
   if (MAIL.mode === 'room') { MAIL.mode = 'ext'; return mailRender(true); }
   mailClose();
 }
@@ -255,6 +255,7 @@ function mailReadHtml() {
       : '<div class="m-nav"><button class="m-btn" type="button" data-m="tab" data-id="inbox">Back to inbox</button></div>') + '</div>';
 }
 function mailMarkOpened(m) {
+  if (typeof envSongStart === 'function') envSongStart();
   if (m.to !== S.who || m.openedAt) return;
   m.openedAt = Date.now(); mailSave(m);
   if (typeof playSound === 'function') playSound('chime');

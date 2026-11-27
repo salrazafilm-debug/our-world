@@ -1,6 +1,7 @@
 /* Sounds and music: soft chimes for little moments, and an optional music-box
    tune. Both are made on the fly (no audio files) and both start OFF. */
 
+var SONG = { bg: null, env: null, urls: {}, names: {} };
 var SND = { on: false, music: false, ctx: null, out: null, timer: null, step: 0 };
 try { SND.on = localStorage.getItem('ow.sound') === 'on'; SND.music = localStorage.getItem('ow.music') === 'on'; } catch (e) {}
 
@@ -50,10 +51,11 @@ function musicTick() {
   SND.step++;
 }
 function startMusic() {
+  if (SONG.urls.bg) { stopMusicTimer(); songPlay('bg'); return; }
   if (SND.timer || !audio()) return;
   SND.timer = setInterval(musicTick, 420);
 }
-function stopMusic() { clearInterval(SND.timer); SND.timer = null; }
+function stopMusic() { clearInterval(SND.timer); SND.timer = null; if (SONG.bg) SONG.bg.pause(); }
 function setMusic(on) {
   SND.music = on;
   try { localStorage.setItem('ow.music', on ? 'on' : 'off'); } catch (e) {}
@@ -74,3 +76,77 @@ document.addEventListener('visibilitychange', function () {
   if (!SND.ctx) return;
   if (document.visibilityState === 'hidden') { SND.ctx.suspend(); } else if (SND.on || SND.music) SND.ctx.resume();
 });
+
+/* ---------- your own songs (MP3 upload) ----------
+   Two slots: 'bg' plays softly behind the map instead of the music box, 'env' plays while a
+   letter or envelope is open. Files are kept on this device (IndexedDB), never sent anywhere. */
+function songDb(cb) {
+  try {
+    var r = indexedDB.open('ow-songs', 1);
+    r.onupgradeneeded = function () { r.result.createObjectStore('songs'); };
+    r.onsuccess = function () { cb(r.result); };
+    r.onerror = function () { cb(null); };
+  } catch (e) { cb(null); }
+}
+function songLoad(slot, done) {
+  songDb(function (db) {
+    if (!db) return done && done();
+    var q = db.transaction('songs').objectStore('songs').get(slot);
+    q.onsuccess = function () {
+      var rec = q.result;
+      if (rec && rec.blob) { SONG.urls[slot] = URL.createObjectURL(rec.blob); SONG.names[slot] = rec.name || 'My song'; }
+      done && done();
+    };
+    q.onerror = function () { done && done(); };
+  });
+}
+function songSave(slot, file, done) {
+  if (!file) return;
+  if (!/\.mp3$/i.test(file.name) && file.type !== 'audio/mpeg') { toast('Please choose an MP3 file.', '🎵', 3500); return; }
+  if (file.size > 25 * 1024 * 1024) { toast('That file is too big (25 MB max).', '🎵', 3500); return; }
+  songDb(function (db) {
+    if (!db) { toast('Could not save the song on this device.', '🎵', 3500); return; }
+    var tx = db.transaction('songs', 'readwrite');
+    tx.objectStore('songs').put({ blob: file, name: file.name.replace(/\.mp3$/i, '') }, slot);
+    tx.oncomplete = function () {
+      if (SONG.urls[slot]) URL.revokeObjectURL(SONG.urls[slot]);
+      songLoad(slot, function () { songRefresh(slot); done && done(); });
+    };
+  });
+}
+function songClear(slot, done) {
+  songDb(function (db) {
+    if (!db) return;
+    var tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').delete(slot);
+    tx.oncomplete = function () {
+      if (SONG.urls[slot]) URL.revokeObjectURL(SONG.urls[slot]);
+      delete SONG.urls[slot]; delete SONG.names[slot];
+      if (SONG[slot]) { SONG[slot].pause(); SONG[slot] = null; }
+      songRefresh(slot); done && done();
+    };
+  });
+}
+function songEl(slot, loop, vol) {
+  if (!SONG.urls[slot]) return null;
+  if (!SONG[slot]) { SONG[slot] = new Audio(SONG.urls[slot]); SONG[slot].loop = loop; SONG[slot].volume = vol; }
+  return SONG[slot];
+}
+function songPlay(slot) { var a = songEl(slot, slot === 'bg', slot === 'bg' ? .35 : .6); if (a) a.play().catch(function () {}); return !!a; }
+function songRefresh(slot) {            /* a slot was added or removed: re-sync what is playing */
+  if (slot === 'bg') { if (SND.music) { stopMusic(); startMusic(); } }
+}
+/* envelope song: pauses the background while a letter is open, then gives it back */
+function envSongStart() {
+  if (!SONG.urls.env) return;
+  if (SONG.bg) SONG.bg.pause();
+  stopMusicTimer();
+  if (SONG.env) SONG.env.currentTime = 0;
+  songPlay('env');
+}
+function envSongStop() {
+  if (SONG.env) SONG.env.pause();
+  if (SND.music) startMusic();
+}
+function stopMusicTimer() { clearInterval(SND.timer); SND.timer = null; }
+songLoad('bg', function () { if (SND.music && SND.ctx) startMusic(); });
+songLoad('env');
