@@ -132,7 +132,7 @@ HOOKS.beforePins.push(function () {
     ctx.save(); ctx.globalAlpha = a;
     if (/^art:/.test(it[4])) {
       /* a painted picture, kept well under the castle's size: about 40% of a home's height, growing gently with zoom */
-      var ph = Math.max(26, Math.min(58, homeArtH(z) * 0.4));
+      var ph = Math.max(34, Math.min(76, homeArtH(z) * 0.52));      /* a little bigger since it carries no name label */
       ctx.fillStyle = 'rgba(60,40,50,.2)'; ctx.beginPath(); ctx.ellipse(p.x, p.y - 2, ph * 0.5, ph * 0.1, 0, 0, 7); ctx.fill();
       b = drawArt(ctx, it[4].slice(4), p.x, p.y, ph, DPR);
     } else {
@@ -142,7 +142,7 @@ HOOKS.beforePins.push(function () {
     ctx.restore();
     if (!b) return;
     addHit({ x: b.x - 6, y: b.y - 6, w: b.w + 12, h: b.h + 12 }, { kind: 'poi', id: it[0] });
-    if (z > it[5] + 0.6) tryLabel(p.x, b.y - 3, it[1], { size: 12, force: 1 });
+    if (z > it[5] + 0.6 && !/^art:/.test(it[4])) tryLabel(p.x, b.y - 3, it[1], { size: 12, force: 1 });      /* a painted picture speaks for itself */
     labelBoxes.push({ x: b.x - 3, y: b.y - 3, w: b.w + 6, h: b.h + 6 });
   });
 });
