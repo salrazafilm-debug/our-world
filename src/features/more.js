@@ -242,7 +242,8 @@ function openSongs() {
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button>' + (LIB.length > 1 ? songBtn('song-bgall', 'on', 'All background on') + songBtn('song-bgall', 'off', 'All off') : '') + '</div>' +
     (rows ? sectionTitle('Library') + rows : '<p class="hint">No songs yet.</p>') +
     sectionTitle('Letter music') +
-    '<div class="sheet-actions">' + songBtn('letters-on', 'on', 'Plays in letters', SND.letters !== 'off') + songBtn('letters-on', 'off', 'Off', SND.letters === 'off') + '</div>' +
+    '<div class="sheet-actions">' + songBtn('letters-on', 'on', 'Plays in letters', SND.letters === 'on') + songBtn('letters-on', 'off', 'Off', SND.letters === 'off') + '</div>' +
+    (SND.letters !== 'on' && SND.letters !== 'off' ? '<p class="hint">Not chosen yet — you will be asked when you open a letter that has music.</p>' : '') +
     '<p class="hint">' + (envNames.length ? esc(envNames.join(' → ')) + (envNames.length === 1 ? ' (on loop)' : '') : 'None — letters open in silence.') + '</p>' +
     '<div class="sheet-actions">' + (envNames.length ? songBtn('song-prev', 'env', PRE.on === 'env' ? '■ Stop test' : '▶ Test letter music') + songBtn('song-envnone', 'x', 'No song') : '') + (LIB.length > 1 ? songBtn('song-envall', 'x', 'All songs in letters') : '') + '</div>' +
     '<p class="hint">Turn background songs on under Atmosphere → Your own songs.</p>' +
@@ -250,7 +251,7 @@ function openSongs() {
 }
 ACTIONS['songs'] = function () { openSongs(); };
 ACTIONS['atmos'] = function () { songPreviewStop(); openAtmos(); };
-ACTIONS['letters-on'] = function (b) { songPreviewStop(); setLetterMusic(b.dataset.v === 'on'); openSongs(); };
+ACTIONS['letters-on'] = function (b) { songPreviewStop(); setLetterMusic(b.dataset.v === 'on'); SND.lettersNo = false; openSongs(); };
 ACTIONS['song-pick'] = function () {
   var inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'audio/mpeg,.mp3'; inp.multiple = true;
