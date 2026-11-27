@@ -114,7 +114,7 @@ function mailEnsure() {
     '.m-tab:active{transform:translateY(4px);border-bottom-width:3px}.m-tab .m-dot{position:absolute;top:4px;right:6px}',
     '.m-main{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:14px;align-items:center;padding-bottom:6px}',
     '@media (min-width:860px){.m-body{flex-direction:row;align-items:flex-start}.m-tabs{grid-template-columns:1fr;width:230px;flex:none}.m-tab{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px 11px;font-size:17px}.m-tab .m-dot{position:static;margin-left:auto}.m-main{height:100%}}',
-    '.m-paper{width:min(100%,560px);min-height:360px;background:#F4DFC0 url(art/mail/vintage-paper.png) center/100% 100% no-repeat;border:0;padding:clamp(30px,7vw,52px) clamp(32px,8vw,58px);color:#4A2A33;filter:drop-shadow(0 9px 6px rgba(29,15,14,.28))}',
+    '.m-paper{width:min(100%,560px);min-height:360px;background:#F4DFC0 url(art/mail/vintage-paper.webp) center/100% 100% no-repeat;border:0;padding:clamp(30px,7vw,52px) clamp(32px,8vw,58px);color:#4A2A33;filter:drop-shadow(0 9px 6px rgba(29,15,14,.28))}',
     '.m-paper h3{margin:0 0 10px;text-align:center;font-family:var(--fdisp);font-weight:600;font-size:20px;color:var(--berry-dk)}',
     '.m-paper .txt{font-size:17px;line-height:1.75;white-space:pre-wrap;word-wrap:break-word;user-select:text;-webkit-user-select:text}',
     '.m-paper .meta{margin-top:12px;font-family:var(--fdisp);font-size:14px;color:var(--rose);text-align:right}',
