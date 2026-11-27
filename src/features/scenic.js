@@ -148,7 +148,7 @@ function scenicGround(g) {
  details.forEach(function(p){g.fillStyle='#706c68';g.fillRect(p.x,p.y+2,step,5);g.fillStyle='#ac9470';g.fillRect(p.x,p.y,step,3);g.fillStyle='#d2ce8b';g.fillRect(p.x,p.y-2,step,2);});
 }
 function drawScenic() {
-  SCENIC_AVOID=[HOMES.bruce,HOMES.elena].concat(HOMEBASE,LANDMARKS.map(function(l){return{lat:l[2],lng:l[3]};}),S.memories,S.plans||[]).map(function(p){return proj(p.lat,p.lng);});
+  SCENIC_AVOID=[HOMES.bruce,HOMES.elena].concat(HOMEBASE,LANDMARKS.map(function(l){return{lat:l[2],lng:l[3]};}),(typeof POIS!=='undefined'?POIS:[]).map(function(p){return{lat:p[2],lng:p[3]};}),S.memories,S.plans||[]).map(function(p){return proj(p.lat,p.lng);});
   var g = scenicCtx, z = S.zoom;
   g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, W, H);
   if (!TER.on) return;

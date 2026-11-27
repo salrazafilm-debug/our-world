@@ -38,7 +38,7 @@ function osmDecode(id, d) {
     var e = Math.min((la - B[0]) / mLat, (B[2] - la) / mLat, (lg - B[1]) / mLng, (B[3] - lg) / mLng);
     r.fade = Math.max(0, Math.min(1, e));
   });
-  OSMR.areas[id] = { roads: roads, bbox: d.bbox };
+  OSMR.areas[id] = { roads: roads, bbox: d.bbox, crop: d.crop, houses: osmMakeHouses(roads) };
   OSMR.ready = true;
 }
 /* start loading whatever the screen is looking at (cheap to call every frame) */
@@ -150,33 +150,48 @@ var OSM_HOUSES_SP = [
 ];
 var OSM_ROOFS = ['#C9606E', '#8E3A57', '#6B8FB5', '#B5553F', '#D9879F', '#7A6A9A', '#5F8B6A', '#A0704C'];
 var OSM_WALLS = ['#FFF2DF', '#F6E2C8', '#FBE7EC', '#E9EEF2', '#F3E6D3'];
+/* Every house site is decided ONCE, in real-world coordinates, when an area's streets load. Nothing about a house
+   depends on the screen, so houses never shift or pop while you pan. Each house also gets the zoom at which it stops
+   crowding a house that outranks it, so zooming in adds houses gradually and always the same ones. */
+function osmMakeHouses(roads) {
+  var cand = [], cosL = Math.cos(38.9 * Math.PI / 180);
+  roads.forEach(function (rd) {
+    if (rd.c !== 4 || rd.fade < 0.8 || rd.pts.length < 6) return;
+    var pts = rd.pts, h = terHash(Math.round(pts[0] * 1e4), Math.round(pts[1] * 1e4), 771); if (h > 0.12) return;
+    var n = pts.length / 2 - 1, k = Math.min(n - 1, Math.floor(n * (0.3 + h * 2))) * 2;
+    var la1 = pts[k], lg1 = pts[k + 1], la2 = pts[k + 2], lg2 = pts[k + 3];
+    var ny = (la2 - la1) * 111320, ex = (lg2 - lg1) * cosL * 111320, L = Math.hypot(ny, ex); if (L < 8) return;
+    var side = (h * 1e3) % 2 < 1 ? 1 : -1, off = 11;                         /* metres to the side of the street */
+    var mla = (la1 + la2) / 2, mlg = (lg1 + lg2) / 2;
+    cand.push({ lat: mla - (ex / L) * off * side / 111320, lng: mlg + (ny / L) * off * side / (cosL * 111320), rank: h / 0.12, zmin: 0,
+      roof: Math.floor(h * 997) % OSM_ROOFS.length, wall: Math.floor(h * 4271) % OSM_WALLS.length, design: Math.floor(h * 1873) % OSM_HOUSES_SP.length });
+  });
+  cand.sort(function (a, b) { return a.rank - b.rank; });
+  var mpp0 = 156543 * cosL, NEED = 70;                                       /* a house wants about 70 px to itself */
+  cand.forEach(function (c, i) {
+    var near = 1e9;
+    for (var j = 0; j < i; j++) { var d = Math.hypot((c.lat - cand[j].lat) * 111320, (c.lng - cand[j].lng) * cosL * 111320); if (d < near) near = d; }
+    c.zmin = near > 1e8 ? 0 : Math.log(NEED * mpp0 / Math.max(near, 1)) / Math.LN2;
+  });
+  return cand;
+}
 function osmHouses(g, streets, sc) {
   OSM_HOUSES = [];
-  var z = S.zoom; if (z < 11.4 || !streets.length) return;
-  var a = cloudEase(11.4, 12.0, z), px = z < 12.6 ? 2 : (z < 14 ? 3 : 4), hw = 13 * px, hh = 11 * px, cap = z < 12.6 ? 9 : (z < 14 ? 14 : 18);      /* just a few: a hint of a neighbourhood */
-  var picks = [];
-  streets.forEach(function (rd) {
-    var pts = rd.pts; if (pts.length < 4 || rd.fade < 0.8) return;
-    var h = terHash(Math.round(pts[0] * 1e4), Math.round(pts[1] * 1e4), 771); if (h > 0.2) return;
-    picks.push({ rd: rd, h: h });
-  });
-  picks.sort(function (x, y) { return x.h - y.h; });         /* the same houses every time, whatever the screen */
-  var placed = 0;
-  for (var i = 0; i < picks.length && placed < cap; i++) {
-    var pts = picks[i].rd.pts, h = picks[i].h, k = 2 * Math.floor((pts.length / 2 - 1) * (0.3 + h)) ;
-    var A = proj(pts[k], pts[k + 1]), B = proj(pts[k + 2], pts[k + 3]), dx = B.x - A.x, dy = B.y - A.y, L = Math.hypot(dx, dy); if (L < 4) continue;
-    var side = h * 1e3 % 2 < 1 ? 1 : -1, off = OSM_STYLE[4].w * sc * 0.5 + hw * 0.55 + 2;
-    var x = (A.x + B.x) / 2 - dy / L * off * side, y = (A.y + B.y) / 2 + dx / L * off * side + hh * 0.4;
-    if (x < -hw || x > W + hw || y < 0 || y > H + hh) continue;
-    if (terrainAt(x, y) !== 'land' || terrainAt(x - hw / 2, y) !== 'land' || terrainAt(x + hw / 2, y) !== 'land') continue;
-    if (typeof scenicAvoid === 'function' && (nycAvoid(x, y, 8) || repairClear(x, y, hw))) continue;
-    var clash = OSM_HOUSES.some(function (o) { return Math.abs(o.x - x) < hw * 3.2 && Math.abs(o.y - y) < hh * 2.6; });     /* spread out, a few per neighbourhood */ if (clash) continue;
-    var roof = OSM_ROOFS[Math.floor(h * 997) % OSM_ROOFS.length], wall = OSM_WALLS[Math.floor(h * 4271) % OSM_WALLS.length], design = OSM_HOUSES_SP[Math.floor(h * 1873) % OSM_HOUSES_SP.length];
-    g.save(); g.globalAlpha = a;
-    g.fillStyle = 'rgba(60,40,50,.2)'; g.beginPath(); g.ellipse(x, y, hw * 0.55, px * 1.4, 0, 0, 7); g.fill();
-    drawSprite(g, design, { r: roof, w: wall, b: '#7FC3DF', d: '#8A5638', c: '#8C6A5A', p: '#D7C2A3', o: '#C9B49A' }, x, y, px, '#5E3A3A');
-    g.restore();
-    OSM_HOUSES.push({ x: x, y: y, w: hw, h: hh }); placed++;
+  var z = S.zoom; if (z < 11.4) return;
+  var a = cloudEase(11.4, 12.0, z), px = z < 12.6 ? 2 : (z < 14 ? 3 : 4), hw = 13 * px, hh = 11 * px, frac = Math.min(1, 0.3 + (z - 11.4) * 0.18);
+  for (var id in OSMR.areas) {
+    (OSMR.areas[id].houses || []).forEach(function (hs) {
+      if (hs.rank > frac || z < hs.zmin) return;
+      var p = proj(hs.lat, hs.lng), x = p.x, y = p.y + hh * 0.4;
+      if (x < -hw || x > W + hw || y < 0 || y > H + hh) return;
+      if (terrainAt(x, y) !== 'land' || terrainAt(x - hw / 2, y) !== 'land' || terrainAt(x + hw / 2, y) !== 'land') return;
+      if (nycAvoid(x, y, 8) || repairClear(x, y, hw)) return;
+      g.save(); g.globalAlpha = a;
+      g.fillStyle = 'rgba(60,40,50,.2)'; g.beginPath(); g.ellipse(x, y, hw * 0.55, px * 1.4, 0, 0, 7); g.fill();
+      drawSprite(g, OSM_HOUSES_SP[hs.design], { r: OSM_ROOFS[hs.roof], w: OSM_WALLS[hs.wall], b: '#7FC3DF', d: '#8A5638', c: '#8C6A5A', p: '#D7C2A3', o: '#C9B49A' }, x, y, px, '#5E3A3A');
+      g.restore();
+      OSM_HOUSES.push({ x: x, y: y, w: hw, h: hh });
+    });
   }
 }
 

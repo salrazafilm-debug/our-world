@@ -1666,16 +1666,28 @@ function tryLabel(x, y, text, opts) {
   return true;
 }
 
+/* The shoreline nudge is worked out ONCE for each zoom and then reused, so a home holds perfectly still while you
+   pan (it used to be re-measured from screen pixels every frame, which made homes hop a few pixels). */
+var HDP_CACHE = {};
 function homeDisplayPos(k, z) {
   var h = HOMES[k], p = typeof repairPoint==='function'?repairPoint(k):proj(h.lat, h.lng);
   /* Homes stay on Maryland's western shore. Never spread them east across
      the bay to make room for labels. The geographic coordinate is unchanged. */
-  if(k==='bruce'){
-    var half=homeArtH(z)*.86*1.6*.47;
-    for(var dx=0;dx<=180;dx+=3){var x=p.x-dx;if(terrainAt(x-half,p.y+5)==='land'&&terrainAt(x+half,p.y+5)==='land'&&terrainAt(x,p.y-10)==='land'){p.x=x;break;}}
-  } else if (terrainAt(p.x,p.y)!=='land') {
-    for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){p.x-=dx;break;}
+  var key = k + '|' + z.toFixed(3), c = HDP_CACHE[key];
+  if (c === undefined) {
+    c = 0;
+    if(k==='bruce'){
+      var half=homeArtH(z)*.86*1.6*.47;
+      for(var dx=0;dx<=180;dx+=3){var x=p.x-dx;if(terrainAt(x-half,p.y+5)==='land'&&terrainAt(x+half,p.y+5)==='land'&&terrainAt(x,p.y-10)==='land'){c=dx;break;}}
+    } else if (terrainAt(p.x,p.y)!=='land') {
+      for(var dx=3;dx<=36;dx+=3) if(terrainAt(p.x-dx,p.y)==='land'){c=dx;break;}
+    }
+    if (TER.px) {                                   /* only remember it once the terrain is really known */
+      var keys = Object.keys(HDP_CACHE); if (keys.length > 60) HDP_CACHE = {};
+      HDP_CACHE[key] = c;
+    }
   }
+  p.x -= c;
   return p;
 }
 function drawMapOverlays() {
@@ -2172,6 +2184,9 @@ function flyTo(lat, lng, z) {
 }
 /* for local testing only: jump the camera (never defined on the live site) */
 if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owFly = function (la, ln, zz) { flyTo(la, ln, zz); };
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__owDebug = function () {
+  return { houses: OSM_HOUSES.map(function (o) { var q = unproj(o.x, o.y); return [q.lat, q.lng]; }), bruce: (function () { var q = homeDisplayPos('bruce', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), elena: (function () { var q = homeDisplayPos('elena', S.zoom), r = unproj(q.x, q.y); return [r.lat, r.lng]; })(), z: S.zoom };
+};
 function enterMap(lat, lng, z) {
   lastModeSwitch = performance.now();
   S.mode = 'map'; S.center.lat = Math.max(5, Math.min(62, lat)); S.center.lng = lng;
