@@ -175,6 +175,30 @@ var journal = {
   }
 };
 
+/* ---------- shared songs (private bucket + a list both of you can see) ---------- */
+var songs = {
+  list: function () {
+    return sb.from('songs').select('id,name,path').order('created_at', { ascending: true }).then(ck).then(function (r) {
+      var rows = r.data || [];
+      if (!rows.length) return [];
+      return sb.storage.from('songs').createSignedUrls(rows.map(function (x) { return x.path; }), 24 * 60 * 60).then(function (s) {
+        var url = {};
+        (s.data || []).forEach(function (it) { if (it && it.signedUrl && it.path) url[it.path] = it.signedUrl; });
+        return rows.filter(function (x) { return url[x.path]; }).map(function (x) { return { id: x.id, name: x.name, path: x.path, url: url[x.path] }; });
+      });
+    });
+  },
+  add: function (file, name) {
+    var path = (userId || 'x') + '/' + uid() + '.mp3';
+    return sb.storage.from('songs').upload(path, file, { contentType: 'audio/mpeg', upsert: false }).then(ck)
+      .then(function () { return sb.from('songs').insert({ name: name, path: path }).then(ck); });
+  },
+  remove: function (id, path) {
+    return sb.from('songs').delete().eq('id', id).then(ck)
+      .then(function () { return sb.storage.from('songs').remove([path]); });
+  }
+};
+
 /* ---------- live presence over a private realtime channel ---------- */
 function presenceJoin(who, meta, onSync) {
   if (!sb || presenceCh) return;
@@ -189,6 +213,7 @@ function presenceTrack(meta) { if (presenceCh) presenceCh.track(meta); }
 
 window.OWCloud = {
   journal: journal,
+  songs: songs,
   presenceJoin: presenceJoin,
   presenceTrack: presenceTrack,
   configured: !!sb,

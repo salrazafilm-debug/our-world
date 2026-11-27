@@ -236,7 +236,7 @@ function openSongs() {
       songBtn('song-del', s.id, '✕') + '</div>';
   }).join('');
   openSheet(head('Your songs', 'MP3s for the map and for letters') +
-    '<p class="note">Upload MP3s, then choose which play behind the map (<b>Music</b>) and which play when you open a letter or envelope (<b>Letters</b>). Several chosen songs play in the order you tap them, each fading into the next. One chosen song loops. Songs stay on this device.</p>' +
+    '<p class="note">Upload MP3s, then choose which play behind the map (<b>Music</b>) and which play when you open a letter or envelope (<b>Letters</b>). Several chosen songs play in the order you tap them, each fading into the next. One chosen song loops.</p>' +
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="song-pick">Upload MP3s</button></div>' +
     (rows ? sectionTitle('Library') + rows : '<p class="hint">No songs yet.</p>') +
     sectionTitle('Letter music') +
