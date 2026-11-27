@@ -8538,10 +8538,7 @@ function mailReadHtml() {
     (last ? '<div class="meta">' + (mine ? 'to ' + esc(shortName(m.to)) : 'from ' + esc(shortName(m.from))) + ' · ' + mailDate(m.at) + '</div>' : '') + '</div>' +
     (pages.length > 1 ? '<div class="m-pages"><button class="m-btn" type="button" data-m="ppage" data-d="-1"' + (pg <= 0 ? ' disabled' : '') + ' aria-label="Previous page">‹</button><span>Page ' + (pg + 1) + ' of ' + pages.length + '</span><button class="m-btn" type="button" data-m="ppage" data-d="1"' + (last ? ' disabled' : '') + ' aria-label="Next page">›</button></div>' : '') +
     '<img class="under" alt="" src="art/mail/env-gold.png">' +
-    (list ? '<div class="m-nav"><button class="m-btn" type="button" data-m="prev"' + (MAIL.idx <= 0 ? ' disabled' : '') + ' aria-label="Newer letter">‹</button>' +
-      '<span>' + (MAIL.idx + 1) + ' of ' + list.length + '</span>' +
-      '<button class="m-btn" type="button" data-m="next"' + (MAIL.idx >= list.length - 1 ? ' disabled' : '') + ' aria-label="Older letter">›</button></div>'
-      : '<div class="m-nav"><button class="m-btn" type="button" data-m="tab" data-id="inbox">Back to inbox</button></div>') + '</div>';
+    '<div class="m-nav"><button class="m-btn" type="button" data-m="back">‹ Back to letters</button></div></div>';
 }
 function mailMarkOpened(m) {
   if (typeof envSongStart === 'function' && !m.songPage) envSongStart(m.songId);
@@ -8572,10 +8569,6 @@ function mailClick(e) {
   if (a === 'look') {
     MAIL.list = mailAll(); MAIL.idx = parseInt(b.dataset.i, 10) || 0; MAIL.read = MAIL.list[MAIL.idx];
     mailMarkOpened(MAIL.read); return mailRender();
-  }
-  if (a === 'prev' || a === 'next') {
-    MAIL.idx = Math.max(0, Math.min(MAIL.list.length - 1, MAIL.idx + (a === 'next' ? 1 : -1)));
-    MAIL.read = MAIL.list[MAIL.idx]; mailMarkOpened(MAIL.read); return mailRender();
   }
   if (a === 'heart') {
     var ta = document.getElementById('mBody'); if (!ta) return;
