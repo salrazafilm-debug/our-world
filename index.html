@@ -7122,7 +7122,7 @@ function bkStyle() {
     '.bk-prev{position:relative;width:min(100%,320px);margin:0 auto;box-shadow:0 4px 0 rgba(90,52,36,.35);border:3px solid var(--wood-dk);background-repeat:no-repeat;overflow:hidden;color:var(--ink);font-family:var(--fbody)}',
     '.bk-prev .bk-pg{opacity:1;transition:none}',
     '.bk-gf{position:absolute;opacity:0;transition:opacity .45s ease;--grabfold-paper:#F4E3CC;--grabfold-lift:#FFF6EA}.bk-gf.on{opacity:1}',
-    '.bk-gf .grabfold-content{background-repeat:no-repeat;background-color:#F4E3CC}.bk-gf .gf-pg{opacity:1;transition:none}',
+    '.bk-gf .grabfold-content{background-repeat:no-repeat}.bk-gf .gf-pg{opacity:1;transition:none}',
     '@media (prefers-reduced-motion:reduce){#bookScene *{transition:none!important;animation:none!important}}'
   ].join('');
   document.head.appendChild(st);
@@ -7295,9 +7295,9 @@ function gfIdx(page) {                                     /* which memory page 
 }
 function gfPaper(slot, side) {                             /* the painted paper of that side, cut from the open-book picture */
   var lp = BK.pages[side === 'left' ? 0 : 1];
-  slot.style.backgroundImage = 'url(art/book/turn-page.webp)';
-  slot.style.backgroundSize = '100% 100%';
-  slot.style.backgroundPosition = 'center';
+  slot.style.backgroundImage = 'url(' + BK.openSrc + ')';
+  slot.style.backgroundSize = (BK.W / lp.w * 100) + '% ' + (BK.H / lp.h * 100) + '%';
+  slot.style.backgroundPosition = (lp.x / (BK.W - lp.w) * 100) + '% ' + (lp.y / (BK.H - lp.h) * 100) + '%';
   return lp;
 }
 function gfMount() {
