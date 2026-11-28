@@ -29,6 +29,22 @@ var SPECIAL_REGIONS = {
       {id:'monument',name:'Washington Monument',lat:38.8895,lng:-77.0353,u:.18,v:.31},
       {id:'jefferson',name:'Jefferson Memorial',lat:38.8814,lng:-77.0365,u:.90,v:.445}
     ],portals:[],ripples:[{u:.86,v:.70},{u:.75,v:.76}],waterfall:{u:.15,v:.69}
+  },
+  'florida-area': {
+    id:'florida-area',city:'miami',name:'Florida',level:'area',asset:'florida-area',worldIcon:'pack-boat',
+    anchor:{lat:25.7617,lng:-80.1918},worldZoom:8.2,zoomRange:[1,3],focus:{u:.68,v:.60},
+    points:[
+      {id:'jacksonville',name:'Jacksonville',lat:30.3322,lng:-81.6557,u:.58,v:.11},
+      {id:'orlando',name:'Orlando',lat:28.5383,lng:-81.3792,u:.475,v:.28},
+      {id:'miami',name:'Miami',lat:25.7617,lng:-80.1918,u:.75,v:.55}
+    ],
+    /* The painting is intentionally stylized, so labels use authored positions. */
+    stops:[
+      {id:'jacksonville',name:'Jacksonville',u:.64,v:.12,note:'The Atlantic welcomes us to Florida.'},
+      {id:'orlando',name:'Orlando',u:.49,v:.255,note:'A little magic in the middle of the journey.'},
+      {id:'tampa',name:'Tampa',u:.30,v:.31,note:'Palm trees and warm water on the Gulf side.'},
+      {id:'miami',name:'Miami',u:.77,v:.48,note:'Our next trip: pastel streets, palms, warm sand and the ocean beside us.'}
+    ],portals:[],ripples:[{u:.85,v:.73},{u:.88,v:.79}]
   }
 };
 /* One approved close-up per city. No nested destinations after entry. */

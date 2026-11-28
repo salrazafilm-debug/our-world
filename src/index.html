@@ -394,6 +394,7 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 .d-tile:active{transform:translateY(5px); border-bottom-width:3px}
 .d-tile .art{flex:1; display:flex; align-items:center; justify-content:center; width:100%; min-height:0}
 .d-tile .art img{max-width:86%; max-height:110px; object-fit:contain; image-rendering:pixelated; transition:transform .15s}
+.d-tile[data-d="florida"] .art img{width:82%;height:100px;max-height:100px;object-fit:cover;object-position:68% 55%;border:4px solid var(--cream);outline:3px solid var(--wood);box-shadow:4px 4px 0 var(--wood-dk)}
 .d-tile:hover .art img{transform:translateY(-3px) rotate(-1.5deg)}
 .d-tile .lbl{width:100%; text-align:center; background:var(--cream); border:3px solid var(--berry); clip-path:var(--px-step); padding:6px 4px 7px; font-family:var(--fdisp); font-weight:600; font-size:clamp(14px,3.6vw,17px); color:var(--berry-dk); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .d-tile .badge{position:absolute; top:8px; right:8px; background:var(--berry); color:var(--cream); font-family:var(--fdisp); font-size:13px; padding:2px 8px; clip-path:var(--px-step)}
@@ -2169,7 +2170,8 @@ function zoomBy(d, at) {
 }
 
 function handleTap(pos) {
-  if(SPECIAL.animation||SPECIAL.active)return;
+  if(SPECIAL.animation)return;
+  if(SPECIAL.active){if(SPECIAL.active.id==='florida-area')specialTapPoint(pos);return;}
   if (S.placing) { placeAt(unproj(pos.x, pos.y)); return; }
   for (var i = hitboxes.length - 1; i >= 0; i--) {
     var h = hitboxes[i], b = h.b;
@@ -3148,7 +3150,7 @@ function openPlaces() {
         '<span class="ico">' + r.ic + '</span><span><span class="t">' + esc(r.t) + '</span><br>' +
         '<span class="s">' + esc(r.s) + '</span></span></button>';
     }).join('') + '</div>' +
-    '<h3 style="font-family:var(--fdisp)">Illustrated places</h3><div class="sheet-actions"><button class="pxbtn" data-act="region-card" data-region="nyc-area">New York City</button><button class="pxbtn" data-act="region-card" data-region="dc-area">Washington, DC</button></div>' +
+    '<h3 style="font-family:var(--fdisp)">Illustrated places</h3><div class="sheet-actions"><button class="pxbtn" data-act="region-card" data-region="nyc-area">New York City</button><button class="pxbtn" data-act="region-card" data-region="dc-area">Washington, DC</button><button class="pxbtn" data-act="region-card" data-region="florida-area">Florida · Miami next</button></div>' +
     '<div class="sheet-actions"><button class="pxbtn" type="button" data-act="close">Close</button></div>'
   );
 }
