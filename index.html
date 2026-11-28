@@ -729,7 +729,6 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
 #actions .icon svg{display:block;width:28px;height:28px;shape-rendering:crispEdges}
 #actions .lbl{display:none!important}
 #actions #btnMemory{order:0}#actions #btnLocate{order:1}#actions #btnPlaces{order:2}
-#actions #btnFlorida{order:3}
 #actions #btnDiscover{display:none!important}
 #actions .icon[disabled]{opacity:.65;cursor:wait}
 @media(prefers-reduced-motion:reduce){#actions .icon{transition:none}}
@@ -794,9 +793,6 @@ body.locked #app, body.locked #intro, body.locked #lightbox, body.locked #quote{
         </button>
         <button class="pxbtn icon" id="btnLocate" title="Go to my GPS location" aria-label="Go to my GPS location">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="#6b3d3a" d="M5 1h6v1h2v2h1v6h-2v2h-2v2H9v1H7v-1H6v-2H4v-2H2V4h1V2h2z"/><path fill="#e4ad7e" d="M5 3h6v1h1v5h-2v2H9v2H7v-2H6V9H4V4h1z"/><path fill="#fff2df" d="M6 4h4v1h1v3h-1v1H6V8H5V5h1z"/></svg>
-        </button>
-        <button class="pxbtn icon florida-action" id="btnFlorida" title="Open Florida and Miami" aria-label="Open Florida and Miami">
-          <span aria-hidden="true" style="font-size:20px;line-height:1">🌴</span><span class="lbl">Florida</span>
         </button>
       </div>
       <div hidden>
@@ -2408,7 +2404,7 @@ function drawMapOverlays() {
     }
     var lb = (special&&drawArt(ctx,special.worldIcon,p.x,p.y,Math.min(102,(58+(z-7)*13)*(lm[0]==='dc'?.85:1)),DPR)) || (lm[7] ? drawSprite(ctx, SP[lm[4]], PAL[lm[4]], p.x, p.y, lsc, null) : lmDraw(lm[4], p.x, p.y, lsc));
     ctx.restore();
-    if(special&&z>9.2)tryLabel(p.x,lb.y-18,lm[1],{size:13});
+    if(special&&z>9.2)tryLabel(p.x,Math.max(28,lb.y-18),lm[0]==='miami'?'FLORIDA · MIAMI':lm[1],{size:13,fg:C.deep,bg:'rgba(255,251,253,.92)',border:C.berry,force:1});
     else if (z > 9.6) tryLabel(p.x, lb.y - 2, lm[1], { size: 13, fg: C.deep, border: C.gold, force: 1 });
     labelBoxes.push({ x: lb.x - 4, y: lb.y - 4, w: lb.w + 8, h: lb.h + 8 });
     addHit({ x: lb.x - 8, y: lb.y - 20, w: lb.w + 16, h: lb.h + 26 }, { kind: 'landmark', id: lm[0] });
@@ -3661,7 +3657,6 @@ function openPlaces() {
   );
 }
 document.getElementById('btnPlaces').addEventListener('click', function () { openMenu(); });
-document.getElementById('btnFlorida').addEventListener('click', function () { specialLanding('florida-area'); });
 document.getElementById('btnHere').addEventListener('click', function () {
   discover(S.center.lat, S.center.lng);
 });
