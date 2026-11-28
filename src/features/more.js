@@ -50,8 +50,7 @@ var DASH = [
   /* Pup Shop is temporarily hidden while accessory art is being refit. */
   ['cal',     'art/ui/calendar.png', 'Our Calendar'],
   ['letters', 'art/ui/letters.png',  'Love Letters'],
-  ['avatars', 'art/ui/avatars.png',  'Our Avatars'],
-  ['florida', 'art/world/regions/florida-area.webp', 'Florida Map']
+  ['avatars', 'art/ui/avatars.png',  'Our Avatars']
 ];
 var dashEl = null;
 function dashEnsure() {
@@ -70,7 +69,6 @@ function dashEnsure() {
     else if (d === 'mem') bookOpen();
     else if (d === 'letters') mailOpen({ room: true });
     else if (d === 'avatars') ACTIONS['mn-us']();
-    else if (d === 'florida') specialLanding('florida-area');
     else if (d === 'dreams') ACTIONS['mn-dream']();
     else if (d === 'set') ACTIONS['mn-set']();
     else if (d === 'add') openAddMenu();
@@ -83,7 +81,6 @@ function dashEnsure() {
   return dashEl;
 }
 function dashBadge(id) {
-  if (id === 'florida') return 'Miami next';
   if (id === 'letters') { var n = mailUnread().length; return n ? n + ' new' : ''; }
   return '';
 }

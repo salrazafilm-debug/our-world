@@ -452,18 +452,6 @@
       "category": "region",
       "use": "clean authored scene; independent geographic markers",
       "source": "art-src/world/dc-area-clean.png"
-    },
-    "florida-area": {
-      "path": "art/world/regions/florida-area.webp",
-      "width": 1536,
-      "height": 1024,
-      "anchor": [
-        0.5,
-        0.5
-      ],
-      "category": "region",
-      "use": "Florida destination illustration with HTML and canvas markers",
-      "source": "art-src/world/florida-area-clean.png"
     }
   }
 }

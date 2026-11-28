@@ -49,7 +49,7 @@ async function prepare() {
     assets['pack-'+name]={path:file,width:meta.width,height:meta.height,anchor:category==='ground'?[0,0]:[.5,1],category,
       use:category==='ground'?'low-contrast seamless region texture':'world-coordinate decoration',source:sources+source,crop:box};
   }
-  for(const id of ['nyc-area','nyc-waterfront','dc-area','florida-area']){
+  for(const id of ['nyc-area','nyc-waterfront','dc-area']){
     const source=sources+id+'-clean.png',file='art/world/regions/'+id+'.webp';
     fs.mkdirSync(path.dirname(path.join(root,file)),{recursive:true});
     await sharp(path.join(root,source)).webp({lossless:true,effort:6}).toFile(path.join(root,file));

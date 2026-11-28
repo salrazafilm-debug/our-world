@@ -102,25 +102,14 @@ function specialZoom(d,at){
   specialClamp();draw();
 }
 function specialFocus(lat,lng,z){var p=RegionMath.project(specialMap(SPECIAL.active),lat,lng);SPECIAL.camera.u=p.u;SPECIAL.camera.v=p.v;if(typeof z==='number')SPECIAL.camera.scale=RegionMath.clamp(Math.pow(2,z-12),1,3);specialClamp();draw();}
-function specialPoint(config,id){return (config.stops||config.points).filter(function(p){return p.id===id;})[0];}
+function specialPoint(config,id){return config.points.filter(function(p){return p.id===id;})[0];}
 function specialLanding(id){
   var config=SPECIAL_REGIONS[id];if(!config)return;
-  if(id==='florida-area'){
-    openSheet(head('Florida','Our next trip · Miami')+
-      '<p class="note">Follow the coast through Jacksonville, Orlando and Tampa. Miami is waiting at the end, with palm-lined streets, sand and bright blue water.</p>'+
-      '<div class="sheet-actions"><button class="pxbtn primary" data-act="region-open" data-region="florida-area">Explore Florida</button><button class="pxbtn" data-act="close">Close</button></div>');
-    return;
-  }
   var memories=nearbyList(config.anchor.lat,config.anchor.lng,10);
   openSheet(head(config.name,'A closer view of our world')+'<p class="note">Explore the illustrated '+(config.level==='closeup'?'waterfront':'region')+', pan around, and revisit memories at their mapped locations.</p>'+listHtml(memories,'No memories here yet.')+'<div class="sheet-actions"><button class="pxbtn primary" data-act="region-open" data-region="'+id+'">Explore Closer</button><button class="pxbtn" data-act="close">Close</button></div>');
 }
 function specialOpenPoint(id){
   var config=SPECIAL.active,p=specialPoint(config,id);if(!p)return;
-  if(config.id==='florida-area'){
-    openSheet(head(p.name,id==='miami'?'Our next trip':'Florida')+'<p class="note">'+esc(p.note)+'</p>'+
-      '<div class="sheet-actions"><button class="pxbtn" data-act="close">Back to Florida</button></div>');
-    return;
-  }
   var portal=config.portals.filter(function(p){return p.point===id;})[0];
   openSheet(head(p.name,config.name)+'<div class="sheet-actions">'+(portal?'<button class="pxbtn primary" data-act="region-open" data-region="'+portal.target+'">Explore Closer</button>':'')+'<button class="pxbtn" data-act="mem-at" data-lat="'+p.lat+'" data-lng="'+p.lng+'">Add a memory here</button><button class="pxbtn" data-act="close">Close</button></div>');
 }
@@ -138,23 +127,7 @@ function drawSpecialRegion(){
   hitboxes=[];labelBoxes=[];HOMEBOXES={};specialRipples(config,g);
   /* Final scenic view: no location pins, memory overlays, or deeper hotspots.
      Records remain untouched and available on the ordinary world map. */
-  drawSpecialVisitors(config,g);
-  if(config.id==='florida-area')drawFloridaStops(config,g);
-  return true;
-}
-function drawFloridaStops(config,g){
-  config.stops.forEach(function(stop){
-    var x=g.x+stop.u*g.w,y=g.y+stop.v*g.h,miami=stop.id==='miami';
-    if(x < -100||x > W+100||y < -60||y > H+60)return;
-    var b=labelBox(x,y,miami?'♥ MIAMI':stop.name,{size:miami?20:15,
-      fg:miami?'#5E2238':'#4A2A33',bg:'#FFF2DF',border:miami?'#8E3A57':'#8A5638'});
-    if(miami)labelBox(x,b.y-3,'OUR NEXT TRIP',{size:12,fg:'#8E3A57',bg:'#FFF2DF',border:'#8E3A57'});
-    addHit({x:b.x-6,y:b.y-30,w:b.w+12,h:b.h+36},{kind:'florida-stop',id:stop.id});
-  });
-}
-function specialTapPoint(pos){
-  for(var i=hitboxes.length-1;i>=0;i--){var h=hitboxes[i],b=h.b;
-    if(h.item.kind==='florida-stop'&&pos.x>=b.x&&pos.x<=b.x+b.w&&pos.y>=b.y&&pos.y<=b.y+b.h){specialOpenPoint(h.item.id);return;}}
+  drawSpecialVisitors(config,g);return true;
 }
 function specialVisitorList(config){
   var visitors=S.who?[S.who]:[];

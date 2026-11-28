@@ -3,7 +3,7 @@ const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('ass
 const root=path.join(__dirname,'..'),context=vm.createContext({});
 for(const file of ['region-math.js','region-configs.js'])vm.runInContext(fs.readFileSync(path.join(root,'src/world',file),'utf8'),context);
 const math=context.RegionMath,regions=context.SPECIAL_REGIONS;
-assert.deepEqual([...new Set(Object.values(regions).map(r=>r.city))].sort(),['dc','miami','nyc']);
+assert.deepEqual([...new Set(Object.values(regions).map(r=>r.city))].sort(),['dc','nyc']);
 for(const r of Object.values(regions)){
   const m=math.calibrate(r.points);
   for(const p of r.points){
@@ -38,4 +38,4 @@ const weights=[threshold-.1,threshold-.001,threshold,threshold+.001].map(z=>scen
 assert(weights.every((v,i)=>i===0||v>=weights[i-1]),'density fading must be monotonic');
 assert(Math.abs(weights[1]-weights[2])<.02,'no all-or-nothing density cutoff');
 assert.equal(scenery.scenicCellWeight(3,4,.012,threshold,22),1);
-console.log('ok: Florida/NYC/DC calibration and inverse mapping, portals, transition timing, continuous deterministic scenery density');
+console.log('ok: 26 assets, NYC/DC calibration and inverse mapping, portals, transition timing, continuous deterministic scenery density');
